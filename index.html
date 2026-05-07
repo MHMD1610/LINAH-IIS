@@ -2876,29 +2876,66 @@
   <script>
 
     // ══════════════════════════════════════════════════
-    // AUTH & PERMISSIONS — نسخة مُصلَحة جذرياً
+    // AUTH & PERMISSIONS — مع مزامنة Firebase
     // ══════════════════════════════════════════════════
-    var AUTH_KEY = 'linah_users';
+    var AUTH_KEY    = 'linah_users';   // localStorage (cache)
     var SESSION_KEY = 'linah_session';
     var ROLE_LABELS = { admin: 'مشرف', inspector: 'مفتش', viewer: 'مشاهد' };
 
-    function initUsers() {
+    var FB_USERS_URL = 'https://linah-iis-default-rtdb.firebaseio.com/linah_farms/users.json';
+    var DEFAULT_USERS = [
+      { username: 'admin',    password: 'admin123', role: 'admin'    },
+      { username: 'inspector', password: 'insp123',  role: 'inspector' },
+      { username: 'viewer',   password: 'view123',  role: 'viewer'   }
+    ];
+
+    // ── قراءة المستخدمين من Firebase أولاً، وإذا فشل يرجع للـ localStorage ──
+    function loadUsersFromFirebase(callback) {
+      fetch(FB_USERS_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var users = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          if (!users.length) {
+            // Firebase فارغ → ارفع الافتراضيين
+            users = DEFAULT_USERS.slice();
+            saveUsersToFirebase(users);
+          }
+          localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+          callback(null, users);
+        })
+        .catch(function(err){
+          console.warn('Firebase users fetch failed, using localStorage:', err);
+          callback(null, initUsersLocal());
+        });
+    }
+
+    // ── حفظ المستخدمين على Firebase ──
+    function saveUsersToFirebase(users) {
+      fetch(FB_USERS_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(users)
+      }).catch(function(e){ console.warn('Firebase users save failed:', e); });
+    }
+
+    // ── قراءة/إنشاء محلي (fallback) ──
+    function initUsersLocal() {
       var raw = localStorage.getItem(AUTH_KEY);
       var users = [];
       try { users = raw ? JSON.parse(raw) : []; } catch(e) { users = []; }
       if (!Array.isArray(users) || !users.length) {
-        users = [
-          { username: 'admin', password: 'admin123', role: 'admin' },
-          { username: 'inspector', password: 'insp123', role: 'inspector' },
-          { username: 'viewer', password: 'view123', role: 'viewer' }
-        ];
+        users = DEFAULT_USERS.slice();
         localStorage.setItem(AUTH_KEY, JSON.stringify(users));
       }
       return users;
     }
 
+    // ── للاستخدام الداخلي الفوري (من cache) ──
+    function initUsers() { return initUsersLocal(); }
+
     function saveUsers(users) {
       localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+      saveUsersToFirebase(users);   // ← تزامن مع Firebase
     }
 
     function getCurrentUser() {
@@ -2910,18 +2947,20 @@
       var p = (document.getElementById('login-pass').value || '').trim();
       var err = document.getElementById('login-err');
       if (!u || !p) { err.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور'; return; }
-      var users = initUsers();
-      var found = null;
-      for (var i = 0; i < users.length; i++) {
-        if (users[i].username === u && users[i].password === p) { found = users[i]; break; }
-      }
-      if (!found) { err.textContent = 'اسم المستخدم أو كلمة المرور غير صحيح'; return; }
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ username: found.username, role: found.role }));
-      err.textContent = '';
-      document.getElementById('login-overlay').classList.add('hidden');
-      renderUserBadge();
-      applyPermissions();
-      nav('dash');
+      // حاول من Firebase أولاً ثم من الـ cache
+      loadUsersFromFirebase(function(e, users) {
+        var found = null;
+        for (var i = 0; i < users.length; i++) {
+          if (users[i].username === u && users[i].password === p) { found = users[i]; break; }
+        }
+        if (!found) { err.textContent = 'اسم المستخدم أو كلمة المرور غير صحيح'; return; }
+        localStorage.setItem(SESSION_KEY, JSON.stringify({ username: found.username, role: found.role }));
+        err.textContent = '';
+        document.getElementById('login-overlay').classList.add('hidden');
+        renderUserBadge();
+        applyPermissions();
+        nav('dash');
+      });
     }
 
     function doLogout() {
@@ -2940,16 +2979,20 @@
       if (!badge) return;
       if (!user) { badge.innerHTML = ''; return; }
       badge.innerHTML =
-        '<div class="ub-name">👤 ' + user.username + '</div>' +
+        '<div class="ub-name">&#128100; ' + user.username + '</div>' +
         '<div class="ub-role">' + (ROLE_LABELS[user.role] || user.role) + '</div>' +
-        '<button class="ub-logout" onclick="doLogout()">🚪 تسجيل خروج</button>';
+        '<button class="ub-logout" onclick="doLogout()">&#128682; تسجيل خروج</button>';
     }
 
+    // ── صلاحيات الأدوار ──
     var ROLE_PAGES = {
-      admin: ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup','db','backup','users'],
-      inspector: ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup'],
-      viewer: ['dash','fu-alerts','crit-alerts','followup','closed','records','perf','resp','code-history','reports','tracking-lookup']
+      admin:    ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup','db','backup','users'],
+      inspector:['dash','fu-alerts','crit-alerts','followup','closed','records','perf','resp','code-history','reports','tracking-lookup','form','tracking'],
+      viewer:   ['dash','fu-alerts','crit-alerts','followup','closed','records','perf','resp','code-history','reports','tracking-lookup']
     };
+
+    // الصفحات التي يُسمح للمفتش بالتعديل فيها فقط
+    var INSPECTOR_EDIT_PAGES = ['form', 'tracking'];
 
     function applyPermissions() {
       var user = getCurrentUser();
@@ -2957,26 +3000,28 @@
       var allowed = ROLE_PAGES[user.role] || [];
       document.querySelectorAll('.ni').forEach(function(btn) {
         var oc = btn.getAttribute('onclick') || '';
-        var m = oc.match(/nav\('([^']+)'\)/);
+        var m = oc.match(/nav\([\'"]([^\'"]+)[\'"]\)/);
         if (m) btn.style.display = allowed.indexOf(m[1]) >= 0 ? '' : 'none';
       });
-      if (user.role === 'viewer') {
-        document.querySelectorAll('.btn-add, [onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"]').forEach(function(el) {
+      // المفتش والمشاهد: إخفاء أزرار الحذف والتعديل خارج صفحاتهم المسموحة
+      if (user.role === 'inspector' || user.role === 'viewer') {
+        document.querySelectorAll('[onclick*="delRec"], [onclick*="editRec"], [onclick*="newRec"]').forEach(function(el) {
           el.style.display = 'none';
         });
       }
     }
 
+    // ── إدارة المستخدمين ──
     function renderUsersTable() {
-      var users = initUsers();
+      var users = initUsersLocal();
       var cur = getCurrentUser();
       var tb = document.querySelector('#um-table tbody');
       if (!tb || !cur) return;
       tb.innerHTML = users.map(function(u) {
         var safeName = u.username.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        var safePw = u.password.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        var safePw   = u.password.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var del = (u.username !== cur.username)
-          ? '<span class="um-act" onclick="deleteUser(\'' + safeName + '\')">حذف</span>' : '—';
+          ? '<span class="um-act" onclick="deleteUser(\'' + safeName + '\')">&#128465; حذف</span>' : '—';
         var pwCell = '<span style="cursor:pointer;font-family:monospace" title="اضغط لإظهار" onclick="this.textContent=this.textContent===\'●●●●●●\'?\'' + safePw + '\':\'●●●●●●\'">●●●●●●</span>';
         return '<tr><td>' + u.username + '</td><td>' + pwCell + '</td><td>' + (ROLE_LABELS[u.role] || u.role) + '</td><td>' + del + '</td></tr>';
       }).join('');
@@ -2984,31 +3029,37 @@
 
     function addUser() {
       var name = (document.getElementById('um-name').value || '').trim();
-      var pw = (document.getElementById('um-pw').value || '').trim();
+      var pw   = (document.getElementById('um-pw').value   || '').trim();
       var role = document.getElementById('um-role').value;
       if (!name || !pw) { alert('يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
-      var users = initUsers();
-      if (users.some(function(x) { return x.username === name; })) {
-        alert('اسم المستخدم "' + name + '" موجود بالفعل'); return;
-      }
-      users.push({ username: name, password: pw, role: role });
-      saveUsers(users);
-      document.getElementById('um-name').value = '';
-      document.getElementById('um-pw').value = '';
-      document.getElementById('um-role').value = 'viewer';
-      renderUsersTable();
-      alert('تم إضافة المستخدم بنجاح\nاسم المستخدم: ' + name + '\nكلمة المرور: ' + pw + '\nالدور: ' + (ROLE_LABELS[role] || role));
+      // تحقق من Firebase أولاً لضمان عدم التكرار
+      loadUsersFromFirebase(function(e, users) {
+        if (users.some(function(x){ return x.username === name; })) {
+          alert('اسم المستخدم "' + name + '" موجود بالفعل'); return;
+        }
+        users.push({ username: name, password: pw, role: role });
+        saveUsers(users);
+        document.getElementById('um-name').value = '';
+        document.getElementById('um-pw').value = '';
+        document.getElementById('um-role').value = 'viewer';
+        renderUsersTable();
+        alert('✅ تم حفظ المستخدم على Firebase\nاسم المستخدم: ' + name + '\nكلمة المرور: ' + pw + '\nالدور: ' + (ROLE_LABELS[role] || role));
+      });
     }
 
     function deleteUser(username) {
       if (!confirm('هل أنت متأكد من حذف المستخدم: ' + username + '؟')) return;
-      var users = initUsers().filter(function(x) { return x.username !== username; });
+      var users = initUsersLocal().filter(function(x){ return x.username !== username; });
       saveUsers(users);
       renderUsersTable();
     }
 
+    // ── Startup ──
     window.addEventListener('DOMContentLoaded', function() {
-      initUsers();
+      // حمّل المستخدمين من Firebase عند بدء التشغيل
+      loadUsersFromFirebase(function(e, users) {
+        console.log('Users loaded:', users.length, 'user(s) from', e ? 'localStorage' : 'Firebase');
+      });
       var user = getCurrentUser();
       if (user) {
         document.getElementById('login-overlay').classList.add('hidden');
@@ -3032,12 +3083,15 @@
         }
         _origNav(name);
         if (name === 'users') renderUsersTable();
-        if (user.role === 'viewer') {
+        // إعادة تطبيق صلاحيات المفتش بعد التنقل
+        if (user.role === 'inspector' || user.role === 'viewer') {
           setTimeout(function() {
-            document.querySelectorAll('[onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"]').forEach(function(el) {
-              el.style.display = 'none';
+            // إذا الصفحة مش من صفحات التعديل → إخفاء أزرار التعديل
+            var isEditPage = INSPECTOR_EDIT_PAGES.indexOf(name) >= 0;
+            document.querySelectorAll('[onclick*="delRec"], [onclick*="editRec"], [onclick*="newRec"]').forEach(function(el) {
+              el.style.display = isEditPage && user.role === 'inspector' ? '' : 'none';
             });
-          }, 100);
+          }, 150);
         }
       };
       applyPermissions();
@@ -3081,7 +3135,7 @@
     // ════════════════════════════════════════════════
     var FB_BASE = 'https://linah-iis-default-rtdb.firebaseio.com/linah_farms';
     var FB_DB_URL = FB_BASE + '/db.json';
-    var FB_DD_URL = FB_BASE + '/dd.json';
+    var FB_DD_URL  = FB_BASE + '/dd.json';
 
     // ════════════════════════════════════════════════
     // SECTOR → VALVE MAP (from Excel: بيانات_القطاعات)
