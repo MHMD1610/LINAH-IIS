@@ -3089,8 +3089,163 @@
     // FIREBASE REST API (no SDK needed — pure fetch)
     // ════════════════════════════════════════════════
     var FB_BASE = 'https://linah-iis-default-rtdb.firebaseio.com/linah_farms';
-    var FB_DB_URL = FB_BASE + '/db.json';
-    var FB_DD_URL = FB_BASE + '/dd.json';
+var FB_DB_URL  = FB_BASE + '/db.json';
+var FB_DD_URL  = FB_BASE + '/dd.json';
+
+var fbConnected = false;
+var fbSaveTimer = null;
+var fbDDSaveTimer = null;
+var fbPollTimer = null;
+
+var STORAGE_KEY = 'lf_v5_db';
+var DD_KEY = 'lf_v5_dd';
+
+function fbSetStatus(connected) {
+  fbConnected = connected;
+  var ind = document.getElementById('fb-status');
+  if (ind) {
+    ind.textContent = connected ? '🟢 Firebase متصل' : '🔴 Firebase غير متصل';
+    ind.style.color  = connected ? 'var(--grn)' : 'var(--red)';
+  }
+}
+
+function fbGet(url, callback) {
+  fetch(url)
+    .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function(data){ callback(null, data); })
+    .catch(function(err){ callback(err, null); });
+}
+
+function fbPut(url, data) {
+  return fetch(url, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+}
+
+function fbPatch(url, data) {
+  return fetch(url, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+}
+
+// Poll Firebase every 10 seconds for real-time-like sync
+function startFbPolling() {
+  if (fbPollTimer) clearInterval(fbPollTimer);
+  fbPollTimer = setInterval(function() {
+    fbGet(FB_DB_URL, function(err, val) {
+      if (!err && val && Array.isArray(val) && val.length) {
+        DB = val;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch(e) {}
+        computeFU(); initFilters(); applyF(); buildDash();
+        var counts = {};
+        DB.forEach(function(r){ counts[r.code] = (counts[r.code]||0)+1; });
+        var repCnt = Object.values(counts).filter(function(v){ return v>=2; }).length;
+        setT('nb-rep', repCnt);
+        setT('db-cnt', DB.length+' سجل 2026');
+      }
+    });
+    fbGet(FB_DD_URL, function(err, val) {
+      if (!err && val && typeof val === 'object') {
+        Object.keys(val).forEach(function(k){ DD[k] = val[k]; });
+        try { localStorage.setItem(DD_KEY, JSON.stringify(val)); } catch(e) {}
+      }
+    });
+  }, 10000);
+}
+
+function initFirebase() {
+  // Test connection with a simple GET
+  fbGet(FB_DB_URL, function(err, val) {
+    if (err) {
+      fbSetStatus(false);
+      console.warn('Firebase REST: غير متاح — وضع offline');
+      return;
+    }
+    fbSetStatus(true);
+    // Load DB from Firebase if it has data
+    if (val && Array.isArray(val) && val.length) {
+      DB = val;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch(e) {}
+      computeFU(); initFilters(); applyF(); buildDash();
+      var counts = {};
+      DB.forEach(function(r){ counts[r.code] = (counts[r.code]||0)+1; });
+      var repCnt = Object.values(counts).filter(function(v){ return v>=2; }).length;
+      setT('nb-rep', repCnt);
+      setT('db-cnt', DB.length+' سجل 2026');
+    } else {
+      // First run — push local data to Firebase
+      fbPut(FB_DB_URL, DB).catch(function(e){ console.warn('FB push DB:', e); });
+    }
+    // Load DD
+    fbGet(FB_DD_URL, function(err2, ddVal) {
+      if (!err2 && ddVal && typeof ddVal === 'object') {
+        Object.keys(ddVal).forEach(function(k){ DD[k] = ddVal[k]; });
+        try { localStorage.setItem(DD_KEY, JSON.stringify(ddVal)); } catch(e) {}
+      } else if (!err2) {
+        fbPut(FB_DD_URL, DD).catch(function(e){ console.warn('FB push DD:', e); });
+      }
+    });
+    startFbPolling();
+  });
+  return true; // always return true (async)
+}
+
+function initDB() {
+  // Try Firebase first
+  var ok = initFirebase();
+
+  // Also load from localStorage as immediate seed (before Firebase responds)
+  var s = localStorage.getItem(STORAGE_KEY);
+  if (s) {
+    try { DB = JSON.parse(s); }
+    catch(e) { DB = SEED.slice(); }
+  } else {
+    DB = SEED.slice();
+    // Push SEED to Firebase on first run
+    if (ok) { fbRef.set(DB); }
+  }
+
+  var ds = localStorage.getItem(DD_KEY);
+  if (ds) {
+    try {
+      var d = JSON.parse(ds);
+      Object.keys(d).forEach(function(k){ DD[k] = d[k]; });
+    } catch(e) {}
+  }
+}
+
+function saveDB() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch(e) {}
+  if (fbConnected) {
+    clearTimeout(fbSaveTimer);
+    fbSaveTimer = setTimeout(function() {
+      fbPut(FB_DB_URL, DB).catch(function(err) {
+        toast('⚠️ تعذّر الحفظ في Firebase', 'w');
+      });
+    }, 500);
+  } else {
+    toast('⚠️ البيانات محفوظة محلياً فقط (Firebase غير متصل)', 'w');
+  }
+}
+
+function saveDD() {
+  try { localStorage.setItem(DD_KEY, JSON.stringify(DD)); } catch(e) {}
+  if (fbConnected) {
+    clearTimeout(fbDDSaveTimer);
+    fbDDSaveTimer = setTimeout(function() {
+      fbPut(FB_DD_URL, DD).catch(function(err) {
+        console.warn('DD save error:', err);
+      });
+    }, 500);
+  }
+}
+function nextId() { return DB.length ? Math.max.apply(null, DB.map(function(r){return r.id||0;})) + 1 : 1; }
+function setT(id, v) { var e=document.getElementById(id); if(e) e.textContent=v; }
+
 
     // ════════════════════════════════════════════════
     // SECTOR → VALVE MAP (from Excel: بيانات_القطاعات)
