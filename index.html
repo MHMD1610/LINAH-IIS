@@ -1883,7 +1883,7 @@
     }
     .user-badge .ub-logout:hover { background: rgba(255,255,255,.35); }
     /* User management panel */
-    #pg-users { direction: rtl; }
+    #pg-users { direction: rtl; padding: 24px; }
     .um-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 12px; }
     .um-table th { background: #e8f5e9; padding: 8px; text-align: right; font-weight: 700; }
     .um-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: right; }
@@ -1980,7 +1980,8 @@
             &#1575;&#1604;&#1575;&#1581;&#1578;&#1610;&#1575;&#1591;&#1610;</span></button>
       </div>
       <div class="sb-foot">
-        <div>Linah Farms v6.0 — Firebase</div>
+        <div id="user-badge" class="user-badge"></div>
+        <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">Linah Farms v6.0 — Firebase</div>
         <div id="fb-status" style="margin-top:4px;font-size:.68rem;font-weight:600">🔄 جاري الاتصال...</div>
         <div id="db-cnt" style="margin-top:3px;font-size:.65rem"></div>
       </div>
@@ -2819,6 +2820,24 @@
         </div>
       </div>
 
+      <!-- ══════ USER MANAGEMENT PAGE ══════ -->
+      <section class="pg" id="pg-users">
+        <div class="card">
+          <h2>👥 إدارة المستخدمين</h2>
+          <div class="um-add-form" id="um-add-form">
+            <input type="text" id="um-name" placeholder="اسم المستخدم">
+            <input type="password" id="um-pw" placeholder="كلمة المرور">
+            <select id="um-role">
+              <option value="admin">مشرف</option>
+              <option value="inspector">مفتش</option>
+              <option value="viewer" selected>مشاهد</option>
+            </select>
+            <button onclick="addUser()">إضافة مستخدم</button>
+          </div>
+          <table class="um-table" id="um-table"><thead><tr><th>اسم المستخدم</th><th>كلمة المرور</th><th>الدور</th><th>إجراء</th></tr></thead><tbody></tbody></table>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -2854,64 +2873,54 @@
 
   <div class="toasts" id="toasts"></div>
 
-    <!-- ══════ USER MANAGEMENT PAGE ══════ -->
-    <section class="pg" id="pg-users">
-      <div class="card">
-        <h2>👥 إدارة المستخدمين</h2>
-        <div class="um-add-form" id="um-add-form">
-          <input type="text" id="um-name" placeholder="اسم المستخدم">
-          <input type="password" id="um-pw" placeholder="كلمة المرور">
-          <select id="um-role">
-            <option value="admin">مشرف</option>
-            <option value="inspector">مفتش</option>
-            <option value="viewer" selected>مشاهد</option>
-          </select>
-          <button onclick="addUser()">إضافة مستخدم</button>
-        </div>
-        <table class="um-table" id="um-table"><thead><tr><th>اسم المستخدم</th><th>الدور</th><th>إجراء</th></tr></thead><tbody></tbody></table>
-      </div>
-    </section>
-
   <script>
 
     // ══════════════════════════════════════════════════
-    // AUTH & PERMISSIONS SYSTEM
+    // AUTH & PERMISSIONS — نسخة مُصلَحة جذرياً
     // ══════════════════════════════════════════════════
     var AUTH_KEY = 'linah_users';
     var SESSION_KEY = 'linah_session';
     var ROLE_LABELS = { admin: 'مشرف', inspector: 'مفتش', viewer: 'مشاهد' };
 
-    // Default admin account (created on first load)
     function initUsers() {
-      var users = JSON.parse(localStorage.getItem(AUTH_KEY) || '[]');
-      if (!users.length) {
-        users.push({ username: 'admin', password: 'admin123', role: 'admin' });
-        users.push({ username: 'inspector', password: 'insp123', role: 'inspector' });
-        users.push({ username: 'viewer', password: 'view123', role: 'viewer' });
+      var raw = localStorage.getItem(AUTH_KEY);
+      var users = [];
+      try { users = raw ? JSON.parse(raw) : []; } catch(e) { users = []; }
+      if (!Array.isArray(users) || !users.length) {
+        users = [
+          { username: 'admin', password: 'admin123', role: 'admin' },
+          { username: 'inspector', password: 'insp123', role: 'inspector' },
+          { username: 'viewer', password: 'view123', role: 'viewer' }
+        ];
         localStorage.setItem(AUTH_KEY, JSON.stringify(users));
       }
       return users;
     }
 
+    function saveUsers(users) {
+      localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+    }
+
     function getCurrentUser() {
-      var sess = localStorage.getItem(SESSION_KEY);
-      if (!sess) return null;
-      try { return JSON.parse(sess); } catch(e) { return null; }
+      try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { return null; }
     }
 
     function doLogin() {
-      var u = document.getElementById('login-user').value.trim();
-      var p = document.getElementById('login-pass').value.trim();
+      var u = (document.getElementById('login-user').value || '').trim();
+      var p = (document.getElementById('login-pass').value || '').trim();
       var err = document.getElementById('login-err');
       if (!u || !p) { err.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور'; return; }
       var users = initUsers();
-      var found = users.find(function(x) { return x.username === u && x.password === p; });
+      var found = null;
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].username === u && users[i].password === p) { found = users[i]; break; }
+      }
       if (!found) { err.textContent = 'اسم المستخدم أو كلمة المرور غير صحيح'; return; }
       localStorage.setItem(SESSION_KEY, JSON.stringify({ username: found.username, role: found.role }));
       err.textContent = '';
       document.getElementById('login-overlay').classList.add('hidden');
-      applyPermissions();
       renderUserBadge();
+      applyPermissions();
       nav('dash');
     }
 
@@ -2920,21 +2929,22 @@
       document.getElementById('login-overlay').classList.remove('hidden');
       document.getElementById('login-user').value = '';
       document.getElementById('login-pass').value = '';
+      document.getElementById('login-err').textContent = '';
+      var badge = document.getElementById('user-badge');
+      if (badge) badge.innerHTML = '';
     }
 
     function renderUserBadge() {
       var user = getCurrentUser();
       var badge = document.getElementById('user-badge');
-      if (!user || !badge) return;
-      badge.innerHTML = '<div class="ub-name">' + user.username + '</div>' +
+      if (!badge) return;
+      if (!user) { badge.innerHTML = ''; return; }
+      badge.innerHTML =
+        '<div class="ub-name">👤 ' + user.username + '</div>' +
         '<div class="ub-role">' + (ROLE_LABELS[user.role] || user.role) + '</div>' +
-        '<button class="ub-logout" onclick="doLogout()">تسجيل خروج</button>';
+        '<button class="ub-logout" onclick="doLogout()">🚪 تسجيل خروج</button>';
     }
 
-    // Permission definitions per role
-    // admin: everything
-    // inspector: register reports, tracking, view data (no delete, no user mgmt, no db mgmt)
-    // viewer: view only (dashboard, reports, records view — no add/edit/delete)
     var ROLE_PAGES = {
       admin: ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup','db','backup','users'],
       inspector: ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup'],
@@ -2945,113 +2955,94 @@
       var user = getCurrentUser();
       if (!user) return;
       var allowed = ROLE_PAGES[user.role] || [];
-      // Hide/show nav buttons
       document.querySelectorAll('.ni').forEach(function(btn) {
         var oc = btn.getAttribute('onclick') || '';
         var m = oc.match(/nav\('([^']+)'\)/);
-        if (m) {
-          var pg = m[1];
-          btn.style.display = allowed.indexOf(pg) >= 0 ? '' : 'none';
-        }
+        if (m) btn.style.display = allowed.indexOf(m[1]) >= 0 ? '' : 'none';
       });
-      // Hide add/edit/delete buttons for viewer
       if (user.role === 'viewer') {
-        document.querySelectorAll('.btn-add, [onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"], [onclick*="nav(\'form\')"]').forEach(function(el) {
+        document.querySelectorAll('.btn-add, [onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"]').forEach(function(el) {
           el.style.display = 'none';
         });
       }
     }
 
-    // Patch nav to check permissions
-    var _origNavCheck;
-    function patchNavForAuth() {
-      var origNav = window.nav;
-      _origNavCheck = origNav;
-      window.nav = function(name) {
-        var user = getCurrentUser();
-        if (!user) { document.getElementById('login-overlay').classList.remove('hidden'); return; }
-        var allowed = ROLE_PAGES[user.role] || [];
-        if (allowed.indexOf(name) < 0) {
-          alert('ليس لديك صلاحية للوصول إلى هذه الصفحة');
-          return;
-        }
-        origNav(name);
-        // Re-apply viewer restrictions after navigation
-        if (user.role === 'viewer') {
-          setTimeout(function() {
-            document.querySelectorAll('.f-add, [onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"]').forEach(function(el) {
-              el.style.display = 'none';
-            });
-          }, 100);
-        }
-      };
-    }
-
-    // User management functions
     function renderUsersTable() {
       var users = initUsers();
       var cur = getCurrentUser();
       var tb = document.querySelector('#um-table tbody');
-      if (!tb) return;
+      if (!tb || !cur) return;
       tb.innerHTML = users.map(function(u) {
-        var del = (u.username !== cur.username) ?
-          '<span class="um-act" onclick="deleteUser(\'' + u.username + '\')">حذف</span>' : '—';
-        return '<tr><td>' + u.username + '</td><td>' + (ROLE_LABELS[u.role] || u.role) + '</td><td>' + del + '</td></tr>';
+        var safeName = u.username.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        var safePw = u.password.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        var del = (u.username !== cur.username)
+          ? '<span class="um-act" onclick="deleteUser(\'' + safeName + '\')">حذف</span>' : '—';
+        var pwCell = '<span style="cursor:pointer;font-family:monospace" title="اضغط لإظهار" onclick="this.textContent=this.textContent===\'●●●●●●\'?\'' + safePw + '\':\'●●●●●●\'">●●●●●●</span>';
+        return '<tr><td>' + u.username + '</td><td>' + pwCell + '</td><td>' + (ROLE_LABELS[u.role] || u.role) + '</td><td>' + del + '</td></tr>';
       }).join('');
     }
 
     function addUser() {
-      var name = document.getElementById('um-name').value.trim();
-      var pw = document.getElementById('um-pw').value.trim();
+      var name = (document.getElementById('um-name').value || '').trim();
+      var pw = (document.getElementById('um-pw').value || '').trim();
       var role = document.getElementById('um-role').value;
       if (!name || !pw) { alert('يرجى إدخال اسم المستخدم وكلمة المرور'); return; }
       var users = initUsers();
-      if (users.find(function(x) { return x.username === name; })) {
-        alert('اسم المستخدم موجود بالفعل'); return;
+      if (users.some(function(x) { return x.username === name; })) {
+        alert('اسم المستخدم "' + name + '" موجود بالفعل'); return;
       }
       users.push({ username: name, password: pw, role: role });
-      localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+      saveUsers(users);
       document.getElementById('um-name').value = '';
       document.getElementById('um-pw').value = '';
+      document.getElementById('um-role').value = 'viewer';
       renderUsersTable();
+      alert('تم إضافة المستخدم بنجاح\nاسم المستخدم: ' + name + '\nكلمة المرور: ' + pw + '\nالدور: ' + (ROLE_LABELS[role] || role));
     }
 
     function deleteUser(username) {
-      if (!confirm('هل أنت متأكد من حذف المستخدم: ' + username + '?')) return;
+      if (!confirm('هل أنت متأكد من حذف المستخدم: ' + username + '؟')) return;
       var users = initUsers().filter(function(x) { return x.username !== username; });
-      localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+      saveUsers(users);
       renderUsersTable();
     }
 
-    // On page load — check session
     window.addEventListener('DOMContentLoaded', function() {
       initUsers();
       var user = getCurrentUser();
       if (user) {
         document.getElementById('login-overlay').classList.add('hidden');
         renderUserBadge();
-        // Delay permission apply to let nav be patched
-        setTimeout(function() { applyPermissions(); }, 200);
+        applyPermissions();
       }
     });
 
-    // Patch nav after all scripts loaded
     window.addEventListener('load', function() {
-      setTimeout(function() {
-        patchNavForAuth();
-        applyPermissions();
-
-        // Patch nav('users') action
-        var acts_orig = window.nav;
-        var prev_nav = window.nav;
-        window.nav = function(name) {
-          prev_nav(name);
-          if (name === 'users') renderUsersTable();
-        };
-      }, 500);
+      var _origNav = window.nav;
+      window.nav = function(name) {
+        var user = getCurrentUser();
+        if (!user) {
+          document.getElementById('login-overlay').classList.remove('hidden');
+          return;
+        }
+        var allowed = ROLE_PAGES[user.role] || [];
+        if (allowed.indexOf(name) < 0) {
+          alert('ليس لديك صلاحية للوصول إلى هذه الصفحة');
+          return;
+        }
+        _origNav(name);
+        if (name === 'users') renderUsersTable();
+        if (user.role === 'viewer') {
+          setTimeout(function() {
+            document.querySelectorAll('[onclick*="newRec"], [onclick*="editRec"], [onclick*="delRec"]').forEach(function(el) {
+              el.style.display = 'none';
+            });
+          }, 100);
+        }
+      };
+      applyPermissions();
     });
 
-    // Enter key on login
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !document.getElementById('login-overlay').classList.contains('hidden')) {
         doLogin();
