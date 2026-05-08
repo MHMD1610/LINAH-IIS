@@ -2745,6 +2745,30 @@
               <button class="btn b-ol" style="margin-right:auto;font-size:.75rem;padding:4px 10px" onclick="addTrackerRow()">+ إضافة فاحص / خط</button>
             </div>
             <div class="fsec-body" id="tr-rows-wrap">
+
+              <!-- ── إعدادات الترقيم ── -->
+              <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+                <div>
+                  <label class="fl" style="font-size:.78rem;margin-bottom:3px">الخط الفردي الأول</label>
+                  <input type="number" id="tr-start-odd"  class="finp" value="1" min="1" style="width:80px" oninput="applyLineNumbering()">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:.78rem;margin-bottom:3px">الخط الزوجي الأول</label>
+                  <input type="number" id="tr-start-even" class="finp" value="2" min="2" style="width:80px" oninput="applyLineNumbering()">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:.78rem;margin-bottom:3px">الخطوة (لكل فاحص)</label>
+                  <input type="number" id="tr-step" class="finp" value="2" min="1" style="width:70px" oninput="applyLineNumbering()">
+                </div>
+                <div>
+                  <label class="fl" style="font-size:.78rem;margin-bottom:3px">الاتجاه</label>
+                  <select id="tr-direction" class="fsel2" style="width:110px" onchange="applyLineNumbering()">
+                    <option value="asc">⬆ تصاعدي</option>
+                    <option value="desc">⬇ تنازلي</option>
+                  </select>
+                </div>
+                <button class="btn b-dk" style="font-size:.78rem;padding:6px 14px" onclick="applyLineNumbering()">🔄 تطبيق على الكل</button>
+              </div>
               <div style="overflow-x:auto">
                 <table style="width:100%;border-collapse:collapse;font-size:.82rem" id="tr-rows-table">
                   <thead>
@@ -5547,30 +5571,48 @@
     var trRowId = 0;
 
     // حساب الترقيم التلقائي من آخر صف موجود
+    // ── إعدادات الترقيم ──
+    function getLineSettings() {
+      var startOdd  = parseInt((document.getElementById('tr-start-odd')  || {}).value || '1', 10)  || 1;
+      var startEven = parseInt((document.getElementById('tr-start-even') || {}).value || '2', 10)  || 2;
+      var step      = parseInt((document.getElementById('tr-step')       || {}).value || '2', 10)  || 2;
+      var dir       = ((document.getElementById('tr-direction') || {}).value || 'asc');
+      return { startOdd: startOdd, startEven: startEven, step: step, dir: dir };
+    }
+
     function getNextLineNums() {
       var rows = document.querySelectorAll('#tr-rows tr');
-      if (!rows.length) return { odd: '', even: '' };
+      var s = getLineSettings();
+      if (!rows.length) {
+        return { odd: String(s.startOdd), even: String(s.startEven) };
+      }
       var lastRow = rows[rows.length - 1];
       var lastOdd  = parseInt((lastRow.querySelector('.tr-odd')  || {}).value || '0', 10) || 0;
       var lastEven = parseInt((lastRow.querySelector('.tr-even') || {}).value || '0', 10) || 0;
-      // خطوة = الفرق بين أول صفين لو موجودين، وإلا افتراضي 2
-      var step = 2;
-      if (rows.length >= 2) {
-        var firstRow = rows[0];
-        var firstOdd  = parseInt((firstRow.querySelector('.tr-odd')  || {}).value || '0', 10) || 0;
-        var firstEven = parseInt((firstRow.querySelector('.tr-even') || {}).value || '0', 10) || 0;
-        var secondRow = rows[1];
-        var secondOdd  = parseInt((secondRow.querySelector('.tr-odd')  || {}).value || '0', 10) || 0;
-        var secondEven = parseInt((secondRow.querySelector('.tr-even') || {}).value || '0', 10) || 0;
-        var diffOdd  = secondOdd  - firstOdd;
-        var diffEven = secondEven - firstEven;
-        if (diffOdd > 0)  step = diffOdd;
-        else if (diffEven > 0) step = diffEven;
-      }
+      if (!lastOdd && !lastEven) return { odd: String(s.startOdd), even: String(s.startEven) };
+      var delta = s.dir === 'desc' ? -s.step : s.step;
       return {
-        odd:  lastOdd  > 0 ? lastOdd  + step : '',
-        even: lastEven > 0 ? lastEven + step : ''
+        odd:  lastOdd  > 0 ? String(lastOdd  + delta) : '',
+        even: lastEven > 0 ? String(lastEven + delta) : ''
       };
+    }
+
+    // تطبيق الترقيم على كل الصفوف الموجودة من الصفر
+    function applyLineNumbering() {
+      var rows = document.querySelectorAll('#tr-rows tr');
+      if (!rows.length) return;
+      var s = getLineSettings();
+      var delta = s.dir === 'desc' ? -s.step : s.step;
+      var curOdd  = s.startOdd;
+      var curEven = s.startEven;
+      rows.forEach(function(row) {
+        var oddEl  = row.querySelector('.tr-odd');
+        var evenEl = row.querySelector('.tr-even');
+        if (oddEl)  oddEl.value  = curOdd;
+        if (evenEl) evenEl.value = curEven;
+        curOdd  += delta;
+        curEven += delta;
+      });
     }
 
     function addTrackerRow(data) {
@@ -5580,8 +5622,19 @@
       var tbody = document.getElementById('tr-rows');
       if (!tbody) return;
 
-      // ترقيم تلقائي فقط لو data مش جايه من تحميل مسبق
-      var autoNums = (!data.odd && !data.even && !data._noAuto) ? getNextLineNums() : { odd: '', even: '' };
+      var autoNums;
+      if (!data.odd && !data.even && !data._noAuto) {
+        var rows = tbody.querySelectorAll('tr');
+        if (!rows.length) {
+          // أول صف — خذ من إعدادات الترقيم مباشرة
+          var s = getLineSettings();
+          autoNums = { odd: String(s.startOdd), even: String(s.startEven) };
+        } else {
+          autoNums = getNextLineNums();
+        }
+      } else {
+        autoNums = { odd: '', even: '' };
+      }
       var oddVal  = data.odd  !== undefined ? data.odd  : autoNums.odd;
       var evenVal = data.even !== undefined ? data.even : autoNums.even;
 
@@ -5611,21 +5664,8 @@
       var allRows = Array.prototype.slice.call(document.querySelectorAll('#tr-rows tr'));
       var idx = allRows.indexOf(changedRow);
       if (idx < 0 || idx >= allRows.length - 1) return;
-
-      // احسب الخطوة من الصف الأول والثاني
-      var step = 2;
-      if (allRows.length >= 2) {
-        var r0odd  = parseInt((allRows[0].querySelector('.tr-odd')  || {}).value || '0', 10) || 0;
-        var r0even = parseInt((allRows[0].querySelector('.tr-even') || {}).value || '0', 10) || 0;
-        var r1odd  = parseInt((allRows[1].querySelector('.tr-odd')  || {}).value || '0', 10) || 0;
-        var r1even = parseInt((allRows[1].querySelector('.tr-even') || {}).value || '0', 10) || 0;
-        var d1 = r1odd  - r0odd;
-        var d2 = r1even - r0even;
-        if (d1 > 0) step = d1;
-        else if (d2 > 0) step = d2;
-      }
-
-      // ابدأ من الصف المتغير وحدّث كل اللي بعده
+      var s = getLineSettings();
+      var delta = s.dir === 'desc' ? -s.step : s.step;
       for (var i = idx + 1; i < allRows.length; i++) {
         var prevRow = allRows[i - 1];
         var curRow  = allRows[i];
@@ -5633,8 +5673,8 @@
         var prevEven = parseInt((prevRow.querySelector('.tr-even') || {}).value || '0', 10) || 0;
         var curOddEl  = curRow.querySelector('.tr-odd');
         var curEvenEl = curRow.querySelector('.tr-even');
-        if (curOddEl  && prevOdd  > 0) curOddEl.value  = prevOdd  + step;
-        if (curEvenEl && prevEven > 0) curEvenEl.value = prevEven + step;
+        if (curOddEl  && prevOdd  !== 0) curOddEl.value  = prevOdd  + delta;
+        if (curEvenEl && prevEven !== 0) curEvenEl.value = prevEven + delta;
       }
     }
 
