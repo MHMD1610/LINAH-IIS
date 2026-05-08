@@ -1967,7 +1967,6 @@
       <div class="sb-sec">
         <div class="sb-lbl">تتبع الخطوط</div>
         <button class="ni" onclick="nav('tracking')"><span class="ic">🗺️</span><span>تتبع الخطوط</span></button>
-        <button class="ni" onclick="nav('tracking-lookup')"><span class="ic">🔍</span><span>بحث التتبع</span></button>
       </div>
       <div class="sb-sec">
         <div class="sb-lbl">&#1575;&#1604;&#1573;&#1593;&#1583;&#1575;&#1583;&#1575;&#1578;</div>
@@ -2685,38 +2684,46 @@
       </div>
 
       <!-- ════════════ LINE TRACKING ════════════ -->
+      <!-- ════════════ TRACKING — صفحة موحدة ════════════ -->
       <div class="pg" id="pg-tracking">
         <div class="ph">
           <div class="ph-left">
             <div class="pt">🗺️ تتبع الخطوط</div>
-            <div class="ps">تسجيل عمليات الفحص والخطوط الفردية والزوجية</div>
+            <div class="ps">تسجيل وبحث عمليات الفحص</div>
           </div>
           <div class="pa">
             <button class="btn b-dk" onclick="saveTracking()">💾 حفظ التتبع</button>
           </div>
         </div>
-        <div class="wf-container">
+
+        <!-- تبويبات -->
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--bd);margin:0 0 14px 0;padding:0 20px">
+          <button id="tr-tab-new"  onclick="switchTrackingTab('new')"
+            style="padding:9px 20px;border:none;background:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;border-bottom:3px solid var(--grn);color:var(--grn);margin-bottom:-2px">
+            ✏️ تسجيل جديد</button>
+          <button id="tr-tab-list" onclick="switchTrackingTab('list')"
+            style="padding:9px 20px;border:none;background:none;font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--tx2);margin-bottom:-2px">
+            📜 السجلات والبحث</button>
+        </div>
+
+        <!-- تبويب 1: تسجيل جديد -->
+        <div id="tr-pane-new" class="wf-container">
+          <!-- فورم التسجيل -->
           <div class="fsec">
             <div class="fsec-hd hg">📋 بيانات العملية</div>
             <div class="fsec-body">
               <div class="fgr fgr-3">
                 <div class="ff">
                   <label class="fl rq">القطاع (Sector)</label>
-                  <select class="fsel2" id="tr-sector">
-                    <option value="">-- اختر القطاع --</option>
-                  </select>
+                  <select class="fsel2" id="tr-sector"><option value="">-- اختر القطاع --</option></select>
                 </div>
                 <div class="ff">
                   <label class="fl rq">المحبس (Valve / Pen)</label>
-                  <select class="fsel2" id="tr-valve" disabled>
-                    <option value="">-- اختر القطاع أولاً --</option>
-                  </select>
+                  <select class="fsel2" id="tr-valve" disabled><option value="">-- اختر القطاع أولاً --</option></select>
                 </div>
                 <div class="ff">
                   <label class="fl rq">اسم المشرف</label>
-                  <select class="fsel2" id="tr-supervisor">
-                    <option value="">-- اختر المشرف --</option>
-                  </select>
+                  <select class="fsel2" id="tr-supervisor"><option value="">-- اختر المشرف --</option></select>
                 </div>
               </div>
               <div class="fgr fgr-2" style="margin-top:10px">
@@ -2735,20 +2742,16 @@
           <div class="fsec">
             <div class="fsec-hd hb">
               👷 الفاحصون والخطوط
-              <button class="btn b-ol" style="margin-right:auto;font-size:.75rem;padding:4px 10px"
-                onclick="addTrackerRow()">+ إضافة فاحص / خط</button>
+              <button class="btn b-ol" style="margin-right:auto;font-size:.75rem;padding:4px 10px" onclick="addTrackerRow()">+ إضافة فاحص / خط</button>
             </div>
             <div class="fsec-body" id="tr-rows-wrap">
               <div style="overflow-x:auto">
                 <table style="width:100%;border-collapse:collapse;font-size:.82rem" id="tr-rows-table">
                   <thead>
                     <tr style="background:var(--sf2)">
-                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">اسم
-                        الفاحص</th>
-                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">الخط
-                        الفردي (Odd)</th>
-                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">الخط
-                        الزوجي (Even)</th>
+                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">اسم الفاحص</th>
+                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">الخط الفردي (Odd)</th>
+                      <th style="padding:8px;text-align:right;font-weight:700;border-bottom:2px solid var(--bd)">الخط الزوجي (Even)</th>
                       <th style="padding:8px;text-align:center;border-bottom:2px solid var(--bd)">حذف</th>
                     </tr>
                   </thead>
@@ -2761,64 +2764,81 @@
             </div>
           </div>
 
-          <!-- Saved Tracking Records -->
+          <!-- آخر سجل تم حفظه -->
           <div class="fsec" style="margin-top:14px">
-            <div class="fsec-hd ht">📜 سجلات التتبع المحفوظة</div>
-            <div class="fsec-body">
-              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                <input class="finp" id="tr-srch" placeholder="ابحث بالقطاع أو المشرف..." oninput="renderTrackingList()"
-                  style="flex:1;min-width:200px">
-                <button class="btn b-gld" onclick="exportTrackingExcel()" style="font-size:.75rem">⬇ تصدير
-                  Excel</button>
-                <button class="btn b-ol" onclick="document.getElementById('tr-import-inp').click()"
-                  style="font-size:.75rem">⬆ استيراد Excel</button>
-                <input type="file" id="tr-import-inp" accept=".csv,.xlsx,.xls" style="display:none"
-                  onchange="importTrackingExcel(this)">
-                <button class="btn b-rd" onclick="if(confirm('حذف جميع سجلات التتبع؟'))clearAllTracking()"
-                  style="font-size:.75rem">🗑 حذف الكل</button>
-              </div>
-              <div id="tr-import-prev" style="margin-bottom:8px"></div>
-              <div id="tr-list" style="max-height:350px;overflow-y:auto"></div>
+            <div class="fsec-hd" style="background:var(--gbg);color:var(--grn);border:1px solid var(--gbd)">✅ آخر سجل تم حفظه</div>
+            <div class="fsec-body" id="tr-last-saved">
+              <div style="color:var(--tx3);font-size:.85rem;text-align:center;padding:10px">لم يتم حفظ أي سجل بعد في هذه الجلسة</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- ════════════ TRACKING LOOKUP ════════════ -->
-      <div class="pg" id="pg-tracking-lookup">
-        <div class="ph">
-          <div class="ph-left">
-            <div class="pt">🔍 بحث التتبع</div>
-            <div class="ps">ابحث عن آخر فحص لخط معين</div>
-          </div>
-        </div>
-        <div class="wf-container" style="max-width:700px">
+        <!-- تبويب 2: السجلات والبحث -->
+        <div id="tr-pane-list" class="wf-container" style="display:none">
+
+          <!-- قسم البحث -->
           <div class="fsec">
-            <div class="fsec-hd hb">🔍 بحث بالقطاع والمحبس والخط</div>
+            <div class="fsec-hd hb">🔍 بحث في سجلات التتبع</div>
             <div class="fsec-body">
               <div class="fgr fgr-3">
                 <div class="ff">
                   <label class="fl">القطاع</label>
                   <select class="fsel2" id="lk-sector" onchange="onLookupSectorChange()">
-                    <option value="">-- اختر القطاع --</option>
+                    <option value="">-- كل القطاعات --</option>
                   </select>
                 </div>
                 <div class="ff">
                   <label class="fl">المحبس (Pen)</label>
                   <select class="fsel2" id="lk-valve" disabled onchange="runLookup()">
-                    <option value="">-- اختر القطاع أولاً --</option>
+                    <option value="">-- كل المحابس --</option>
                   </select>
                 </div>
                 <div class="ff">
                   <label class="fl">رقم الخط</label>
-                  <input class="finp" id="lk-line" placeholder="رقم الخط..." oninput="runLookup()">
+                  <input class="finp" id="lk-line" placeholder="رقم الخط (فردي أو زوجي)..." oninput="runLookup()">
                 </div>
               </div>
-              <div id="lk-result" style="margin-top:14px"></div>
+              <div class="fgr fgr-3" style="margin-top:10px">
+                <div class="ff">
+                  <label class="fl">من تاريخ</label>
+                  <input type="date" class="finp" id="lk-date-from" onchange="runLookup()">
+                </div>
+                <div class="ff">
+                  <label class="fl">إلى تاريخ</label>
+                  <input type="date" class="finp" id="lk-date-to" onchange="runLookup()">
+                </div>
+                <div class="ff">
+                  <label class="fl">بحث نصي</label>
+                  <input class="finp" id="tr-srch" placeholder="ابحث بالمشرف أو الفاحص..." oninput="runLookup()">
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn b-ol" onclick="clearLookupFilters()" style="font-size:.78rem">🔄 مسح الفلاتر</button>
+                <button class="btn b-gld" onclick="exportTrackingExcel()" style="font-size:.78rem">⬇ تصدير Excel</button>
+                <button class="btn b-ol" onclick="document.getElementById('tr-import-inp').click()" style="font-size:.78rem">⬆ استيراد Excel</button>
+                <input type="file" id="tr-import-inp" accept=".csv,.xlsx,.xls" style="display:none" onchange="importTrackingExcel(this)">
+                <button class="btn b-rd" onclick="clearAllTracking()" style="font-size:.78rem">🗑 حذف الكل</button>
+              </div>
+              <div id="tr-import-prev" style="margin-bottom:8px;margin-top:8px"></div>
+              <div id="lk-result" style="margin-top:6px"></div>
+            </div>
+          </div>
+
+          <!-- كل السجلات -->
+          <div class="fsec" style="margin-top:14px">
+            <div class="fsec-hd ht" style="display:flex;justify-content:space-between;align-items:center">
+              <span>📜 جميع سجلات التتبع</span>
+              <span id="tr-count-badge" style="font-size:.75rem;font-weight:400;color:var(--tx2)"></span>
+            </div>
+            <div class="fsec-body">
+              <div id="tr-list" style="max-height:480px;overflow-y:auto"></div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- صفحة وهمية للـ tracking-lookup تحول تلقائياً -->
+      <div class="pg" id="pg-tracking-lookup" style="display:none"></div>
 
       <!-- ══════ USER MANAGEMENT PAGE ══════ -->
       <section class="pg" id="pg-users">
@@ -2841,7 +2861,50 @@
     </main>
   </div>
 
-  <!-- ════════════ RECORD VIEW MODAL ════════════ -->
+  <!-- ════════ EDIT TRACKING MODAL ════════ -->
+  <div id="tr-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;overflow-y:auto;padding:20px" onclick="if(event.target===this)closeTrEdit()">
+    <div style="background:#fff;border-radius:12px;max-width:720px;margin:auto;padding:0;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+      <div style="background:var(--dk);color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
+        <b>✏️ تعديل سجل التتبع</b>
+        <button onclick="closeTrEdit()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <div style="padding:20px">
+        <div class="fgr fgr-3">
+          <div class="ff"><label class="fl rq">القطاع</label>
+            <select class="fsel2" id="tre-sector"><option value="">-- اختر --</option></select></div>
+          <div class="ff"><label class="fl rq">المحبس</label>
+            <select class="fsel2" id="tre-valve" disabled><option value="">-- اختر القطاع أولاً --</option></select></div>
+          <div class="ff"><label class="fl rq">المشرف</label>
+            <select class="fsel2" id="tre-supervisor"><option value="">-- اختر --</option></select></div>
+        </div>
+        <div class="fgr fgr-2" style="margin-top:10px">
+          <div class="ff"><label class="fl">التاريخ</label>
+            <input type="date" class="finp" id="tre-date"></div>
+          <div class="ff"><label class="fl">ملاحظات</label>
+            <input class="finp" id="tre-notes" placeholder="ملاحظات..."></div>
+        </div>
+        <div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:12px">
+          <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:var(--tx2)">👷 الفاحصون والخطوط</div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+              <thead><tr style="background:var(--sf2)">
+                <th style="padding:7px;text-align:right;border-bottom:2px solid var(--bd)">الفاحص</th>
+                <th style="padding:7px;text-align:right;border-bottom:2px solid var(--bd)">فردي</th>
+                <th style="padding:7px;text-align:right;border-bottom:2px solid var(--bd)">زوجي</th>
+                <th style="padding:7px;text-align:center;border-bottom:2px solid var(--bd)">حذف</th>
+              </tr></thead>
+              <tbody id="tre-rows"></tbody>
+            </table>
+          </div>
+          <button class="btn b-ol" style="margin-top:8px;font-size:.78rem" onclick="addTrEditRow()">+ إضافة فاحص</button>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn b-ol" onclick="closeTrEdit()">إلغاء</button>
+          <button class="btn b-dk" onclick="saveTrEdit()">💾 حفظ التعديلات</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="ov2" id="view-modal" onclick="if(event.target===this)closeModal()">
     <div class="mo">
       <div class="mo-hd">
@@ -3263,6 +3326,7 @@
     function startFbPolling() {
       if (fbPollTimer) clearInterval(fbPollTimer);
       fbPollTimer = setInterval(function () {
+        // sync DB
         fbGet(FB_DB_URL, function (err, val) {
           if (!err && val && Array.isArray(val) && val.length) {
             // ── فقط لو البيانات اتغيّرت فعلاً ──
@@ -3313,6 +3377,7 @@
             try { localStorage.setItem(DD_KEY, JSON.stringify(val)); } catch (e) { }
           }
         });
+        // Tracking لا يتحدث تلقائياً — يتحمّل فقط عند فتح التبويب يدوياً
       }, 10000);
     }
 
@@ -3349,6 +3414,7 @@
           }
         });
         startFbPolling();
+        // Tracking يُحمَّل فقط عند فتح صفحة التتبع — لا auto-load هنا
       });
       return true; // always return true (async)
     }
@@ -3378,29 +3444,28 @@
     }
 
     function saveDB() {
+      // localStorage كـ cache فوري
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
-      if (fbConnected) {
-        clearTimeout(fbSaveTimer);
-        fbSaveTimer = setTimeout(function () {
-          fbPut(FB_DB_URL, DB).catch(function (err) {
-            toast('⚠️ تعذّر الحفظ في Firebase', 'w');
+      // Firebase دايماً — بغض النظر عن fbConnected
+      clearTimeout(fbSaveTimer);
+      fbSaveTimer = setTimeout(function () {
+        fbPut(FB_DB_URL, DB)
+          .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
+          .catch(function (err) {
+            fbSetStatus(false);
+            toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
           });
-        }, 500);
-      } else {
-        toast('⚠️ البيانات محفوظة محلياً فقط (Firebase غير متصل)', 'w');
-      }
+      }, 400);
     }
 
     function saveDD() {
       try { localStorage.setItem(DD_KEY, JSON.stringify(DD)); } catch (e) { }
-      if (fbConnected) {
-        clearTimeout(fbDDSaveTimer);
-        fbDDSaveTimer = setTimeout(function () {
-          fbPut(FB_DD_URL, DD).catch(function (err) {
-            console.warn('DD save error:', err);
-          });
-        }, 500);
-      }
+      clearTimeout(fbDDSaveTimer);
+      fbDDSaveTimer = setTimeout(function () {
+        fbPut(FB_DD_URL, DD)
+          .then(function(r){ if(!r.ok) throw new Error(r.status); })
+          .catch(function (err) { console.warn('DD Firebase save error:', err); });
+      }, 400);
     }
     function nextId() { return DB.length ? Math.max.apply(null, DB.map(function (r) { return r.id || 0; })) + 1 : 1; }
     function setT(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
@@ -5276,16 +5341,45 @@
     var FB_TRACKING_URL = FB_BASE + '/tracking.json';
 
     // ── Save / Load Tracking Records ──────────────────
+    var _trSaveTimer = null;
+
     function getTrackingRecords() {
       try { return JSON.parse(localStorage.getItem(TRACKING_KEY) || '[]'); } catch (e) { return []; }
     }
+
+    // تحميل سجلات التتبع من Firebase
+    function loadTrackingFromFirebase(cb) {
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var arr = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch(e){}
+          if (cb) cb(arr);
+        })
+        .catch(function(err){
+          console.warn('Tracking Firebase load error:', err);
+          if (cb) cb(getTrackingRecords());
+        });
+    }
+
     function saveTrackingRecords(arr) {
+      // localStorage كـ cache فوري
       try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch (e) { }
-      if (fbConnected) {
-        setTimeout(function () {
-          fbPut(FB_TRACKING_URL, arr).catch(function (e) { console.warn('Tracking FB save error:', e); });
-        }, 500);
-      }
+      // Firebase دايماً
+      clearTimeout(_trSaveTimer);
+      _trSaveTimer = setTimeout(function () {
+        fbPut(FB_TRACKING_URL, arr)
+          .then(function(r){
+            if (!r.ok) throw new Error(r.status);
+            fbSetStatus(true);
+            toast('☁️ تم الحفظ على Firebase', 's');
+          })
+          .catch(function (e) {
+            fbSetStatus(false);
+            console.warn('Tracking Firebase save error:', e);
+            toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
+          });
+      }, 400);
     }
 
     // ── Extract line number from code like 01-25-180-002-06 ──
@@ -5357,10 +5451,65 @@
         '</div>';
     }
 
+    // ── Tab switching ──────────────────────────────────
+    function switchTrackingTab(tab) {
+      var paneNew  = document.getElementById('tr-pane-new');
+      var paneList = document.getElementById('tr-pane-list');
+      var tabNew   = document.getElementById('tr-tab-new');
+      var tabList  = document.getElementById('tr-tab-list');
+      if (!paneNew || !paneList) return;
+
+      if (tab === 'new') {
+        paneNew.style.display  = '';
+        paneList.style.display = 'none';
+        tabNew.style.borderBottomColor  = 'var(--grn)';
+        tabNew.style.color              = 'var(--grn)';
+        tabNew.style.fontWeight         = '700';
+        tabList.style.borderBottomColor = 'transparent';
+        tabList.style.color             = 'var(--tx2)';
+        tabList.style.fontWeight        = '600';
+      } else {
+        paneNew.style.display  = 'none';
+        paneList.style.display = '';
+        tabList.style.borderBottomColor = 'var(--grn)';
+        tabList.style.color             = 'var(--grn)';
+        tabList.style.fontWeight        = '700';
+        tabNew.style.borderBottomColor  = 'transparent';
+        tabNew.style.color              = 'var(--tx2)';
+        tabNew.style.fontWeight         = '600';
+        // حمّل السجلات عند الانتقال للتبويب الثاني
+        renderTrackingList();
+        runLookup();
+      }
+    }
+
+    function _lookupHasFilters() {
+      return ['lk-sector','lk-valve','lk-line','lk-date-from','lk-date-to','tr-srch'].some(function(id){
+        var el = document.getElementById(id);
+        return el && el.value && el.value.trim() !== '';
+      });
+    }
+
+    // عرض آخر سجل تم حفظه في هذه الجلسة
+    function showLastSavedRecord(rec) {
+      var el = document.getElementById('tr-last-saved');
+      if (!el || !rec) return;
+      var tks = (rec.trackers || []).map(function(t){
+        return '<span style="display:inline-block;background:var(--bbg);border:1px solid var(--bbd);border-radius:20px;padding:2px 10px;font-size:.75rem;margin:2px">' +
+          (t.inspector||'-') + ' — فردي: <b>' + (t.odd||'-') + '</b> زوجي: <b>' + (t.even||'-') + '</b></span>';
+      }).join('');
+      el.innerHTML =
+        '<div style="font-size:.84rem;line-height:1.9">' +
+        '📅 <b>التاريخ:</b> ' + rec.date +
+        ' &nbsp; 📍 <b>قطاع ' + rec.sector + ' — محبس ' + rec.valve + '</b>' +
+        ' &nbsp; 👔 <b>المشرف:</b> ' + (rec.supervisor||'-') + '</div>' +
+        '<div style="margin-top:6px">' + tks + '</div>' +
+        (rec.notes ? '<div style="font-size:.76rem;color:var(--tx3);margin-top:4px">📝 ' + rec.notes + '</div>' : '');
+    }
+
     // ── Init Tracking Screen ─────────────────────────
     function initTrackingScreen() {
-      // Use SECTOR_VALVE_MAP for smart sector→valve filtering
-      var secEl = document.getElementById('tr-sector');
+      var secEl   = document.getElementById('tr-sector');
       var valveEl = document.getElementById('tr-valve');
       if (secEl) {
         fillSectorSelect(secEl);
@@ -5369,22 +5518,29 @@
         });
       }
       if (valveEl) fillValveSelect(valveEl, secEl ? secEl.value : '');
-      // Populate supervisor select dropdown
+
       var supSel = document.getElementById('tr-supervisor');
       if (supSel) {
         var sups = DD['\u0627\u0644\u0645\u0634\u0631\u0641 \u0627\u0644\u0631\u0626\u064a\u0633\u064a'] || DD['\u0645\u0634\u0631\u0641 \u0631\u0626\u064a\u0633\u064a'] || DD['\u0645\u0634\u0631\u0641 \u0623\u0633\u0627\u0633\u064a'] || [];
         var prevVal = supSel.value;
         supSel.innerHTML = '<option value="">-- اختر المشرف --</option>' +
-          sups.map(function (s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+          sups.map(function(s){ return '<option value="' + s + '">' + s + '</option>'; }).join('');
         if (prevVal) supSel.value = prevVal;
         if (supSel._ssSync) supSel._ssSync();
       }
-      // Set today's date
+
       var dateEl = document.getElementById('tr-date');
       if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
-      // Ensure at least one tracker row
       if (!document.querySelector('#tr-rows tr')) addTrackerRow();
-      renderTrackingList();
+
+      // init lookup selects
+      var lkSec = document.getElementById('lk-sector');
+      var lkVal = document.getElementById('lk-valve');
+      if (lkSec) fillSectorSelect(lkSec);
+      if (lkVal) fillValveSelect(lkVal, '');
+
+      // ابدأ دايماً بتبويب التسجيل
+      switchTrackingTab('new');
     }
 
     // ── Add / Remove Tracker Rows ─────────────────────
@@ -5525,28 +5681,52 @@
       var arr = getTrackingRecords();
       arr.push(rec);
       saveTrackingRecords(arr);
-      toast('✅ تم حفظ التتبع بنجاح — يمكنك تعديل الأرقام والحفظ مجدداً', 's');
-
+      toast('✅ تم حفظ التتبع بنجاح', 's');
+      showLastSavedRecord(rec);
       // ✅ لا نمسح الواجهة — تبقى كما هي لتسهيل تغيير أرقام الخطوط
-      renderTrackingList();
     }
 
     // ── Render Tracking List ──────────────────────────
     function renderTrackingList() {
       var el = document.getElementById('tr-list');
       if (!el) return;
+      // أظهر spinner أثناء التحميل
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx2);font-size:.85rem">⏳ جاري تحميل السجلات من Firebase...</div>';
+
+      // حمّل من Firebase دايماً — localStorage كـ fallback
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var arr = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          // حدّث الـ cache
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch(e){}
+          _renderTrackingListUI(arr);
+        })
+        .catch(function(){
+          // fallback للـ localStorage
+          _renderTrackingListUI(getTrackingRecords());
+        });
+    }
+
+    function _renderTrackingListUI(allRecords) {
+      var el = document.getElementById('tr-list');
+      if (!el) return;
       var q = ((document.getElementById('tr-srch') || {}).value || '').toLowerCase();
-      var arr = getTrackingRecords().filter(function (r) {
+      var arr = allRecords.filter(function (r) {
         if (!q) return true;
         return (r.sector + ' ' + r.supervisor + ' ' + r.valve + ' ' + r.notes + ' ' +
           (r.trackers || []).map(function (t) { return t.inspector; }).join(' ')).toLowerCase().indexOf(q) >= 0;
-      }).reverse();
+      }).slice().reverse();
+
+      // تحديث badge العدد
+      var badge = document.getElementById('tr-count-badge');
+      if (badge) badge.textContent = allRecords.length + ' سجل إجمالي';
 
       if (!arr.length) {
         el.innerHTML = '<div class="empty"><div class="empty-ico">🗺️</div><div>لا توجد سجلات تتبع محفوظة</div></div>';
         return;
       }
-      el.innerHTML = arr.map(function (r, i) {
+      el.innerHTML = arr.map(function (r) {
         var tks = (r.trackers || []).map(function (t) {
           return '<span style="display:inline-block;background:var(--bbg);border:1px solid var(--bbd);border-radius:20px;padding:2px 8px;font-size:.72rem;margin:2px">' +
             (t.inspector || '-') + ' — فردي: <b>' + (t.odd || '-') + '</b> زوجي: <b>' + (t.even || '-') + '</b></span>';
@@ -5555,25 +5735,195 @@
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
           '<div><b>📍 قطاع ' + r.sector + ' — محبس ' + r.valve + '</b> <span style="color:var(--tx2);font-size:.78rem;margin-right:8px">' + r.date + '</span></div>' +
           '<div style="display:flex;gap:6px">' +
-          '<span style="font-size:.78rem;color:var(--tx2)">مشرف: ' + r.supervisor + '</span>' +
+          '<span style="font-size:.78rem;color:var(--tx2)">مشرف: ' + (r.supervisor||'-') + '</span>' +
+          '<button class="btn b-ol" style="padding:2px 8px;font-size:.72rem" onclick="openTrEdit(' + r.id + ')">✏️</button>' +
           '<button class="btn b-rd" style="padding:2px 8px;font-size:.72rem" onclick="deleteTrackingRecord(' + r.id + ')">🗑</button>' +
-          '</div>' +
-          '</div>' +
+          '</div></div>' +
           '<div>' + tks + '</div>' +
           (r.notes ? '<div style="font-size:.75rem;color:var(--tx3);margin-top:4px">📝 ' + r.notes + '</div>' : '') +
           '</div>';
       }).join('');
     }
 
+    // ── Edit Tracking Record ──────────────────────────
+    var _trEditId = null;
+
+    function openTrEdit(id) {
+      // حمّل من Firebase أولاً عشان السجلات مش دايماً في localStorage
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var records = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          // حدّث الـ cache
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(records)); } catch(e){}
+          var rec = null;
+          for(var i=0;i<records.length;i++){ if(records[i].id===id){ rec=records[i]; break; } }
+          if (!rec) { toast('❌ السجل غير موجود في Firebase', 'e'); return; }
+          _fillTrEditModal(rec);
+        })
+        .catch(function(){
+          // fallback: localStorage
+          var records = getTrackingRecords();
+          var rec = null;
+          for(var i=0;i<records.length;i++){ if(records[i].id===id){ rec=records[i]; break; } }
+          if (!rec) { toast('❌ السجل غير موجود', 'e'); return; }
+          _fillTrEditModal(rec);
+        });
+    }
+
+    function _fillTrEditModal(rec) {
+      _trEditId = rec.id;
+      var secEl = document.getElementById('tre-sector');
+      var valEl = document.getElementById('tre-valve');
+      var supEl = document.getElementById('tre-supervisor');
+
+      // ── القطاع ──
+      fillSectorSelect(secEl);
+      secEl.value = rec.sector || '';
+
+      // ── المحبس: نملأ القائمة بناءً على القطاع ثم نختار القيمة ──
+      fillValveSelect(valEl, rec.sector || '');
+      valEl.disabled = false;
+      // نتأكد من اختيار القيمة بعد ملء القائمة
+      var targetValve = String(rec.valve || '');
+      var found = false;
+      for (var o = 0; o < valEl.options.length; o++) {
+        if (valEl.options[o].value === targetValve) { valEl.options[o].selected = true; found = true; break; }
+      }
+      if (!found && targetValve) {
+        // أضف الخيار يدوياً لو مش موجود
+        var opt = document.createElement('option');
+        opt.value = targetValve;
+        opt.textContent = 'محبس ' + targetValve;
+        opt.selected = true;
+        valEl.appendChild(opt);
+      }
+
+      // ── المشرف ──
+      var sups = DD['\u0627\u0644\u0645\u0634\u0631\u0641 \u0627\u0644\u0631\u0626\u064a\u0633\u064a'] ||
+                 DD['\u0645\u0634\u0631\u0641 \u0631\u0626\u064a\u0633\u064a']  ||
+                 DD['\u0645\u0634\u0631\u0641 \u0623\u0633\u0627\u0633\u064a']  || [];
+      var targetSup = rec.supervisor || '';
+      // أضف المشرف الحالي لو مش في القائمة
+      var supList = sups.slice();
+      if (targetSup && supList.indexOf(targetSup) < 0) supList.unshift(targetSup);
+      supEl.innerHTML = '<option value="">-- اختر --</option>' +
+        supList.map(function(s){
+          return '<option value="'+s+'"'+(s===targetSup?' selected':'')+'>'+s+'</option>';
+        }).join('');
+      supEl.value = targetSup;
+
+      // ── التاريخ والملاحظات ──
+      document.getElementById('tre-date').value  = rec.date  || '';
+      document.getElementById('tre-notes').value = rec.notes || '';
+
+      // ── wiring القطاع → المحبس ──
+      secEl.onchange = function(){ fillValveSelect(valEl, this.value); valEl.disabled = false; };
+
+      // ── صفوف الفاحصين ──
+      var tbody = document.getElementById('tre-rows');
+      tbody.innerHTML = '';
+      (rec.trackers || []).forEach(function(tk){ addTrEditRow(tk); });
+      if (!tbody.children.length) addTrEditRow();
+
+      document.getElementById('tr-edit-modal').style.display = 'block';
+    }
+
+    function closeTrEdit() {
+      document.getElementById('tr-edit-modal').style.display = 'none';
+      _trEditId = null;
+    }
+
+    var _treRowId = 0;
+    function addTrEditRow(tk) {
+      tk = tk || {};
+      _treRowId++;
+      var id = 'tre-r-' + _treRowId;
+      var inspList = DD['\u0627\u0644\u0641\u0627\u062d\u0635'] || DD['\u0641\u0627\u062d\u0635'] || [];
+      var opts = inspList.map(function(i){ return '<option value="'+i+'"'+(i===(tk.inspector||'')?'selected':'')+'>'+i+'</option>'; }).join('');
+      var tbody = document.getElementById('tre-rows');
+      var tr = document.createElement('tr');
+      tr.id = id;
+      tr.style.borderBottom = '1px solid var(--bd)';
+      tr.innerHTML =
+        '<td style="padding:5px"><select class="fsel2 tre-insp" style="width:100%;min-width:130px"><option value="">الفاحص...</option>'+opts+'</select></td>'+
+        '<td style="padding:5px"><input type="number" class="finp tre-odd"  value="'+(tk.odd||'')+'"  placeholder="فردي"  min="0" style="width:70px"></td>'+
+        '<td style="padding:5px"><input type="number" class="finp tre-even" value="'+(tk.even||'')+'" placeholder="زوجي" min="0" style="width:70px"></td>'+
+        '<td style="padding:5px;text-align:center"><button class="btn b-rd" style="padding:3px 9px;font-size:.72rem" onclick="document.getElementById(\''+id+'\').remove()">🗑</button></td>';
+      tbody.appendChild(tr);
+    }
+
+    function saveTrEdit() {
+      var sector = document.getElementById('tre-sector').value;
+      var valve  = document.getElementById('tre-valve').value;
+      var sup    = document.getElementById('tre-supervisor').value;
+      var date   = document.getElementById('tre-date').value;
+      var notes  = document.getElementById('tre-notes').value;
+      if (!sector || !valve || !sup) { toast('يرجى اختيار القطاع والمحبس والمشرف', 'w'); return; }
+
+      var trackers = [];
+      document.querySelectorAll('#tre-rows tr').forEach(function(row){
+        var insp = (row.querySelector('.tre-insp')||{}).value || '';
+        var odd  = (row.querySelector('.tre-odd') ||{}).value || '';
+        var even = (row.querySelector('.tre-even')||{}).value || '';
+        if (insp || odd || even) trackers.push({ inspector:insp, odd:odd, even:even });
+      });
+      if (!trackers.length) { toast('أضف فاحصاً واحداً على الأقل', 'w'); return; }
+
+      // حمّل من Firebase ثم عدّل
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var arr = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          var idx = arr.findIndex ? arr.findIndex(function(r){ return r.id === _trEditId; })
+                                  : (function(){ for(var i=0;i<arr.length;i++) if(arr[i].id===_trEditId) return i; return -1; })();
+          if (idx < 0) { toast('السجل غير موجود في Firebase', 'e'); return; }
+          arr[idx] = { id:_trEditId, date:date, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
+          saveTrackingRecords(arr);
+          closeTrEdit();
+          toast('✅ تم حفظ التعديلات', 's');
+          // تحديث العرض
+          renderTrackingList();
+          runLookup();
+        })
+        .catch(function(){
+          // fallback: عدّل من localStorage
+          var arr = getTrackingRecords();
+          for(var i=0;i<arr.length;i++){
+            if(arr[i].id===_trEditId){
+              arr[i]={ id:_trEditId, date:date, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
+              break;
+            }
+          }
+          saveTrackingRecords(arr);
+          closeTrEdit();
+          toast('✅ تم حفظ التعديلات محلياً', 's');
+          renderTrackingList();
+          runLookup();
+        });
+    }
+
     function deleteTrackingRecord(id) {
       if (!confirm('حذف هذا السجل؟')) return;
-      var arr = getTrackingRecords().filter(function (r) { return r.id !== id; });
-      saveTrackingRecords(arr);
-      renderTrackingList();
-      toast('🗑 تم الحذف', 'w');
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var arr = (Array.isArray(data) ? data : (data ? Object.values(data) : []))
+            .filter(function(r){ return r.id !== id; });
+          saveTrackingRecords(arr);
+          renderTrackingList();
+          toast('🗑 تم الحذف', 'w');
+        })
+        .catch(function(){
+          var arr = getTrackingRecords().filter(function(r){ return r.id !== id; });
+          saveTrackingRecords(arr);
+          renderTrackingList();
+          toast('🗑 تم الحذف (محلياً)', 'w');
+        });
     }
 
     function clearAllTracking() {
+      if (!confirm('حذف جميع سجلات التتبع من Firebase؟')) return;
       saveTrackingRecords([]);
       renderTrackingList();
       toast('🗑 تم حذف جميع سجلات التتبع', 'w');
@@ -5581,11 +5931,8 @@
 
     // ── Tracking Lookup ───────────────────────────────
     function initLookupScreen() {
-      var lkSec = document.getElementById('lk-sector');
-      var lkVal = document.getElementById('lk-valve');
-      if (lkSec) fillSectorSelect(lkSec);
-      if (lkVal) fillValveSelect(lkVal, '');
-      document.getElementById('lk-result').innerHTML = '';
+      // الـ lookup الآن داخل صفحة tracking — لا شيء يحتاج تهيئة منفصلة
+      switchTrackingTab('list');
     }
 
     function onLookupSectorChange() {
@@ -5595,50 +5942,138 @@
       runLookup();
     }
 
+    function clearLookupFilters() {
+      ['lk-sector','lk-valve','lk-line','lk-date-from','lk-date-to'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) { el.value = ''; if (el.tagName==='SELECT') el.dispatchEvent(new Event('change')); }
+      });
+      var lkVal = document.getElementById('lk-valve');
+      if (lkVal) { lkVal.disabled = true; lkVal.innerHTML = '<option value="">-- اختر القطاع أولاً --</option>'; }
+      document.getElementById('lk-result').innerHTML = '';
+    }
+
     function runLookup() {
-      var sector = ((document.getElementById('lk-sector') || {}).value || '').trim();
-      var valve = ((document.getElementById('lk-valve') || {}).value || '').trim();
-      var line = ((document.getElementById('lk-line') || {}).value || '').trim();
+      var sector   = ((document.getElementById('lk-sector')    || {}).value || '').trim();
+      var valve    = ((document.getElementById('lk-valve')     || {}).value || '').trim();
+      var line     = ((document.getElementById('lk-line')      || {}).value || '').trim();
+      var dateFrom = ((document.getElementById('lk-date-from') || {}).value || '').trim();
+      var dateTo   = ((document.getElementById('lk-date-to')   || {}).value || '').trim();
+      var q        = ((document.getElementById('tr-srch')      || {}).value || '').toLowerCase().trim();
       var el = document.getElementById('lk-result');
       if (!el) return;
-      if (!sector && !valve && !line) { el.innerHTML = ''; return; }
 
-      var records = getTrackingRecords();
+      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tx2);font-size:.85rem">⏳ جاري البحث في Firebase...</div>';
+
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var records = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(records)); } catch(e){}
+          _runLookupUI(records, sector, valve, line, dateFrom, dateTo, q, el);
+        })
+        .catch(function(){
+          _runLookupUI(getTrackingRecords(), sector, valve, line, dateFrom, dateTo, q, el);
+        });
+    }
+
+    function _runLookupUI(records, sector, valve, line, dateFrom, dateTo, q, el) {
+      var hasFilter = sector || valve || line || dateFrom || dateTo || q;
       var matches = [];
 
-      records.forEach(function (r) {
-        if (sector && String(r.sector) !== sector && parseInt(r.sector, 10) !== parseInt(sector, 10)) return;
-        if (valve && String(r.valve) !== valve && parseInt(r.valve, 10) !== parseInt(valve, 10)) return;
-        var lineNorm = line.replace(/^0+/, '') || line;
-        (r.trackers || []).forEach(function (tk) {
-          if (line) {
-            var oddN = String(tk.odd || '').replace(/^0+/, '');
-            var evenN = String(tk.even || '').replace(/^0+/, '');
-            if (lineNorm !== oddN && lineNorm !== evenN && line !== tk.odd && line !== tk.even) return;
-          }
-          matches.push({ r: r, tk: tk });
-        });
+      records.forEach(function(r) {
+        if (sector) {
+          var rSec = String(r.sector || '').replace(/^0+/,'') || '0';
+          var fSec = String(sector).replace(/^0+/,'') || '0';
+          if (rSec !== fSec) return;
+        }
+        if (valve) {
+          var rVal = String(r.valve || '').replace(/^0+/,'') || '0';
+          var fVal = String(valve).replace(/^0+/,'') || '0';
+          if (rVal !== fVal) return;
+        }
+        if (dateFrom && r.date < dateFrom) return;
+        if (dateTo   && r.date > dateTo)   return;
+        if (q) {
+          var blob = (r.sector+' '+r.valve+' '+(r.supervisor||'')+' '+(r.notes||'')+' '+
+            (r.trackers||[]).map(function(t){return t.inspector||'';}).join(' ')).toLowerCase();
+          if (blob.indexOf(q) < 0) return;
+        }
+
+        if (line) {
+          var lineNorm = line.replace(/^0+/,'') || line;
+          (r.trackers || []).forEach(function(tk) {
+            var oddN  = String(tk.odd  || '').replace(/^0+/,'');
+            var evenN = String(tk.even || '').replace(/^0+/,'');
+            if (lineNorm !== oddN && lineNorm !== evenN &&
+                line !== String(tk.odd) && line !== String(tk.even)) return;
+            matches.push({ r: r, tk: tk });
+          });
+        } else {
+          // بدون فلتر خط — أضف أول tracker كممثل للسجل
+          matches.push({ r: r, tk: (r.trackers||[])[0] || {} });
+        }
       });
 
       if (!matches.length) {
-        el.innerHTML = '<div style="color:var(--tx3);font-size:.85rem;padding:10px 0">لا توجد سجلات تتبع لهذه البيانات.</div>';
+        el.innerHTML = hasFilter
+          ? '<div style="background:#fff8f0;border:1px solid #ffd0a0;border-radius:var(--r);padding:14px;color:#8a4000;font-size:.85rem">⚠️ لا توجد سجلات تطابق هذه البيانات</div>'
+          : '<div style="color:var(--tx3);font-size:.85rem;padding:10px">لا توجد سجلات تتبع محفوظة</div>';
         return;
       }
 
-      matches.sort(function (a, b) { return Date.parse(b.r.date) - Date.parse(a.r.date); });
-      var latest = matches[0];
+      matches.sort(function(a,b){ return Date.parse(b.r.date) - Date.parse(a.r.date); });
 
-      el.innerHTML = '<div style="background:var(--gbg);border:1px solid var(--gbd);border-radius:var(--r);padding:14px 16px">' +
-        '<div style="font-size:.9rem;font-weight:700;margin-bottom:8px;color:var(--grn)">✅ آخر فحص مسجّل</div>' +
-        '<div style="font-size:.84rem;line-height:2">' +
-        '📅 <b>التاريخ:</b> ' + latest.r.date + '<br>' +
-        '📍 <b>القطاع:</b> ' + latest.r.sector + ' — <b>المحبس:</b> ' + latest.r.valve + '<br>' +
-        '👷 <b>الفاحص:</b> ' + (latest.tk.inspector || '-') + '<br>' +
-        '👔 <b>المشرف:</b> ' + latest.r.supervisor + '<br>' +
-        '🔢 <b>خط فردي:</b> ' + (latest.tk.odd || '-') + ' — <b>خط زوجي:</b> ' + (latest.tk.even || '-') +
-        '</div>' +
-        (matches.length > 1 ? '<div style="margin-top:8px;font-size:.76rem;color:var(--tx2)">(' + matches.length + ' نتيجة مطابقة — عرض الأحدث)</div>' : '') +
-        '</div>';
+      // بطاقة آخر سجل فقط لو فيه بحث
+      var summaryHtml = '';
+      if (hasFilter && line) {
+        var latest = matches[0];
+        summaryHtml =
+          '<div style="background:var(--gbg);border:2px solid var(--gbd);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">' +
+          '<div style="font-size:.9rem;font-weight:700;margin-bottom:6px;color:var(--grn)">✅ آخر فحص مسجّل للخط ' + line + '</div>' +
+          '<div style="font-size:.84rem;line-height:2">' +
+          '📅 <b>التاريخ:</b> ' + latest.r.date +
+          ' &nbsp;📍 <b>قطاع ' + latest.r.sector + ' — محبس ' + latest.r.valve + '</b><br>' +
+          '👷 <b>الفاحص:</b> ' + (latest.tk.inspector||'-') +
+          ' &nbsp;👔 <b>المشرف:</b> ' + (latest.r.supervisor||'-') + '<br>' +
+          '🔢 <b>خط فردي:</b> ' + (latest.tk.odd||'-') + ' — <b>خط زوجي:</b> ' + (latest.tk.even||'-') +
+          '</div></div>';
+      }
+
+      var tableRows = matches.map(function(m, idx) {
+        var bg = idx === 0 && line ? 'background:rgba(0,150,80,.06)' : '';
+        var inspList = line ? (m.tk.inspector||'-') :
+          (m.r.trackers||[]).map(function(t){return t.inspector||'-';}).join('، ');
+        return '<tr style="border-bottom:1px solid var(--bd);' + bg + '">' +
+          '<td style="padding:7px 10px;font-weight:' + (idx===0&&line?'700':'400') + '">' + m.r.date + '</td>' +
+          '<td style="padding:7px 10px">' + (m.r.sector||'-') + '</td>' +
+          '<td style="padding:7px 10px">' + (m.r.valve||'-') + '</td>' +
+          '<td style="padding:7px 10px">' + inspList + '</td>' +
+          '<td style="padding:7px 10px">' + (m.r.supervisor||'-') + '</td>' +
+          (line ? '<td style="padding:7px 10px;font-weight:600;color:var(--grn)">' + (m.tk.odd||'-') + '</td>' +
+                  '<td style="padding:7px 10px;font-weight:600;color:#1565c0">' + (m.tk.even||'-') + '</td>' : '') +
+          '<td style="padding:5px 8px;text-align:center">' +
+            '<button class="btn b-ol" style="padding:3px 10px;font-size:.72rem;white-space:nowrap" onclick="openTrEdit(' + m.r.id + ')">✏️ تعديل</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+
+      var extraCols = line
+        ? '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">خط فردي</th>' +
+          '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">خط زوجي</th>' : '';
+
+      el.innerHTML = summaryHtml +
+        '<div style="font-size:.8rem;color:var(--tx2);margin-bottom:6px">' + matches.length + ' نتيجة مطابقة</div>' +
+        '<div style="overflow-x:auto;border:1px solid var(--bd);border-radius:var(--r)">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
+        '<thead><tr style="background:var(--sf2)">' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">التاريخ</th>' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">القطاع</th>' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">المحبس</th>' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">الفاحص</th>' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">المشرف</th>' +
+        extraCols +
+        '<th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--bd)">تعديل</th>' +
+        '</tr></thead><tbody>' + tableRows + '</tbody></table></div>';
     }
 
     // ════════════════════════════════════════════════
@@ -5706,40 +6141,109 @@
       var reader = new FileReader();
       reader.onload = function (e) {
         var text = e.target.result;
-        // Strip BOM if present
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
         var lines = text.split(/\r?\n/).filter(function (l) { return l.trim(); });
         if (lines.length < 2) { toast('الملف فارغ أو لا يحتوي على بيانات', 'e'); return; }
 
-        var hdrs = lines[0].split(',').map(function (h) { return h.replace(/^"|"$/g, '').trim(); });
-        var dataRows = lines.slice(1).map(function (l) {
-          var vs = l.split(',').map(function (v) { return v.replace(/^"|"$/g, '').trim(); });
-          return hdrs.reduce(function (o, h, i) { o[h] = vs[i] || ''; return o; }, {});
-        }).filter(function (r) { return r['التاريخ'] || r['القطاع']; });
+        // ── Parse CSV مع دعم الحقول التي تحتوي فواصل ──
+        function parseCsvLine(line) {
+          var result = [], cur = '', inQ = false;
+          for (var i = 0; i < line.length; i++) {
+            var c = line[i];
+            if (c === '"') { inQ = !inQ; }
+            else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+            else { cur += c; }
+          }
+          result.push(cur.trim());
+          return result;
+        }
 
-        if (!dataRows.length) { toast('لم يُعثر على بيانات صالحة', 'e'); return; }
+        var hdrs = parseCsvLine(lines[0]).map(function(h){ return h.replace(/^"|"$/g,'').trim(); });
 
-        // Group rows by (date+sector+valve+supervisor) into tracking records
+        // ── دالة مرنة للبحث عن العمود بأسماء متعددة ──
+        function col(row, candidates) {
+          for (var i = 0; i < candidates.length; i++) {
+            var k = candidates[i];
+            // بحث مطابق
+            if (row[k] !== undefined && row[k] !== '') return row[k];
+            // بحث جزئي في المفاتيح
+            for (var hk in row) {
+              if (hk.indexOf(k) >= 0 || k.indexOf(hk) >= 0) {
+                if (row[hk] !== undefined && row[hk] !== '') return row[hk];
+              }
+            }
+          }
+          return '';
+        }
+
+        var dataRows = lines.slice(1).map(function(l) {
+          var vs = parseCsvLine(l);
+          return hdrs.reduce(function(o, h, i){ o[h] = (vs[i] || '').replace(/^"|"$/g,'').trim(); return o; }, {});
+        }).filter(function(r){
+          return col(r,['التاريخ','Date','date']) || col(r,['القطاع','Sector','sector','قطاع','فطاع']);
+        });
+
+        if (!dataRows.length) { toast('لم يُعثر على بيانات صالحة — تحقق من أسماء الأعمدة', 'e'); return; }
+
+        // ── تطبيع القطاع: إزالة كلمة "قطاع" وإبقاء الرقم فقط ──
+        function normSector(v) {
+          if (!v) return '';
+          v = String(v).replace(/قطاع|فطاع|sector/gi,'').trim();
+          var n = parseInt(v, 10);
+          return isNaN(n) ? v : String(n).padStart(2,'0');
+        }
+        function normValve(v) {
+          if (!v) return '';
+          v = String(v).replace(/محبس|valve|pen/gi,'').trim();
+          return v;
+        }
+
+        // ── تجميع الصفوف حسب (تاريخ+قطاع+محبس+مشرف) ──
         var grouped = {};
-        dataRows.forEach(function (row) {
-          var key = [row['التاريخ'] || '', row['القطاع'] || '', row['المحبس'] || '', row['المشرف'] || ''].join('|');
+        dataRows.forEach(function(row) {
+          var dateVal  = col(row,['التاريخ','Date','date','تاريخ']);
+          var secRaw   = col(row,['القطاع','Sector','sector','قطاع','فطاع لقطاع','فطاع']);
+          var valveRaw = col(row,['المحبس','Pen','pen','Valve','valve','محبس']);
+          var supVal   = col(row,['المشرف','Supervisor','supervisor','مشرف','اسم المشرف']);
+          var inspVal  = col(row,['اسم الفاحص','Inspector','inspector','فاحص','الفاحص','اسم الفاحص ( مد']);
+          var oddVal   = col(row,['الخط الفردي (Odd)','الخط الفردي','Odd','odd','خط فردي','الخط الفردى']);
+          var evenVal  = col(row,['الخط الزوجي (Even)','الخط الزوجي','Even','even','خط زوجي','الخط الزوجى']);
+          var notesVal = col(row,['ملاحظات','Notes','notes']);
+
+          var secNorm   = normSector(secRaw);
+          var valveNorm = normValve(valveRaw);
+
+          // تطبيع التاريخ — يقبل dd-mm-yy أو yy-mm-dd أو dd/mm/yyyy
+          if (dateVal) {
+            var dp = dateVal.replace(/\//g,'-').split('-');
+            if (dp.length === 3) {
+              // لو السنة أولاً (yyyy-mm-dd) — اتركه
+              // لو اليوم أولاً (dd-mm-yyyy أو dd-mm-yy)
+              if (dp[0].length <= 2 && parseInt(dp[0],10) > 12) {
+                // يوم-شهر-سنة → سنة-شهر-يوم
+                var yr = dp[2].length === 2 ? '20'+dp[2] : dp[2];
+                dateVal = yr+'-'+dp[1].padStart(2,'0')+'-'+dp[0].padStart(2,'0');
+              } else if (dp[0].length === 2 && dp[2].length === 2) {
+                // yy-mm-dd
+                dateVal = '20'+dp[0]+'-'+dp[1]+'-'+dp[2];
+              }
+            }
+          }
+
+          var key = [dateVal, secNorm, valveNorm, supVal].join('|');
           if (!grouped[key]) {
             grouped[key] = {
               id: Date.now() + Math.random(),
-              date: row['التاريخ'] || '',
-              sector: row['القطاع'] || '',
-              valve: row['المحبس'] || '',
-              supervisor: row['المشرف'] || '',
-              notes: row['ملاحظات'] || '',
+              date: dateVal,
+              sector: secNorm,
+              valve: valveNorm,
+              supervisor: supVal,
+              notes: notesVal,
               trackers: []
             };
           }
-          if (row['اسم الفاحص'] || row['الخط الفردي (Odd)'] || row['الخط الزوجي (Even)']) {
-            grouped[key].trackers.push({
-              inspector: row['اسم الفاحص'] || '',
-              odd: row['الخط الفردي (Odd)'] || '',
-              even: row['الخط الزوجي (Even)'] || ''
-            });
+          if (inspVal || oddVal || evenVal) {
+            grouped[key].trackers.push({ inspector: inspVal, odd: oddVal, even: evenVal });
           }
         });
 
@@ -5776,12 +6280,26 @@
     function confirmImportTracking() {
       var prev = document.getElementById('tr-import-prev');
       if (!prev || !prev._toAdd || !prev._toAdd.length) return;
-      var existing = getTrackingRecords();
-      var merged = existing.concat(prev._toAdd);
-      saveTrackingRecords(merged);
-      toast('✅ تم استيراد ' + prev._toAdd.length + ' سجل جديد', 's');
-      cancelImportTracking();
-      renderTrackingList();
+      var toAdd = prev._toAdd;
+      // حمّل الموجود من Firebase ثم ادمج
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var existing = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          var merged = existing.concat(toAdd);
+          saveTrackingRecords(merged);
+          toast('✅ تم استيراد ' + toAdd.length + ' سجل جديد على Firebase', 's');
+          cancelImportTracking();
+          renderTrackingList();
+        })
+        .catch(function(){
+          var existing = getTrackingRecords();
+          var merged = existing.concat(toAdd);
+          saveTrackingRecords(merged);
+          toast('✅ تم استيراد ' + toAdd.length + ' سجل (محلياً)', 's');
+          cancelImportTracking();
+          renderTrackingList();
+        });
     }
 
     function cancelImportTracking() {
@@ -5831,27 +6349,11 @@
       };
     })();
 
-    // Load tracking from Firebase on init
-    function loadTrackingFromFB() {
-      if (!fbConnected) return;
-      fbGet(FB_TRACKING_URL, function (err, val) {
-        if (!err && val && Array.isArray(val) && val.length) {
-          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(val)); } catch (e) { }
-        }
-      });
-    }
+    // loadTrackingFromFB → أصبحت loadTrackingFromFirebase (معرّفة فوق)
+    // نستخدمها مباشرة بدون الاعتماد على fbConnected
 
-    // Patch startFbPolling to also load tracking
-    var _origStartFbPolling = startFbPolling;
-    window.startFbPolling = function () {
-      _origStartFbPolling();
-      loadTrackingFromFB();
-    };
-
-    window.addEventListener('load', function () {
-      // Pre-load tracking from FB if connected
-      setTimeout(loadTrackingFromFB, 2000);
-    });
+    // Tracking لا يُحمَّل تلقائياً عند بدء التشغيل
+    // يُحمَّل فقط عند فتح التبويب يدوياً (switchTrackingTab)
 
     // ════════════════════════════════════════════════
     // MAIN INIT — Firebase + DB + UI (like v7)
