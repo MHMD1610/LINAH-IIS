@@ -4176,6 +4176,7 @@
     // ════════════════════════════════════════════════
     var linahDashReady = false, linahMap = null, linahHeat = null, linahMarkers = null, linahSatelliteLayer = null;
     var linahSectorEditMode = false, LINAH_SECTOR_COORDS_KEY = 'linah_iis_sector_coords_v1';
+    var FB_SECTOR_COORDS_URL = FB_BASE + '/sector_coords.json';
     var LINAH_SECTOR_COORDS = {
       '1': [28.219, 28.946], '2': [28.224, 28.952], '3': [28.229, 28.958], '4': [28.234, 28.964],
       '5': [28.239, 28.970], '6': [28.244, 28.976], '7': [28.249, 28.982], '8': [28.254, 28.988],
@@ -4187,6 +4188,7 @@
       '29': [28.258, 29.046], '30': [28.262, 29.053], '31': [28.266, 29.060], '32': [28.270, 29.067]
     };
 
+    // ── مواضع القطاعات: localStorage كـ cache فوري + Firebase للمزامنة بين الأجهزة ──
     function getStoredSectorCoords() {
       try {
         var raw = localStorage.getItem(LINAH_SECTOR_COORDS_KEY);
@@ -4195,16 +4197,39 @@
       } catch (e) { return {}; }
     }
 
+    // تحميل المواضع من Firebase وتحديث الخريطة
+    function loadSectorCoordsFromFirebase(callback) {
+      fetch(FB_SECTOR_COORDS_URL)
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if (data && typeof data === 'object') {
+            try { localStorage.setItem(LINAH_SECTOR_COORDS_KEY, JSON.stringify(data)); } catch(e){}
+          }
+          if (callback) callback();
+        })
+        .catch(function(){ if (callback) callback(); });
+    }
+
     function saveStoredSectorCoord(sector, latlng) {
       var stored = getStoredSectorCoords();
       var key = String(sector || '').replace(/^0+/, '') || String(sector || '');
       stored[key] = [Number(latlng.lat.toFixed(6)), Number(latlng.lng.toFixed(6))];
+      // حفظ فوري في localStorage
       try { localStorage.setItem(LINAH_SECTOR_COORDS_KEY, JSON.stringify(stored)); } catch (e) {}
+      // مزامنة مع Firebase
+      fetch(FB_SECTOR_COORDS_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stored)
+      }).catch(function(e){ console.warn('Firebase sector coords sync failed:', e); });
     }
 
     function resetSectorLocations() {
       if (!confirm('\u0625\u0639\u0627\u062f\u0629 \u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a \u0644\u0644\u0642\u064a\u0645 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629\u061f')) return;
       try { localStorage.removeItem(LINAH_SECTOR_COORDS_KEY); } catch (e) {}
+      // حذف من Firebase أيضًا
+      fetch(FB_SECTOR_COORDS_URL, { method: 'DELETE' })
+        .catch(function(e){ console.warn('Firebase sector coords reset failed:', e); });
       toast('\u062a\u0645\u062a \u0625\u0639\u0627\u062f\u0629 \u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a', 's');
       buildDash();
     }
@@ -4410,7 +4435,7 @@
         if ((n.getAttribute('onclick') || '').indexOf("'" + name + "'") >= 0) n.classList.add('on');
       });
       var acts = {
-        dash: function () { fillGlobalFilters(); computeFU(); buildDash(); },
+        dash: function () { fillGlobalFilters(); computeFU(); loadSectorCoordsFromFirebase(function(){ buildDash(); }); },
         'fu-alerts': buildFUAlerts,
         'crit-alerts': renderCritAlerts,
         followup: renderFUPage,
