@@ -2396,35 +2396,6 @@
       </div>
     </nav>
 
-    <!-- ══════════ IMPORT MODAL ══════════ -->
-    <div id="import-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
-      <div style="background:var(--card);border-radius:12px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35);position:relative" dir="rtl">
-        <button onclick="closeImportModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--tx3)">✕</button>
-        <div style="font-size:1rem;font-weight:800;color:var(--tx1);margin-bottom:16px">📊 استيراد من Excel/CSV</div>
-        <div style="background:var(--bbg);border:1px solid var(--bbd);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--blu)">
-          ℹ️ يُحدَّد التكرار بـ <b>(كود النخلة + تاريخ الفحص)</b> — الصفوف المكررة تُتخطى تلقائياً.
-        </div>
-        <div class="dz" id="dz-excel-modal"
-          onclick="document.getElementById('fin-excel').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="onDropExcelModal(event)"
-          style="cursor:pointer">
-          <div style="font-size:2rem;margin-bottom:6px">📊</div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--tx2)">اسحب ملف CSV/Excel هنا أو اضغط للاختيار</div>
-          <div style="font-size:.74rem;color:var(--tx3);margin-top:4px">يدعم .xlsx / .xls / .csv</div>
-        </div>
-        <div id="imp-excel-prev" style="margin-top:10px"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn b-dk" id="btn-imp-excel" onclick="doImportExcel()" style="display:none">⬆ إضافة الجديد فقط</button>
-          <button class="btn b-ol" id="btn-update-excel" onclick="doUpdateDups()" style="display:none;background:var(--ora);border-color:var(--ora);color:#fff">✏️ تحديث المكرر فقط</button>
-          <button class="btn b-ol" id="btn-addupdate-excel" onclick="doAddAndUpdate()" style="display:none;background:#2a7a2a;border-color:#2a7a2a;color:#fff">✅ إضافة + تحديث المكرر</button>
-          <button class="btn b-rd" id="btn-replace-excel" onclick="doImportExcelReplace()" style="display:none">🗑️ استبدال الكل</button>
-          <button class="btn b-ol" onclick="closeImportModal()">إلغاء</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ══════════ MAIN ══════════ -->
     <main class="main">
 
@@ -2446,7 +2417,8 @@
         <div class="linah-global-filters" id="linah-global-filters">
           <div class="ff"><label class="fl">&#1605;&#1606; &#1578;&#1575;&#1585;&#1610;&#1582;</label><input type="date" class="finp" id="gf-from" onchange="updateDynamicDashboard()"></div>
           <div class="ff"><label class="fl">&#1573;&#1604;&#1609; &#1578;&#1575;&#1585;&#1610;&#1582;</label><input type="date" class="finp" id="gf-to" onchange="updateDynamicDashboard()"></div>
-          <div class="ff"><label class="fl">&#1606;&#1608;&#1593; &#1575;&#1604;&#1570;&#1601;&#1577;</label><select class="finp" id="gf-pest" onchange="updateDynamicDashboard()"><option value="">&#1575;&#1604;&#1603;&#1604;</option></select></div>
+          <div class="ff"><label class="fl">&#1606;&#1608;&#1593; &#1575;&#1604;&#1570;&#1601;&#1577;</label><select class="finp" id="gf-pest" onchange="onGfPestChange()"><option value="">&#1575;&#1604;&#1603;&#1604;</option></select></div>
+          <div class="ff"><label class="fl">&#1575;&#1604;&#1578;&#1588;&#1582;&#1610;&#1589;</label><select class="finp" id="gf-diag" onchange="onGfDiagChange()"><option value="">&#1575;&#1604;&#1603;&#1604;</option></select></div>
           <div class="ff"><label class="fl">&#1575;&#1604;&#1602;&#1591;&#1575;&#1593;</label><select class="finp" id="gf-sector" onchange="updateDynamicDashboard()"><option value="">&#1575;&#1604;&#1603;&#1604;</option></select></div>
           <div class="ff"><label class="fl">&#1605;&#1587;&#1578;&#1608;&#1609; &#1575;&#1604;&#1582;&#1591;&#1608;&#1585;&#1577;</label><select class="finp" id="gf-severity" onchange="updateDynamicDashboard()"><option value="">&#1575;&#1604;&#1603;&#1604;</option></select></div>
           <div class="linah-filter-actions">
@@ -2726,7 +2698,7 @@
               &#1580;&#1583;&#1610;&#1583;</button>
             <button class="btn b-gld" onclick="expCSV(filteredD)">&#11015; Excel/CSV</button>
             <button class="btn b-ol" onclick="expCSV(DB)">&#11015; تصدير كل السجل</button>
-            <button class="btn b-ol" onclick="openImportModal()">&#11014; استيراد Excel/CSV</button>
+            <button class="btn b-ol" onclick="document.getElementById('fin-excel').click()">&#11014; استيراد Excel/CSV</button>
           </div>
         </div>
         <!-- Global search -->
@@ -3110,8 +3082,12 @@
                 <div style="font-size:.75rem;color:var(--tx3);margin-top:4px">يدعم .xlsx / .xls / .csv — يفضّل أن تكون التواريخ بصيغة YYYY-MM-DD</div>
               </div>
               <input type="file" id="fin-excel" accept=".csv,.xlsx,.xls" style="display:none" onchange="onFileSelectExcel(this)">
-              <div style="margin-top:10px;font-size:.8rem;color:var(--tx3);padding:10px;background:var(--gbg);border-radius:6px;border:1px solid var(--gbd)">
-                💡 استخدم زر <b>"⬆ استيراد Excel/CSV"</b> في صفحة <b>"كل السجلات"</b> للاستيراد المباشر.
+              <div id="imp-excel-prev" style="margin-top:10px"></div>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="btn b-dk" id="btn-imp-excel" onclick="doImportExcel()" style="display:none">&#11014;
+                  استيراد السجلات الجديدة</button>
+                <button class="btn b-rd" id="btn-replace-excel" onclick="doImportExcelReplace()" style="display:none">استبدال كل السجل</button>
+                <button class="btn b-ol" onclick="clearImportExcel()">إلغاء</button>
               </div>
             </div>
           </div>
@@ -3854,7 +3830,6 @@
     var fbSaveTimer = null;
     var fbDDSaveTimer = null;
     var fbPollTimer = null;
-    var fbImporting = false;
 
     var STORAGE_KEY = 'lf_v5_db';
     var DD_KEY = 'lf_v5_dd';
@@ -3898,11 +3873,10 @@
         // sync DB
         fbGet(FB_DB_URL, function (err, val) {
           if (!err && val && Array.isArray(val) && val.length) {
-            if (fbImporting) return;
             // ── فقط لو البيانات اتغيّرت فعلاً ──
             var newSnapshot = JSON.stringify(val);
             var oldSnapshot = JSON.stringify(DB);
-            if (newSnapshot === oldSnapshot) return;
+            if (newSnapshot === oldSnapshot) return; // لا تغيير — لا تعمل شيء
 
             DB = val;
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
@@ -4315,40 +4289,101 @@
     }
 
     function fillGlobalFilters() {
-      var pest = document.getElementById('gf-pest'), sector = document.getElementById('gf-sector'), sev = document.getElementById('gf-severity');
+      var pest = document.getElementById('gf-pest');
+      var diag = document.getElementById('gf-diag');
+      var sector = document.getElementById('gf-sector');
+      var sev = document.getElementById('gf-severity');
       function fill(el, vals, prefix) {
         if (!el) return;
         var cur = el.value;
-        el.innerHTML = '<option value="">&#1575;&#1604;&#1603;&#1604;</option>' + vals.map(function (v) { return '<option value="' + v.replace(/"/g, '&quot;') + '">' + (prefix || '') + v + '</option>'; }).join('');
+        el.innerHTML = '<option value="">الكل</option>' + vals.map(function (v) { return '<option value="' + v.replace(/"/g, '&quot;') + '">' + (prefix || '') + v + '</option>'; }).join('');
         if (vals.indexOf(cur) >= 0) el.value = cur;
       }
+      var curPest = pest ? pest.value : '';
+      var curDiag = diag ? diag.value : '';
+      // الآفات: تتفلتر حسب التشخيص المختار
       var pestVals = [];
       DB.forEach(function (r) {
-        ['pest_desc', 'diagnosis', 'cause', 'pest_type'].forEach(function (k) {
+        if (curDiag && (r.diagnosis || '') !== curDiag) return;
+        ['pest_desc', 'cause', 'pest_type'].forEach(function (k) {
           if (r[k] && String(r[k]).trim()) pestVals.push(r[k]);
         });
+        if (r.diagnosis && String(r.diagnosis).trim()) pestVals.push(r.diagnosis);
       });
       fill(pest, uniqueSorted(pestVals), '');
+      // التشخيصات: تتفلتر حسب الآفة المختارة
+      var diagVals = [];
+      DB.forEach(function (r) {
+        if (curPest) {
+          var pf = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function(v){ return (v||'').trim(); });
+          if (!pf.some(function(v){ return v === curPest || v.indexOf(curPest) >= 0 || curPest.indexOf(v) >= 0; })) return;
+        }
+        if (r.diagnosis && String(r.diagnosis).trim()) diagVals.push(r.diagnosis);
+      });
+      fill(diag, uniqueSorted(diagVals), '');
       fill(sector, uniqueSorted(DB.map(function (r) { return r.sector; })).sort(function (a, b) { return (+a || 0) - (+b || 0); }), '\u0642\u0637\u0627\u0639 ');
       fill(sev, uniqueSorted(DB.map(function (r) { return r.severity; })), '');
+    }
+
+    function onGfPestChange() {
+      // لما تختار آفة: حدّث التشخيصات المرتبطة بيها بس، واحذف التشخيص المحدد لو مش مرتبط
+      var pest = (document.getElementById('gf-pest') || {}).value || '';
+      var diagEl = document.getElementById('gf-diag');
+      if (diagEl && pest) {
+        var relDiags = [];
+        DB.forEach(function(r) {
+          var pf = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function(v){ return (v||'').trim(); });
+          if (pf.some(function(v){ return v === pest || v.indexOf(pest) >= 0 || pest.indexOf(v) >= 0; })) {
+            if (r.diagnosis && String(r.diagnosis).trim()) relDiags.push(r.diagnosis);
+          }
+        });
+        var relSet = uniqueSorted(relDiags);
+        if (relSet.indexOf(diagEl.value) < 0) diagEl.value = '';
+        diagEl.innerHTML = '<option value="">الكل</option>' + relSet.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">' + v + '</option>'; }).join('');
+      } else if (diagEl && !pest) {
+        fillGlobalFilters();
+      }
+      updateDynamicDashboard();
+    }
+
+    function onGfDiagChange() {
+      // لما تختار تشخيص: حدّث الآفات المرتبطة بيه بس، واحذف الآفة المحددة لو مش مرتبطة
+      var dg = (document.getElementById('gf-diag') || {}).value || '';
+      var pestEl = document.getElementById('gf-pest');
+      if (pestEl && dg) {
+        var relPests = [];
+        DB.forEach(function(r) {
+          if ((r.diagnosis || '') !== dg) return;
+          ['pest_desc', 'cause', 'pest_type'].forEach(function(k){ if (r[k] && String(r[k]).trim()) relPests.push(r[k]); });
+          if (r.diagnosis && String(r.diagnosis).trim()) relPests.push(r.diagnosis);
+        });
+        var relSet = uniqueSorted(relPests);
+        if (relSet.indexOf(pestEl.value) < 0) pestEl.value = '';
+        pestEl.innerHTML = '<option value="">الكل</option>' + relSet.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">' + v + '</option>'; }).join('');
+      } else if (pestEl && !dg) {
+        fillGlobalFilters();
+      }
+      updateDynamicDashboard();
     }
 
     function getDashboardFilteredData() {
       var from = (document.getElementById('gf-from') || {}).value || '';
       var to = (document.getElementById('gf-to') || {}).value || '';
       var pest = (document.getElementById('gf-pest') || {}).value || '';
+      var dg = (document.getElementById('gf-diag') || {}).value || '';
       var sector = (document.getElementById('gf-sector') || {}).value || '';
       var severity = (document.getElementById('gf-severity') || {}).value || '';
       return DB.filter(function (r) {
         var d = parseDate((r.inspection_date || '').toString()) || r.inspection_date || '';
         var pestFields = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function (v) { return (v || '').toString().trim(); });
         var pestOk = !pest || pestFields.some(function (v) { return v === pest || v.indexOf(pest) >= 0 || pest.indexOf(v) >= 0; });
-        return (!from || d >= from) && (!to || d <= to) && pestOk && (!sector || String(r.sector || '').replace(/^0+/, '') === String(sector).replace(/^0+/, '')) && (!severity || r.severity === severity);
+        var diagOk = !dg || (r.diagnosis || '') === dg;
+        return (!from || d >= from) && (!to || d <= to) && pestOk && diagOk && (!sector || String(r.sector || '').replace(/^0+/, '') === String(sector).replace(/^0+/, '')) && (!severity || r.severity === severity);
       });
     }
 
     function resetGlobalFilters() {
-      ['gf-from', 'gf-to', 'gf-pest', 'gf-sector', 'gf-severity'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+      ['gf-from', 'gf-to', 'gf-pest', 'gf-diag', 'gf-sector', 'gf-severity'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
       updateDynamicDashboard();
     }
 
@@ -5939,21 +5974,6 @@
     // ════════════════════════════════════════════════
     var impExcelRaw = null;
 
-    function openImportModal() {
-      var m = document.getElementById('import-modal');
-      if (m) { m.style.display = 'flex'; }
-      clearImportExcel();
-    }
-    function closeImportModal() {
-      var m = document.getElementById('import-modal');
-      if (m) m.style.display = 'none';
-      clearImportExcel();
-    }
-    function onDropExcelModal(e) {
-      e.preventDefault();
-      document.getElementById('dz-excel-modal').classList.remove('drag');
-      var f = e.dataTransfer.files[0]; if (f) procExcelFile(f);
-    }
     function onFileSelectExcel(inp) { if (inp.files[0]) procExcelFile(inp.files[0]); }
     function onDropExcel(e) {
       e.preventDefault();
@@ -5990,17 +6010,10 @@
         }
         if(bar) bar.style.width='90%';
         var converted = convertImportedRows(rows);
-        var existingMap = {};
-        DB.forEach(function (r) { existingMap[(r.code||'')+'|'+(r.inspection_date||'')] = r; });
-        var newRows = converted.records.filter(function (r) { return !existingMap[(r.code||'')+'|'+(r.inspection_date||'')]; });
-        var dupRows = converted.records.filter(function (r) {
-          var key = (r.code||'')+'|'+(r.inspection_date||'');
-          if (!existingMap[key]) return false;
-          var old = existingMap[key];
-          var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-          return flds.some(function(f){ return String(r[f]||'') !== String(old[f]||''); });
-        });
-        impExcelRaw = { records: converted.records, newRows: newRows, dupRows: dupRows, total: rows.length, warnings: converted.warnings };
+        var existing = {};
+        DB.forEach(function (r) { existing[(r.code||'')+'|'+(r.inspection_date||'')] = true; });
+        var newRows = converted.records.filter(function (r) { return !existing[(r.code||'')+'|'+(r.inspection_date||'')]; });
+        impExcelRaw = { records: converted.records, newRows: newRows, total: rows.length, warnings: converted.warnings };
         var dup = converted.records.length - newRows.length;
         if(bar) bar.style.width='100%';
         var warnHtml = '';
@@ -6019,19 +6032,14 @@
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;font-size:.8rem;color:var(--tx2)">' +
           '<div>\ud83d\udcc4 \u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0635\u0641\u0648\u0641</div><div><b>' + rows.length + '</b></div>' +
           '<div>\u2714\ufe0f \u0635\u0641\u0648\u0641 \u0635\u0627\u0644\u062d\u0629</div><div><b>' + converted.records.length + '</b></div>' +
-          '<div>🔁 مكررة (موجودة)</div><div><b style="color:var(--ora)">' + dup + '</b></div>' +
-          '<div>✏️ قابلة للتحديث</div><div><b style="color:#b06000">' + dupRows.length + '</b></div>' +
-          '<div>🆕 جديدة للإضافة</div><div><b style="color:var(--grn)">' + newRows.length + '</b></div>' +
+          '<div>\ud83d\udd01 \u0645\u0643\u0631\u0631\u0629</div><div><b style="color:var(--ora)">' + dup + '</b></div>' +
+          '<div>\ud83c\udd95 \u062c\u062f\u064a\u062f\u0629 \u0644\u0644\u0625\u0636\u0627\u0641\u0629</div><div><b style="color:var(--grn)">' + newRows.length + '</b></div>' +
           '</div>' + warnHtml +
           '<div id="imp-fb-status" style="margin-top:10px;font-size:.78rem;padding:7px 10px;border-radius:5px;background:var(--bbg);border:1px solid var(--bbd);color:var(--blu)">' +
           '\u23f3 \u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0623\u0645\u0631 \u0644\u0631\u0641\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0639\u0644\u0649 Firebase...</div>' +
           '</div>';
         var btn = document.getElementById('btn-imp-excel');
         if(btn) btn.style.display = newRows.length ? 'inline-flex' : 'none';
-        var bup = document.getElementById('btn-update-excel');
-        if(bup) bup.style.display = dupRows.length ? 'inline-flex' : 'none';
-        var bau = document.getElementById('btn-addupdate-excel');
-        if(bau) bau.style.display = (newRows.length || dupRows.length) ? 'inline-flex' : 'none';
         var rb = document.getElementById('btn-replace-excel');
         if(rb) rb.style.display = converted.records.length ? 'inline-flex' : 'none';
       };
@@ -6041,123 +6049,72 @@
 
     function doImportExcel() {
       if (!impExcelRaw || !impExcelRaw.newRows.length) return;
-      fbImporting = true;
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
       var added = 0;
       impExcelRaw.newRows.forEach(function (rec) {
         rec.id = nextId();
-        if (!rec.year) rec.year = (rec.inspection_date||'').slice(0,4)||'2026';
+        if (!rec.year) rec.year = (rec.inspection_date || '').slice(0,4) || '2026';
         if (!rec.stage) rec.stage = 1;
         DB.unshift(rec); added++;
       });
-      var snapshot = JSON.stringify(DB);
       var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع ('+added+' سجل)...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
+      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='\ud83d\udd04 \u062c\u0627\u0631\u064a \u0627\u0644\u0631\u0641\u0639 \u0639\u0644\u0649 Firebase ('+added+' \u0633\u062c\u0644)...'; }
+      try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
       computeFU(); initFilters(); applyF();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم رفع '+added+' سجل جديد','s'); closeImportModal();
-      }).catch(function(err){ toast('⚠️ حُفظ محلياً: '+err.message,'w'); })
-      .finally(function(){ fbImporting=false; startFbPolling(); });
+      clearTimeout(window._fbSt);
+      window._fbSt = setTimeout(function() {
+        fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
+          method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(DB)
+        }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
+          toast('\u2705 \u062a\u0645 \u0631\u0641\u0639 '+added+' \u0633\u062c\u0644 \u0639\u0644\u0649 Firebase', 's');
+          var st2=document.getElementById('imp-fb-status');
+          if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
+            st2.innerHTML='\ud83d\udfe2 \u062a\u0645 \u0627\u0644\u0631\u0641\u0639 \u0628\u0646\u062c\u0627\u062d \u2014 '+added+' \u0633\u062c\u0644 \u062c\u062f\u064a\u062f \u0639\u0644\u0649 Firebase ('+new Date().toLocaleTimeString('ar')+')'; }
+        }).catch(function(err){
+          toast('\u26a0\ufe0f \u062d\u064f\u0641\u0638 \u0645\u062d\u0644\u064a\u0627\u064b \u2014 Firebase: '+err.message, 'w');
+          var st2=document.getElementById('imp-fb-status');
+          if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
+            st2.innerHTML='\ud83d\udd34 Firebase \u0644\u0645 \u064a\u0633\u062a\u062c\u0628 \u2014 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u062d\u0641\u0648\u0638\u0629 \u0645\u062d\u0644\u064a\u0627\u064b \u0641\u0642\u0637.'; }
+        });
+      }, 300);
     }
 
     function doImportExcelReplace() {
       if (!impExcelRaw || !impExcelRaw.records.length) return;
-      if (!confirm('سيتم استبدال كل سجلات الفحص بالملف المستورد. هل تكمل؟')) return;
-      fbImporting = true;
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
-      DB = impExcelRaw.records.map(function (r,i) {
-        if (!r.id) r.id = i+1;
-        if (!r.year) r.year = (r.inspection_date||'').slice(0,4)||'2026';
+      if (!confirm('\u0633\u064a\u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0643\u0644 \u0633\u062c\u0644\u0627\u062a \u0627\u0644\u0641\u062d\u0635 \u0628\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u0631\u062f. \u0627\u0639\u0645\u0644 \u062a\u0635\u062f\u064a\u0631 \u0627\u062d\u062a\u064a\u0627\u0637\u064a \u0623\u0648\u0644\u0627\u064b \u0644\u0648 \u0645\u062d\u062a\u0627\u062c. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
+      DB = impExcelRaw.records.map(function (r, i) {
+        if (!r.id) r.id = i + 1;
+        if (!r.year) r.year = (r.inspection_date || '').slice(0,4) || '2026';
         if (!r.stage) r.stage = 1;
         return r;
       });
       var total = DB.length;
-      var snapshot = JSON.stringify(DB);
       var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 استبدال '+total+' سجل على Firebase...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
-      computeFU(); initFilters(); applyF(); buildDash(); clearImportExcel();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم استبدال كل السجلات ('+total+')','s'); closeImportModal();
-      }).catch(function(err){ toast('⚠️ حُفظ محلياً: '+err.message,'w'); })
-      .finally(function(){ fbImporting=false; startFbPolling(); });
-    }
-
-    function doUpdateDups() {
-      if (!impExcelRaw || !impExcelRaw.dupRows || !impExcelRaw.dupRows.length) return;
-      fbImporting = true;
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
-      var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-      var updated = 0;
-      impExcelRaw.dupRows.forEach(function(nr) {
-        var key = (nr.code||'')+'|'+(nr.inspection_date||'');
-        var idx = DB.findIndex(function(r){ return ((r.code||'')+'|'+(r.inspection_date||''))===key; });
-        if (idx >= 0) { flds.forEach(function(f){ if(nr[f]!==undefined && nr[f]!=='') DB[idx][f]=nr[f]; }); updated++; }
-      });
-      var snapshot = JSON.stringify(DB);
-      var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري تحديث '+updated+' سجل على Firebase...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
-      computeFU(); initFilters(); applyF();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم تحديث '+updated+' سجل مكرر على Firebase','s'); closeImportModal();
-      }).catch(function(err){
-        toast('⚠️ حُفظ محلياً — Firebase: '+err.message,'w');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)'; st2.innerHTML='🔴 Firebase لم يستجب ('+err.message+')'; }
-      }).finally(function(){ fbImporting=false; startFbPolling(); });
-    }
-
-    function doAddAndUpdate() {
-      if (!impExcelRaw) return;
-      var hasNew = impExcelRaw.newRows && impExcelRaw.newRows.length;
-      var hasDup = impExcelRaw.dupRows && impExcelRaw.dupRows.length;
-      if (!hasNew && !hasDup) return;
-      fbImporting = true;
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
-      var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-      var updated = 0;
-      if (hasDup) {
-        impExcelRaw.dupRows.forEach(function(nr) {
-          var key = (nr.code||'')+'|'+(nr.inspection_date||'');
-          var idx = DB.findIndex(function(r){ return ((r.code||'')+'|'+(r.inspection_date||''))===key; });
-          if (idx >= 0) { flds.forEach(function(f){ if(nr[f]!==undefined && nr[f]!=='') DB[idx][f]=nr[f]; }); updated++; }
+      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='\ud83d\udd04 \u062c\u0627\u0631\u064a \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0648\u0631\u0641\u0639 '+total+' \u0633\u062c\u0644 \u0639\u0644\u0649 Firebase...'; }
+      try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
+      computeFU(); initFilters(); applyF(); buildDash();
+      clearTimeout(window._fbSt);
+      window._fbSt = setTimeout(function() {
+        fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
+          method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(DB)
+        }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
+          toast('\u2705 \u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0627\u0644\u0633\u062c\u0644 \u0628\u0640 '+total+' \u0633\u062c\u0644 \u0639\u0644\u0649 Firebase', 's');
+          var st2=document.getElementById('imp-fb-status');
+          if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
+            st2.innerHTML='\ud83d\udfe2 Firebase \u0645\u062d\u062f\u0651\u062b \u2014 '+total+' \u0633\u062c\u0644 ('+new Date().toLocaleTimeString('ar')+')'; }
+        }).catch(function(err){
+          toast('\u26a0\ufe0f \u062d\u064f\u0641\u0638 \u0645\u062d\u0644\u064a\u0627\u064b \u2014 Firebase: '+err.message, 'w');
+          var st2=document.getElementById('imp-fb-status');
+          if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
+            st2.innerHTML='\ud83d\udd34 Firebase \u0644\u0645 \u064a\u0633\u062a\u062c\u0628 \u2014 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u062d\u0641\u0648\u0638\u0629 \u0645\u062d\u0644\u064a\u0627\u064b \u0641\u0642\u0637.'; }
         });
-      }
-      var added = 0;
-      if (hasNew) {
-        impExcelRaw.newRows.forEach(function(rec) {
-          rec.id = nextId();
-          if (!rec.year) rec.year = (rec.inspection_date||'').slice(0,4)||'2026';
-          if (!rec.stage) rec.stage = 1;
-          DB.unshift(rec); added++;
-        });
-      }
-      var snapshot = JSON.stringify(DB);
-      var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع — '+added+' جديد + '+updated+' تحديث...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
-      computeFU(); initFilters(); applyF();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ '+added+' سجل جديد + '+updated+' تحديث على Firebase','s'); closeImportModal();
-      }).catch(function(err){
-        toast('⚠️ حُفظ محلياً — Firebase: '+err.message,'w');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)'; st2.innerHTML='🔴 Firebase لم يستجب.'; }
-      }).finally(function(){ fbImporting=false; startFbPolling(); });
+      }, 300);
+      clearImportExcel();
     }
 
-        function clearImportExcel() {
+    function clearImportExcel() {
       impExcelRaw = null;
       var p = document.getElementById('imp-excel-prev'); if (p) p.innerHTML = '';
       var b = document.getElementById('btn-imp-excel'); if (b) b.style.display = 'none';
-      var bup2 = document.getElementById('btn-update-excel'); if (bup2) bup2.style.display = 'none';
-      var bau2 = document.getElementById('btn-addupdate-excel'); if (bau2) bau2.style.display = 'none';
       var rb = document.getElementById('btn-replace-excel'); if (rb) rb.style.display = 'none';
       var f = document.getElementById('fin-excel'); if (f) f.value = '';
     }
