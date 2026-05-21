@@ -2396,33 +2396,6 @@
       </div>
     </nav>
 
-    <!-- ══════════ IMPORT MODAL ══════════ -->
-    <div id="import-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
-      <div style="background:var(--card);border-radius:12px;padding:24px;width:min(540px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35);position:relative" dir="rtl">
-        <button onclick="closeImportModal()" style="position:absolute;top:12px;left:14px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--tx3)">✕</button>
-        <div style="font-size:1rem;font-weight:800;color:var(--tx1);margin-bottom:16px">📊 استيراد من Excel/CSV</div>
-        <div style="background:var(--bbg);border:1px solid var(--bbd);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:var(--blu)">
-          ℹ️ يُحدَّد التكرار بـ <b>(كود النخلة + تاريخ الفحص)</b> — الصفوف المكررة تُتخطى تلقائياً.
-        </div>
-        <div class="dz" id="dz-excel-modal"
-          onclick="document.getElementById('fin-excel').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="onDropExcelModal(event)"
-          style="cursor:pointer">
-          <div style="font-size:2rem;margin-bottom:6px">📊</div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--tx2)">اسحب ملف CSV/Excel هنا أو اضغط للاختيار</div>
-          <div style="font-size:.74rem;color:var(--tx3);margin-top:4px">يدعم .xlsx / .xls / .csv</div>
-        </div>
-        <div id="imp-excel-prev" style="margin-top:10px"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn b-dk" id="btn-imp-excel" onclick="doImportExcel()" style="display:none">⬆ استيراد السجلات الجديدة</button>
-          <button class="btn b-rd" id="btn-replace-excel" onclick="doImportExcelReplace()" style="display:none">🔄 استبدال كل السجلات</button>
-          <button class="btn b-ol" onclick="closeImportModal()">إلغاء</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ══════════ MAIN ══════════ -->
     <main class="main">
 
@@ -2724,7 +2697,7 @@
               &#1580;&#1583;&#1610;&#1583;</button>
             <button class="btn b-gld" onclick="expCSV(filteredD)">&#11015; Excel/CSV</button>
             <button class="btn b-ol" onclick="expCSV(DB)">&#11015; تصدير كل السجل</button>
-            <button class="btn b-ol" onclick="openImportModal()">&#11014; استيراد Excel/CSV</button>
+            <button class="btn b-ol" onclick="document.getElementById('fin-excel').click()">&#11014; استيراد Excel/CSV</button>
           </div>
         </div>
         <!-- Global search -->
@@ -3108,8 +3081,12 @@
                 <div style="font-size:.75rem;color:var(--tx3);margin-top:4px">يدعم .xlsx / .xls / .csv — يفضّل أن تكون التواريخ بصيغة YYYY-MM-DD</div>
               </div>
               <input type="file" id="fin-excel" accept=".csv,.xlsx,.xls" style="display:none" onchange="onFileSelectExcel(this)">
-              <div style="margin-top:10px;font-size:.8rem;color:var(--tx3);padding:10px;background:var(--gbg);border-radius:6px;border:1px solid var(--gbd)">
-                💡 استخدم زر <b>"⬆ استيراد Excel/CSV"</b> في صفحة <b>"كل السجلات"</b> للاستيراد المباشر.
+              <div id="imp-excel-prev" style="margin-top:10px"></div>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="btn b-dk" id="btn-imp-excel" onclick="doImportExcel()" style="display:none">&#11014;
+                  استيراد السجلات الجديدة</button>
+                <button class="btn b-rd" id="btn-replace-excel" onclick="doImportExcelReplace()" style="display:none">استبدال كل السجل</button>
+                <button class="btn b-ol" onclick="clearImportExcel()">إلغاء</button>
               </div>
             </div>
           </div>
@@ -3852,7 +3829,7 @@
     var fbSaveTimer = null;
     var fbDDSaveTimer = null;
     var fbPollTimer = null;
-    var fbImporting = false;
+    var fbImporting = false; // يمنع الـ polling من الكتابة فوق بيانات الاستيراد
 
     var STORAGE_KEY = 'lf_v5_db';
     var DD_KEY = 'lf_v5_dd';
@@ -3896,11 +3873,11 @@
         // sync DB
         fbGet(FB_DB_URL, function (err, val) {
           if (!err && val && Array.isArray(val) && val.length) {
-            if (fbImporting) return;
+            if (fbImporting) return; // ⛔ جاري الاستيراد — لا تكتب فوق البيانات الجديدة
             // ── فقط لو البيانات اتغيّرت فعلاً ──
             var newSnapshot = JSON.stringify(val);
             var oldSnapshot = JSON.stringify(DB);
-            if (newSnapshot === oldSnapshot) return;
+            if (newSnapshot === oldSnapshot) return; // لا تغيير — لا تعمل شيء
 
             DB = val;
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
@@ -5937,21 +5914,6 @@
     // ════════════════════════════════════════════════
     var impExcelRaw = null;
 
-    function openImportModal() {
-      var m = document.getElementById('import-modal');
-      if (m) { m.style.display = 'flex'; }
-      clearImportExcel();
-    }
-    function closeImportModal() {
-      var m = document.getElementById('import-modal');
-      if (m) m.style.display = 'none';
-      clearImportExcel();
-    }
-    function onDropExcelModal(e) {
-      e.preventDefault();
-      document.getElementById('dz-excel-modal').classList.remove('drag');
-      var f = e.dataTransfer.files[0]; if (f) procExcelFile(f);
-    }
     function onFileSelectExcel(inp) { if (inp.files[0]) procExcelFile(inp.files[0]); }
     function onDropExcel(e) {
       e.preventDefault();
@@ -6027,7 +5989,7 @@
 
     function doImportExcel() {
       if (!impExcelRaw || !impExcelRaw.newRows.length) return;
-      fbImporting = true;
+      fbImporting = true; // ⛔ وقف الـ polling
       if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
       var added = 0;
       impExcelRaw.newRows.forEach(function (rec) {
@@ -6036,7 +5998,7 @@
         if (!rec.stage) rec.stage = 1;
         DB.unshift(rec); added++;
       });
-      var snapshot = JSON.stringify(DB);
+      var snapshot = JSON.stringify(DB); // نسخة ثابتة من البيانات الجديدة
       var st = document.getElementById('imp-fb-status');
       if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع على Firebase ('+added+' سجل)...'; }
       try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
@@ -6045,22 +6007,24 @@
         method:'PUT', headers:{'Content-Type':'application/json'}, body:snapshot
       }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
         toast('✅ تم رفع '+added+' سجل جديد على Firebase', 's');
-        closeImportModal();
         var st2=document.getElementById('imp-fb-status');
         if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
-          st2.innerHTML='🟢 تم الرفع بنجاح — '+added+' سجل ('+new Date().toLocaleTimeString('ar')+')'; }
+          st2.innerHTML='🟢 تم الرفع بنجاح — '+added+' سجل جديد على Firebase ('+new Date().toLocaleTimeString('ar')+')'; }
       }).catch(function(err){
         toast('⚠️ حُفظ محلياً — Firebase: '+err.message, 'w');
         var st2=document.getElementById('imp-fb-status');
         if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
-          st2.innerHTML='🔴 Firebase لم يستجب — محفوظ محلياً ('+err.message+')'; }
-      }).finally(function(){ fbImporting = false; startFbPolling(); });
+          st2.innerHTML='🔴 Firebase لم يستجب — البيانات محفوظة محلياً فقط ('+err.message+')'; }
+      }).finally(function(){
+        fbImporting = false; // ✅ إعادة تشغيل الـ polling
+        startFbPolling();
+      });
     }
 
     function doImportExcelReplace() {
       if (!impExcelRaw || !impExcelRaw.records.length) return;
-      if (!confirm('سيتم استبدال كل سجلات الفحص بالملف المستورد. هل تكمل؟')) return;
-      fbImporting = true;
+      if (!confirm('سيتم استبدال كل سجلات الفحص بالملف المستورد. اعمل تصدير احتياطي أولاً لو محتاج. هل تكمل؟')) return;
+      fbImporting = true; // ⛔ وقف الـ polling فوراً
       if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
       DB = impExcelRaw.records.map(function (r, i) {
         if (!r.id) r.id = i + 1;
@@ -6069,9 +6033,9 @@
         return r;
       });
       var total = DB.length;
-      var snapshot = JSON.stringify(DB);
+      var snapshot = JSON.stringify(DB); // نسخة ثابتة لا يقدر الـ polling يغيرها
       var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري استبدال ورفع '+total+' سجل على Firebase...'; }
+      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري استبدال كل السجلات ورفعها على Firebase ('+total+' سجل)...'; }
       try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
       computeFU(); initFilters(); applyF(); buildDash();
       clearImportExcel();
@@ -6079,7 +6043,6 @@
         method:'PUT', headers:{'Content-Type':'application/json'}, body:snapshot
       }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
         toast('✅ تم استبدال كل السجلات ('+total+') على Firebase', 's');
-        closeImportModal();
         var st2=document.getElementById('imp-fb-status');
         if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
           st2.innerHTML='🟢 Firebase محدَّث — '+total+' سجل ('+new Date().toLocaleTimeString('ar')+')'; }
@@ -6087,8 +6050,11 @@
         toast('⚠️ حُفظ محلياً — Firebase: '+err.message, 'w');
         var st2=document.getElementById('imp-fb-status');
         if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
-          st2.innerHTML='🔴 Firebase لم يستجب — محفوظ محلياً.'; }
-      }).finally(function(){ fbImporting = false; startFbPolling(); });
+          st2.innerHTML='🔴 Firebase لم يستجب — البيانات محفوظة محلياً فقط.'; }
+      }).finally(function(){
+        fbImporting = false; // ✅ إعادة تشغيل الـ polling
+        startFbPolling();
+      });
     }
 
     function clearImportExcel() {
