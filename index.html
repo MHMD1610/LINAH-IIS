@@ -3113,17 +3113,17 @@
           </div>
           <!-- Danger zone -->
           <div class="fsec">
-            <div class="fsec-hd hr">⚠️ منطقة الخطر</div>
+            <div class="fsec-hd hr">&#9888; &#1605;&#1606;&#1591;&#1602;&#1577; &#1575;&#1604;&#1582;&#1591;&#1585;
+            </div>
             <div class="fsec-body">
-              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-                <button class="btn b-rd" onclick="nukeAll()">🗑️ حذف جميع البيانات نهائياً</button>
-                <button class="btn b-rd" onclick="nukeAndReimport()" style="background:#b03000;border-color:#b03000">🔄 مسح الكل + رفع من Excel</button>
-              </div>
-              <p style="font-size:.75rem;color:var(--tx3);margin-top:4px">
-                ⚠️ هذا الإجراء لا يمكن التراجع عنه — تأكد من أخذ نسخة احتياطية أولاً.<br>
-                "مسح الكل + رفع من Excel" يمسح Firebase تماماً ثم يفتح نافذة اختيار ملف Excel جديد مباشرة.
-              </p>
-              <div id="nuke-reimport-status" style="display:none;margin-top:8px;font-size:.8rem;padding:8px 12px;border-radius:6px;background:var(--gbg);border:1px solid var(--gbd)"></div>
+              <button class="btn b-rd" onclick="nukeAll()">&#128465; &#1581;&#1584;&#1601; &#1580;&#1605;&#1610;&#1593;
+                &#1575;&#1604;&#1576;&#1610;&#1575;&#1606;&#1575;&#1578;
+                &#1606;&#1607;&#1575;&#1574;&#1610;&#1575;&#1611;</button>
+              <p style="font-size:.75rem;color:var(--tx3);margin-top:8px">&#9888; &#1607;&#1584;&#1575;
+                &#1575;&#1604;&#1573;&#1580;&#1585;&#1575;&#1569; &#1604;&#1575; &#1610;&#1605;&#1603;&#1606;
+                &#1575;&#1604;&#1578;&#1585;&#1575;&#1580;&#1593; &#1593;&#1606;&#1607;. &#1578;&#1571;&#1603;&#1583;
+                &#1605;&#1606; &#1571;&#1582;&#1584; &#1606;&#1587;&#1582;&#1577;
+                &#1575;&#1581;&#1578;&#1610;&#1575;&#1591;&#1610;&#1577; &#1571;&#1608;&#1604;&#1575;&#1611;.</p>
             </div>
           </div>
         </div>
@@ -3829,7 +3829,6 @@
     var fbSaveTimer = null;
     var fbDDSaveTimer = null;
     var fbPollTimer = null;
-    var fbImporting = false; // يمنع الـ polling من الكتابة فوق بيانات الاستيراد
 
     var STORAGE_KEY = 'lf_v5_db';
     var DD_KEY = 'lf_v5_dd';
@@ -3873,7 +3872,6 @@
         // sync DB
         fbGet(FB_DB_URL, function (err, val) {
           if (!err && val && Array.isArray(val) && val.length) {
-            if (fbImporting) return; // ⛔ جاري الاستيراد — لا تكتب فوق البيانات الجديدة
             // ── فقط لو البيانات اتغيّرت فعلاً ──
             var newSnapshot = JSON.stringify(val);
             var oldSnapshot = JSON.stringify(DB);
@@ -5292,40 +5290,7 @@
     }
     function expJSON() { dlBlob(new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' }), '\u0633\u062c\u0644_\u0627\u0644\u0641\u062d\u0635_backup.json'); toast('\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 JSON', 's'); }
     function dlBlob(blob, name) { var u = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); }
-    function nukeAll() {
-      if (!confirm('\u062d\u0630\u0641 \u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a\u061f')) return;
-      if (!confirm('\u062a\u0623\u0643\u064a\u062f \u0623\u062e\u064a\u0631: \u0633\u064a\u062a\u0645 \u0645\u0633\u062d Firebase \u0648\u0627\u0644\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0645\u062d\u0644\u064a. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
-      DB = [];
-      try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
-      applyF(); computeFU(); buildDash();
-      toast('\ud83d\uddd1\ufe0f \u062c\u0627\u0631\u064a \u0645\u0633\u062d Firebase...', 'w');
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
-        method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify([])
-      }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('\u2705 \u062a\u0645 \u0645\u0633\u062d \u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0645\u0646 Firebase', 'e');
-      }).catch(function(err){
-        toast('\u26a0\ufe0f \u0645\u064f\u0633\u062d \u0645\u062d\u0644\u064a\u0627\u064b \u2014 Firebase: '+err.message, 'w');
-      });
-    }
-    function nukeAndReimport() {
-      if (!confirm('\u0633\u064a\u062a\u0645 \u0645\u0633\u062d \u062c\u0645\u064a\u0639 \u0627\u0644\u0633\u062c\u0644\u0627\u062a \u0645\u0646 Firebase\u060c \u062b\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0644\u0641 Excel \u062c\u062f\u064a\u062f \u0644\u0644\u0631\u0641\u0639. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
-      if (!confirm('\u062a\u0623\u0643\u064a\u062f \u0623\u062e\u064a\u0631: \u0645\u0633\u062d \u0643\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u0646\u0647\u0627\u0626\u064a\u0627\u064b. \u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f\u061f')) return;
-      DB = [];
-      try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
-      applyF(); computeFU(); buildDash();
-      var st = document.getElementById('nuke-reimport-status');
-      if(st){ st.style.display='block'; st.style.color='var(--blu)'; st.innerHTML='\ud83d\udd04 \u062c\u0627\u0631\u064a \u0645\u0633\u062d Firebase...'; }
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
-        method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify([])
-      }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        if(st){ st.style.color='var(--grn)'; st.innerHTML='\u2705 Firebase \u0645\u0645\u0633\u0648\u062d \u2014 \u0627\u062e\u062a\u0631 \u0645\u0644\u0641 Excel \u0627\u0644\u062c\u062f\u064a\u062f \u0644\u0644\u0631\u0641\u0639.'; }
-        var inp=document.getElementById('fin-excel'); if(inp){ inp.value=''; inp.click(); }
-        toast('\ud83d\uddd1\ufe0f \u062a\u0645 \u0627\u0644\u0645\u0633\u062d \u2014 \u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u062c\u062f\u064a\u062f', 'w');
-      }).catch(function(err){
-        if(st){ st.style.color='var(--ora)'; st.innerHTML='\u26a0\ufe0f \u0645\u064f\u0633\u062d \u0645\u062d\u0644\u064a\u0627\u064b \u2014 Firebase: '+err.message+'. \u064a\u0645\u0643\u0646\u0643 \u0631\u0641\u0639 \u0627\u0644\u0645\u0644\u0641 \u064a\u062f\u0648\u064a\u0627\u064b.'; }
-        var inp=document.getElementById('fin-excel'); if(inp){ inp.value=''; inp.click(); }
-      });
-    }
+    function nukeAll() { if (!confirm('\u062d\u0630\u0641 \u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a\u061f')) return; if (!confirm('\u062a\u0623\u0643\u064a\u062f \u0623\u062e\u064a\u0631\u061f')) return; DB = []; saveDB(); applyF(); computeFU(); buildDash(); toast('\u062a\u0645 \u0627\u0644\u0645\u0633\u062d', 'e'); }
 
     // ════════════════════════════════════════════════
     // UTILS
@@ -5922,66 +5887,40 @@
     }
 
     function procExcelFile(file) {
-      var prev = document.getElementById('imp-excel-prev');
-      if (prev) prev.innerHTML =
-        '<div id="imp-loading" style="background:var(--gbg);border:1px solid var(--gbd);border-radius:7px;padding:16px;margin-top:10px;text-align:center">' +
-        '<div style="font-size:1.3rem;margin-bottom:6px">\u23f3</div>' +
-        '<div style="font-size:.85rem;font-weight:700;color:var(--tx2)">\u062c\u0627\u0631\u064a \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0645\u0644\u0641...</div>' +
-        '<div style="font-size:.74rem;color:var(--tx3);margin-top:3px">' + escH(file.name) + '</div>' +
-        '<div style="margin-top:10px;background:var(--gbd);border-radius:4px;height:6px;overflow:hidden">' +
-        '<div id="imp-bar" style="height:100%;width:5%;background:var(--blu);transition:width .4s"></div></div></div>';
       var reader = new FileReader();
-      reader.onprogress = function(pe) {
-        if (pe.lengthComputable) { var bar=document.getElementById('imp-bar'); if(bar) bar.style.width=Math.round(pe.loaded/pe.total*65)+'%'; }
-      };
       reader.onload = function (e) {
-        var bar = document.getElementById('imp-bar'); if(bar) bar.style.width='80%';
         var rows;
-        try { rows = readSheetRows(file, e.target.result); }
-        catch (err) {
-          if(prev) prev.innerHTML='<div style="background:#fff3f3;border:1px solid var(--red);border-radius:7px;padding:13px;margin-top:10px;font-size:.83rem;color:var(--red)">' +
-            '\u274c \u062a\u0639\u0630\u0631 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0645\u0644\u0641: ' + escH(err.message) + '</div>';
+        try {
+          rows = readSheetRows(file, e.target.result);
+        } catch (err) {
+          toast('\u062a\u0639\u0630\u0631 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0645\u0644\u0641: ' + err.message, 'e');
           return;
         }
-        if (!rows.length) {
-          if(prev) prev.innerHTML='<div style="background:#fff3f3;border:1px solid var(--red);border-radius:7px;padding:13px;margin-top:10px;font-size:.83rem;color:var(--red)">' +
-            '\u274c \u0627\u0644\u0645\u0644\u0641 \u0641\u0627\u0631\u063a \u0623\u0648 \u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u0628\u064a\u0627\u0646\u0627\u062a \u0635\u0627\u0644\u062d\u0629.</div>';
-          return;
-        }
-        if(bar) bar.style.width='90%';
+        if (!rows.length) { toast('\u0627\u0644\u0645\u0644\u0641 \u0641\u0627\u0631\u063a', 'e'); return; }
         var converted = convertImportedRows(rows);
         var existing = {};
-        DB.forEach(function (r) { existing[(r.code||'')+'|'+(r.inspection_date||'')] = true; });
-        var newRows = converted.records.filter(function (r) { return !existing[(r.code||'')+'|'+(r.inspection_date||'')]; });
+        DB.forEach(function (r) { existing[(r.code || '') + '|' + (r.inspection_date || '')] = true; });
+        var newRows = converted.records.filter(function (r) { return !existing[(r.code || '') + '|' + (r.inspection_date || '')]; });
         impExcelRaw = { records: converted.records, newRows: newRows, total: rows.length, warnings: converted.warnings };
         var dup = converted.records.length - newRows.length;
-        if(bar) bar.style.width='100%';
-        var warnHtml = '';
-        if (converted.warnings.length) {
-          warnHtml = '<div style="margin-top:10px;background:#fffbea;border:1px solid #f0c040;border-radius:6px;padding:10px">' +
-            '<div style="font-size:.8rem;font-weight:700;color:#7a5c00;margin-bottom:4px">\u26a0\ufe0f \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u062a\u0648\u0627\u0631\u064a\u062e (' + converted.warnings.length + ')</div>' +
-            '<div style="font-size:.73rem;color:#7a5c00;max-height:80px;overflow-y:auto;line-height:1.8">' +
-            converted.warnings.slice(0,8).map(escH).join('<br>') +
-            (converted.warnings.length>8?'<br>... \u0648' +(converted.warnings.length-8)+' \u0623\u062e\u0631\u0649':'') +
-            '</div></div>';
-        }
-        if(prev) prev.innerHTML =
-          '<div style="background:var(--gbg);border:1px solid var(--gbd);border-radius:7px;padding:14px;margin-top:10px">' +
-          '<div style="background:var(--gbd);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px"><div style="height:100%;width:100%;background:var(--grn)"></div></div>' +
-          '<div style="font-size:.84rem;font-weight:700;color:var(--grn);margin-bottom:8px">\u2705 \u062a\u0645 \u062a\u062d\u0644\u064a\u0644 \u0627\u0644\u0645\u0644\u0641 \u0628\u0646\u062c\u0627\u062d</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;font-size:.8rem;color:var(--tx2)">' +
-          '<div>\ud83d\udcc4 \u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0635\u0641\u0648\u0641</div><div><b>' + rows.length + '</b></div>' +
-          '<div>\u2714\ufe0f \u0635\u0641\u0648\u0641 \u0635\u0627\u0644\u062d\u0629</div><div><b>' + converted.records.length + '</b></div>' +
-          '<div>\ud83d\udd01 \u0645\u0643\u0631\u0631\u0629</div><div><b style="color:var(--ora)">' + dup + '</b></div>' +
-          '<div>\ud83c\udd95 \u062c\u062f\u064a\u062f\u0629 \u0644\u0644\u0625\u0636\u0627\u0641\u0629</div><div><b style="color:var(--grn)">' + newRows.length + '</b></div>' +
-          '</div>' + warnHtml +
-          '<div id="imp-fb-status" style="margin-top:10px;font-size:.78rem;padding:7px 10px;border-radius:5px;background:var(--bbg);border:1px solid var(--bbd);color:var(--blu)">' +
-          '\u23f3 \u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0623\u0645\u0631 \u0644\u0631\u0641\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0639\u0644\u0649 Firebase...</div>' +
-          '</div>';
+        var warnHtml = converted.warnings.length
+          ? '<div style="margin-top:8px;color:var(--ora)">\u26a0\ufe0f \u062a\u0648\u0627\u0631\u064a\u062e \u063a\u0627\u0645\u0636\u0629 \u0623\u0648 \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u0629: <b>' + converted.warnings.length + '</b><br><small>\u0627\u0633\u062a\u062e\u062f\u0645 \u0635\u064a\u063a\u0629 YYYY-MM-DD \u0644\u0645\u0646\u0639 \u0642\u0644\u0628 \u0627\u0644\u064a\u0648\u0645 \u0648\u0627\u0644\u0634\u0647\u0631. \u0623\u0645\u062b\u0644\u0629: ' + converted.warnings.slice(0,3).map(escH).join(' | ') + '</small></div>'
+          : '';
+        var prev = document.getElementById('imp-excel-prev');
+        if (prev) prev.innerHTML =
+          '<div style="background:var(--gbg);border:1px solid var(--gbd);border-radius:7px;padding:13px;margin-top:10px">' +
+          '<div style="font-size:.84rem;font-weight:700;color:var(--grn);margin-bottom:6px">&#9989; \u062a\u0645 \u062a\u062d\u0644\u064a\u0644 \u0627\u0644\u0645\u0644\u0641</div>' +
+          '<div style="font-size:.8rem;color:var(--tx2)">' +
+          '\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0635\u0641\u0648\u0641: <b>' + rows.length + '</b><br>' +
+          '\u0635\u0641\u0648\u0641 \u0635\u0627\u0644\u062d\u0629: <b>' + converted.records.length + '</b><br>' +
+          '\u0633\u062c\u0644\u0627\u062a \u0645\u062a\u0643\u0631\u0631\u0629: <b style="color:var(--ora)">' + dup + '</b><br>' +
+          '\u0633\u062c\u0644\u0627\u062a \u062c\u062f\u064a\u062f\u0629: <b style="color:var(--grn)">' + newRows.length + '</b>' +
+          warnHtml +
+          '</div></div>';
         var btn = document.getElementById('btn-imp-excel');
-        if(btn) btn.style.display = newRows.length ? 'inline-flex' : 'none';
+        if (btn) btn.style.display = newRows.length ? 'inline-flex' : 'none';
         var rb = document.getElementById('btn-replace-excel');
-        if(rb) rb.style.display = converted.records.length ? 'inline-flex' : 'none';
+        if (rb) rb.style.display = converted.records.length ? 'inline-flex' : 'none';
       };
       if (/\.(xlsx|xls)$/i.test(file.name)) reader.readAsArrayBuffer(file);
       else reader.readAsText(file, 'UTF-8');
@@ -5989,8 +5928,6 @@
 
     function doImportExcel() {
       if (!impExcelRaw || !impExcelRaw.newRows.length) return;
-      fbImporting = true; // ⛔ وقف الـ polling
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
       var added = 0;
       impExcelRaw.newRows.forEach(function (rec) {
         rec.id = nextId();
@@ -5998,63 +5935,23 @@
         if (!rec.stage) rec.stage = 1;
         DB.unshift(rec); added++;
       });
-      var snapshot = JSON.stringify(DB); // نسخة ثابتة من البيانات الجديدة
-      var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع على Firebase ('+added+' سجل)...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
-      computeFU(); initFilters(); applyF();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
-        method:'PUT', headers:{'Content-Type':'application/json'}, body:snapshot
-      }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم رفع '+added+' سجل جديد على Firebase', 's');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
-          st2.innerHTML='🟢 تم الرفع بنجاح — '+added+' سجل جديد على Firebase ('+new Date().toLocaleTimeString('ar')+')'; }
-      }).catch(function(err){
-        toast('⚠️ حُفظ محلياً — Firebase: '+err.message, 'w');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
-          st2.innerHTML='🔴 Firebase لم يستجب — البيانات محفوظة محلياً فقط ('+err.message+')'; }
-      }).finally(function(){
-        fbImporting = false; // ✅ إعادة تشغيل الـ polling
-        startFbPolling();
-      });
+      saveDB(); computeFU(); initFilters(); applyF();
+      toast('\u062a\u0645 \u0627\u0633\u062a\u064a\u0631\u0627\u062f ' + added + ' \u0633\u062c\u0644 \u062c\u062f\u064a\u062f', 's');
+      clearImportExcel();
     }
 
     function doImportExcelReplace() {
       if (!impExcelRaw || !impExcelRaw.records.length) return;
-      if (!confirm('سيتم استبدال كل سجلات الفحص بالملف المستورد. اعمل تصدير احتياطي أولاً لو محتاج. هل تكمل؟')) return;
-      fbImporting = true; // ⛔ وقف الـ polling فوراً
-      if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
+      if (!confirm('\u0633\u064a\u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0643\u0644 \u0633\u062c\u0644\u0627\u062a \u0627\u0644\u0641\u062d\u0635 \u0628\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u0631\u062f. \u0627\u0639\u0645\u0644 \u062a\u0635\u062f\u064a\u0631 \u0627\u062d\u062a\u064a\u0627\u0637\u064a \u0623\u0648\u0644\u0627\u064b \u0644\u0648 \u0645\u062d\u062a\u0627\u062c. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
       DB = impExcelRaw.records.map(function (r, i) {
         if (!r.id) r.id = i + 1;
         if (!r.year) r.year = (r.inspection_date || '').slice(0,4) || '2026';
         if (!r.stage) r.stage = 1;
         return r;
       });
-      var total = DB.length;
-      var snapshot = JSON.stringify(DB); // نسخة ثابتة لا يقدر الـ polling يغيرها
-      var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري استبدال كل السجلات ورفعها على Firebase ('+total+' سجل)...'; }
-      try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
-      computeFU(); initFilters(); applyF(); buildDash();
+      saveDB(); computeFU(); initFilters(); applyF(); buildDash();
+      toast('\u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u0627\u0644\u0633\u062c\u0644 \u0628\u0640 ' + DB.length + ' \u0633\u062c\u0644', 's');
       clearImportExcel();
-      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{
-        method:'PUT', headers:{'Content-Type':'application/json'}, body:snapshot
-      }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم استبدال كل السجلات ('+total+') على Firebase', 's');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#f0fff4'; st2.style.borderColor='var(--grn)'; st2.style.color='var(--grn)';
-          st2.innerHTML='🟢 Firebase محدَّث — '+total+' سجل ('+new Date().toLocaleTimeString('ar')+')'; }
-      }).catch(function(err){
-        toast('⚠️ حُفظ محلياً — Firebase: '+err.message, 'w');
-        var st2=document.getElementById('imp-fb-status');
-        if(st2){ st2.style.background='#fff3f3'; st2.style.borderColor='var(--red)'; st2.style.color='var(--red)';
-          st2.innerHTML='🔴 Firebase لم يستجب — البيانات محفوظة محلياً فقط.'; }
-      }).finally(function(){
-        fbImporting = false; // ✅ إعادة تشغيل الـ polling
-        startFbPolling();
-      });
     }
 
     function clearImportExcel() {
@@ -6131,12 +6028,16 @@
           if (dateFields.indexOf(key) >= 0) {
             var parsed = parseDateStrict(val);
             if (parsed.ambiguous) {
-              var s2 = String(val).trim();
-              var m2 = s2.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-              if (m2) { var y2 = m2[3].length===2?'20'+m2[3]:m2[3]; parsed = validIso(y2, m2[2], m2[1]); }
-              warnings.push('\u0635\u0641 '+(idx+2)+' | '+(recordLabels()[key]||key)+': '+val+(parsed.value?' \u2192 '+parsed.value+' (DD/MM/YYYY)':' \u2014 \u063a\u064a\u0631 \u0648\u0627\u0636\u062d'));
+              // افتراض: صيغة يوم/شهر/سنة (DD/MM/YYYY) الأكثر شيوعاً
+              var s = String(val).trim();
+              var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+              if (m) {
+                var y = m[3].length === 2 ? '20' + m[3] : m[3];
+                parsed = validIso(y, m[2], m[1]);
+              }
+              if (!parsed.value) warnings.push('صف ' + (idx + 2) + ' - ' + (recordLabels()[key] || key) + ': ' + val + ' (تفسير تلقائي DD/MM/YYYY)');
             } else if (parsed.invalid) {
-              warnings.push('\u0635\u0641 '+(idx+2)+' | '+(recordLabels()[key]||key)+': '+val+' \u2014 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d');
+              warnings.push('صف ' + (idx + 2) + ' - ' + (recordLabels()[key] || key) + ': ' + val + ' (تاريخ غير صالح)');
             }
             val = parsed.value;
           }
