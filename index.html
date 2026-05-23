@@ -4214,7 +4214,14 @@
     function getStatus(r) { var s = getStage(r); if (s === 5) return 'closed'; if (s === 4) return 'followup'; if (s === 3) return 'treated'; return 'new'; }
     function isClosed(r) { return getStage(r) === 5; }
     function getCritRecs() { return DB.filter(function (r) { return r.severity === '\u062d\u0631\u062c\u0629' && !isClosed(r); }); }
-    function getFUCases() { return DB.filter(function (r) { var sv = (document.getElementById('fu-sev') || {}).value || ''; return !isClosed(r) && (r.follow7_date || r.follow14_date) && (!sv || r.severity === sv); }); }
+    function hasPendingFollowup(r) {
+      if (!r || !r.treatment_date || isClosed(r)) return false;
+      return !((r.follow7_status || r.follow7_action) &&
+        (r.follow14_status || r.follow14_action) &&
+        (r.follow21_status || r.follow21_action) &&
+        (r.follow30_status || r.follow30_action));
+    }
+    function getFUCases() { return DB.filter(function (r) { var sv = (document.getElementById('fu-sev') || {}).value || ''; return hasPendingFollowup(r) && (!sv || r.severity === sv); }); }
     function getClosedCases() { return DB.filter(function (r) { return isClosed(r); }); }
 
     // ════════════════════════════════════════════════
@@ -4708,7 +4715,7 @@
       setT('kp-tot', dashData.length); setT('kp-crit', sev['\u062d\u0631\u062c\u0629'] || 0);
       setT('kp-med', sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0); setT('kp-low', sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0);
       setT('kp-ov', FU.ov.length); setT('kp-soon', FU.td.length + FU.tm.length);
-      setT('kp-fu', dashData.filter(function (r) { return getStage(r) === 4; }).length);
+      setT('kp-fu', dashData.filter(hasPendingFollowup).length);
       setT('kp-cl', dashData.filter(function (r) { return getStage(r) === 5; }).length);
       setT('db-cnt', dashData.length + ' / ' + DB.length + ' \u0633\u062c\u0644');
       mkChart('ch-sv', 'doughnut', ['\u062d\u0631\u062c\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0644\u0627 \u064a\u0648\u062c\u062f'],
