@@ -8233,6 +8233,7 @@
     overlay.classList.add('rc-active');
     rcLoadConfigs();
     rcInitForm();
+    ejsFillSettings();
   };
   window.closeReportConfig=function(){var overlay=rcEl('rc-modal-overlay');if(overlay)overlay.classList.remove('rc-active');_pendingDeleteId=null;};
   window.rcCloseOnOverlay=function(event){if(event.target===rcEl('rc-modal-overlay'))window.closeReportConfig();};
@@ -8432,13 +8433,35 @@
 
   // ── EmailJS Settings ──────────────────────────────────────────────
   var EJS_STORAGE_KEY = 'linah_ejs_settings';
+  var EJS_FB_URL = 'https://linah-iis-default-rtdb.firebaseio.com/linah_farms/emailjs_settings.json';
+  var EJS_FB_ROOT_URL = 'https://linah-iis-default-rtdb.firebaseio.com/emailjs_settings.json';
 
   function ejsLoadSettings(){
     try{ return JSON.parse(localStorage.getItem(EJS_STORAGE_KEY)||'null'); }catch(e){ return null; }
   }
 
-  function ejsFillSettings(){
-    var s=ejsLoadSettings();
+  function ejsCacheSettings(s){
+    if(!s)return;
+    try{ localStorage.setItem(EJS_STORAGE_KEY,JSON.stringify({serviceId:s.serviceId||'',templateId:s.templateId||'',publicKey:s.publicKey||''})); }catch(e){}
+  }
+
+  function ejsGetSettings(callback){
+    var cached=ejsLoadSettings();
+    function read(url){
+      return fetch(url + '?_=' + Date.now(), {cache:'no-store'})
+        .then(function(r){return r.ok?r.json():Promise.reject('HTTP '+r.status);});
+    }
+    read(EJS_FB_URL)
+      .catch(function(){return read(EJS_FB_ROOT_URL);})
+      .then(function(data){
+        var s=data&&data.serviceId&&data.templateId&&data.publicKey?data:null;
+        if(s){ejsCacheSettings(s);callback(s,'firebase');return;}
+        callback(cached||null,cached?'local':'none');
+      })
+      .catch(function(){callback(cached||null,cached?'local':'none');});
+  }
+
+  function ejsApplySettingsToForm(s){
     if(!s)return;
     var sid=rcEl('ejs-service-id'),tid=rcEl('ejs-template-id'),pk=rcEl('ejs-public-key');
     if(sid)sid.value=s.serviceId||'';
@@ -8446,25 +8469,59 @@
     if(pk)pk.value=s.publicKey||'';
   }
 
+  function ejsSetStatus(text,type){
+    var st=rcEl('ejs-status');
+    if(st){st.style.display='';st.textContent=text;st.className='ejs-status '+(type||'ok');}
+    return st;
+  }
+
+  function ejsFillSettings(){
+    if(!rcIsAdmin())return;
+    var st=ejsSetStatus('جارٍ تحميل إعدادات البريد من Firebase…','ok');
+    ejsGetSettings(function(s,source){
+      if(s){
+        ejsApplySettingsToForm(s);
+        st=ejsSetStatus(source==='firebase'?'✅ تم تحميل إعدادات البريد من Firebase':'⚠️ تم تحميل نسخة محلية، لم يتم الوصول إلى Firebase','ok');setTimeout(function(){if(st)st.style.display='none';},3500);
+      } else if(st){
+        ejsSetStatus('لم يتم حفظ إعدادات البريد بعد','err');
+      }
+    });
+  }
+
   window.ejsSaveSettings=function(){
+    if(!rcAssertAdmin())return;
     var sid=(rcEl('ejs-service-id')||{}).value.trim();
     var tid=(rcEl('ejs-template-id')||{}).value.trim();
     var pk=(rcEl('ejs-public-key')||{}).value.trim();
     var st=rcEl('ejs-status');
-    if(!sid||!tid||!pk){ if(st){st.textContent='⚠️ يرجى ملء جميع الحقول';st.className='ejs-status err';} return; }
-    localStorage.setItem(EJS_STORAGE_KEY,JSON.stringify({serviceId:sid,templateId:tid,publicKey:pk}));
-    if(st){st.textContent='✅ تم حفظ الإعدادات بنجاح!';st.className='ejs-status ok';}
-    setTimeout(function(){if(st)st.style.display='none';},3000);
+    if(!sid||!tid||!pk){ ejsSetStatus('⚠️ يرجى ملء جميع الحقول','err'); return; }
+    var user=rcGetCurrentUser();
+    var settings={serviceId:sid,templateId:tid,publicKey:pk,updated_at:new Date().toISOString(),updated_by:user?(user.username||user.name||'admin'):'admin'};
+    ejsCacheSettings(settings);
+    st=ejsSetStatus('جارٍ الحفظ في Firebase…','ok');
+    fetch(EJS_FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)})
+      .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(function(){
+        return fetch(EJS_FB_ROOT_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(settings)})
+          .catch(function(){return null;});
+      })
+      .then(function(){
+        st=ejsSetStatus('✅ تم حفظ إعدادات البريد في Firebase وستظهر على أجهزة المشرفين','ok');
+        setTimeout(function(){if(st)st.style.display='none';},3500);
+      })
+      .catch(function(err){
+        ejsSetStatus('⚠️ تعذر الحفظ في Firebase، تم حفظ نسخة على هذا الجهاز فقط: '+err.message,'err');
+      });
   };
 
   // ── Send Report Now ───────────────────────────────────────────────
   window.rcSendNow=function(fbKey){
     if(!rcAssertAdmin())return;
-    var s=ejsLoadSettings();
-    if(!s||!s.serviceId||!s.templateId||!s.publicKey){
-      alert('⚠️ لم يتم إعداد EmailJS بعد.\nيرجى ملء Service ID وTemplate ID وPublic Key في أعلى القائمة أولاً.');
-      return;
-    }
+    ejsGetSettings(function(s){
+      if(!s||!s.serviceId||!s.templateId||!s.publicKey){
+        alert('⚠️ لم يتم إعداد EmailJS بعد.\nيرجى ملء Service ID وTemplate ID وPublic Key في أعلى القائمة أولاً.');
+        return;
+      }
     rcFetchAll(function(err,configs){
       if(err)return alert('خطأ في تحميل البيانات: '+err);
       var cfg=configs.find(function(c){return c._fbKey===fbKey;});
@@ -8503,6 +8560,7 @@
       }
       rcDoSend(cfg,DB,fbKey,s);
     });
+    });
   };
 
   function rcShowLoading(show){
@@ -8519,14 +8577,37 @@
       if(digits) return String(parseInt(digits[0], 10));
       return raw || '?';
     }
+    function rcParseReportDate(value) {
+      if(!value) return null;
+      var d = new Date(String(value).slice(0,10) + 'T00:00:00');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function rcFormatISODate(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function rcWeeklyRange(baseDate) {
+      var start = new Date(baseDate || new Date());
+      start.setHours(0,0,0,0);
+      start.setDate(start.getDate() - ((start.getDay() + 1) % 7)); // Saturday
+      var end = new Date(start);
+      end.setDate(start.getDate() + 6); // Friday
+      end.setHours(23,59,59,999);
+      return { from: start, to: end, label: rcFormatISODate(start) + ' → ' + rcFormatISODate(end) };
+    }
+    var weeklySatFri = (cfg.frequency === 'weekly' || cfg.report_type === 'weekly') && (!f.date_mode || f.date_mode === 'last');
+    var weekRange = weeklySatFri ? rcWeeklyRange(new Date()) : null;
 
     var filtered = DB.filter(function(r) {
       if(f.sector && rcNormalizeSector(r.sector) !== rcNormalizeSector(f.sector)) return false;
       if(f.cycle && r.cycle !== f.cycle) return false;
       if(f.severity && f.severity.length && f.severity.indexOf(r.severity) < 0) return false;
       if(f.diagnosis && f.diagnosis.length && f.diagnosis.indexOf(r.diagnosis) < 0) return false;
-      if(f.date_mode && f.date_mode !== 'all' && r.inspection_date) {
-        var rDate = new Date(r.inspection_date);
+      if(weeklySatFri) {
+        var wrDate = rcParseReportDate(r.inspection_date);
+        if(!wrDate || wrDate < weekRange.from || wrDate > weekRange.to) return false;
+      } else if(f.date_mode && f.date_mode !== 'all' && r.inspection_date) {
+        var rDate = rcParseReportDate(r.inspection_date);
+        if(!rDate) return false;
         if(f.date_mode === 'last') {
           var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - (f.date_last_days || 7));
           if(rDate < cutoff) return false;
@@ -8544,7 +8625,8 @@
     });
     var total = infected.length;
     var dateLabel = '';
-    if(f.date_mode === 'last') dateLabel = 'آخر ' + (f.date_last_days || 7) + ' أيام';
+    if(weeklySatFri) dateLabel = 'الأسبوع: السبت إلى الجمعة (' + weekRange.label + ')';
+    else if(f.date_mode === 'last') dateLabel = 'آخر ' + (f.date_last_days || 7) + ' أيام';
     else if(f.date_mode === 'range') dateLabel = (f.date_from || '') + (f.date_to ? ' → ' + f.date_to : '');
     else dateLabel = 'كل البيانات';
 
@@ -8596,6 +8678,86 @@
         '<td style="width:48px;padding:8px 10px 8px 0;color:#0f5d2a;font-size:14px;font-weight:800;text-align:center">' + arNum(value) + '</td>' +
       '</tr>';
     }
+    function rcSectorCoordForReport(sectorName) {
+      var key = rcNormalizeSector(sectorName);
+      try {
+        if(typeof getStoredSectorCoords === 'function') {
+          var stored = getStoredSectorCoords();
+          if(stored && stored[key] && stored[key].length === 2) return stored[key];
+        }
+      } catch(e) {}
+      try {
+        if(typeof LINAH_SECTOR_COORDS !== 'undefined' && LINAH_SECTOR_COORDS[key]) return LINAH_SECTOR_COORDS[key];
+      } catch(e2) {}
+      var n = parseInt(key, 10) || 1;
+      var row = Math.floor((n - 1) / 8), col = (n - 1) % 8;
+      return [28.212 + row * 0.011, 28.948 + col * 0.014];
+    }
+    function rcBuildMapSnapshot() {
+      if(!sectorEntries.length) return '';
+      var points = sectorEntries.map(function(k) {
+        var c = rcSectorCoordForReport(k);
+        return { name: k, value: bySector[k], lat: c[0], lng: c[1] };
+      });
+      var minLat = Math.min.apply(null, points.map(function(p){return p.lat;}));
+      var maxLat = Math.max.apply(null, points.map(function(p){return p.lat;}));
+      var minLng = Math.min.apply(null, points.map(function(p){return p.lng;}));
+      var maxLng = Math.max.apply(null, points.map(function(p){return p.lng;}));
+      if(minLat === maxLat) { minLat -= .01; maxLat += .01; }
+      if(minLng === maxLng) { minLng -= .01; maxLng += .01; }
+      var w = 720, h = 360, pad = 54, maxVal = Math.max.apply(null, points.map(function(p){return p.value;})) || 1;
+      function x(lng){ return pad + ((lng - minLng) / (maxLng - minLng)) * (w - pad * 2); }
+      function y(lat){ return h - pad - ((lat - minLat) / (maxLat - minLat)) * (h - pad * 2); }
+      var sortedPoints = points.slice().sort(function(a,b){ return b.value-a.value; });
+      var bg = '';
+      for(var bi=0; bi<26; bi++) {
+        var bx = 28 + ((bi * 83) % 650), by = 38 + ((bi * 47) % 270), bw = 38 + ((bi * 11) % 64), bh = 22 + ((bi * 7) % 48);
+        var col = ['#9a8f66','#6f7d58','#b7a879','#4f6848'][bi%4];
+        bg += '<rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="12" fill="' + col + '" opacity=".22"/>';
+      }
+      var heat = sortedPoints.map(function(p) {
+        var px = x(p.lng), py = y(p.lat);
+        var rr = 34 + Math.round((p.value / maxVal) * 48);
+        var hot = p.value === maxVal ? '#e53935' : (p.value >= maxVal * .55 ? '#ff8f00' : '#1e88e5');
+        return '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + rr + '" fill="' + hot + '" opacity=".20"/>' +
+          '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + Math.round(rr*.55) + '" fill="' + hot + '" opacity=".24"/>';
+      }).join('');
+      var nodes = sortedPoints.map(function(p) {
+        var sectorNo = rcNormalizeSector(p.name);
+        var r = 15;
+        var fill = p.value === maxVal ? '#d32f2f' : (p.value >= maxVal * .55 ? '#ef6c00' : '#2e7d32');
+        var px = x(p.lng), py = y(p.lat);
+        return '<g><circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + r + '" fill="' + fill + '" stroke="#ffffff" stroke-width="3"/>' +
+          '<text x="' + px.toFixed(1) + '" y="' + (py + 5).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="900" fill="#ffffff">' + escH(sectorNo) + '</text>' +
+          '<circle cx="' + (px + 14).toFixed(1) + '" cy="' + (py - 14).toFixed(1) + '" r="10" fill="#ffffff" stroke="' + fill + '" stroke-width="2"/>' +
+          '<text x="' + (px + 14).toFixed(1) + '" y="' + (py - 10).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="900" fill="' + fill + '">' + arNum(p.value) + '</text></g>';
+      }).join('');
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+        '<defs><linearGradient id="sat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9b783"/><stop offset=".45" stop-color="#8f9b6b"/><stop offset="1" stop-color="#d1be8f"/></linearGradient></defs>' +
+        '<rect width="100%" height="100%" rx="12" fill="url(#sat)"/>' +
+        '<rect x="18" y="18" width="' + (w-36) + '" height="' + (h-36) + '" rx="10" fill="#244d35" opacity=".10" stroke="#ffffff" stroke-opacity=".55"/>' +
+        bg +
+        '<path d="M30 290 C150 240,210 300,320 246 S520 142,690 96" fill="none" stroke="#efe3b8" stroke-width="18" opacity=".28"/>' +
+        '<path d="M38 294 C155 245,212 300,322 250 S526 146,690 102" fill="none" stroke="#5e6f4f" stroke-width="5" opacity=".25"/>' +
+        heat + nodes +
+        '</svg>';
+      var img = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      var top = sortedPoints.slice(0, 6).map(function(p) { return '<span style="display:inline-block;background:#eef6f0;border:1px solid #cfe2d5;border-radius:14px;padding:4px 9px;margin:3px;color:#203b29;font-size:12px">' + escH(p.name) + ': <b>' + arNum(p.value) + '</b></span>'; }).join('');
+      return '<div style="margin-bottom:24px"><div style="font-size:17px;color:#14532d;font-weight:800;border-bottom:2px solid #cfe2d5;padding-bottom:8px;margin-bottom:10px">لقطة خريطة الإصابات حسب الفلتر</div>' +
+        '<img src="' + img + '" alt="خريطة الإصابات حسب الفلتر" width="720" style="display:block;width:100%;max-width:720px;border:1px solid #d8e6dc;border-radius:8px;background:#edf4ef;margin:0 auto 10px">' +
+        '<div style="text-align:center">' + top + '</div></div>';
+    }
+    function rcFilterChips() {
+      var chips = [];
+      if(f.sector) chips.push('القطاع: ' + rcNormalizeSector(f.sector));
+      if(f.cycle) chips.push('دورة الفحص: ' + f.cycle);
+      if(f.severity && f.severity.length) chips.push('الخطورة: ' + f.severity.join('، '));
+      if(f.diagnosis && f.diagnosis.length) chips.push('التشخيص: ' + f.diagnosis.join('، '));
+      chips.push('الفترة: ' + dateLabel);
+      return '<div style="margin-bottom:18px;text-align:center">' + chips.map(function(c) {
+        return '<span style="display:inline-block;background:#f4f8f5;border:1px solid #d8e6dc;border-radius:16px;padding:5px 10px;margin:3px;color:#456250;font-size:12px">' + escH(c) + '</span>';
+      }).join('') + '</div>';
+    }
 
     var H = '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"></head>' +
       '<body style="margin:0;padding:0;background:#eef4f0;direction:rtl;font-family:Tahoma,Arial,sans-serif;color:#203b29">' +
@@ -8611,6 +8773,9 @@
       '<div style="font-size:34px;line-height:1;color:#14532d;font-weight:900">' + arNum(total) + '</div>' +
       '<div style="font-size:13px;color:#456250;margin-top:6px">إجمالي الإصابات</div>' +
       '</td></tr></table>';
+
+    H += rcFilterChips();
+    H += rcBuildMapSnapshot();
 
     // الإصابات حسب القطاع
     if(sectorEntries.length) {
@@ -8799,7 +8964,8 @@
   // ─── Auto Daily Send Checker ───
   // Runs every 5 minutes when page is open and checks if any daily reports are due
   function rcCheckAutoSend(){
-    var s=ejsLoadSettings();
+    if(!rcIsAdmin())return;
+    ejsGetSettings(function(s){
     if(!s||!s.serviceId||!s.templateId||!s.publicKey)return;
     rcFetchAll(function(err,configs){
       if(err)return;
@@ -8816,6 +8982,7 @@
           window.rcSendNow(cfg._fbKey);
         }
       });
+    });
     });
   }
   // Start checker after page loads
