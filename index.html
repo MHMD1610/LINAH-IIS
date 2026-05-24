@@ -2325,6 +2325,7 @@
     .rc-toolbar{display:flex;align-items:center;gap:12px;padding:14px 20px 10px;flex-shrink:0}
     .rc-status-text{font-size:.82rem;color:#6a8070}
     .rc-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:40px;color:#6a8070}
+    .hidden{display:none!important}
     .rc-spinner{width:22px;height:22px;border:3px solid #e0f0e3;border-top-color:#2d7a40;border-radius:50%;animation:rcSpin .7s linear infinite}
     @keyframes rcSpin{to{transform:rotate(360deg)}}
     .rc-list-container{flex:1;padding:8px 20px 16px;display:flex;flex-direction:column;gap:10px}
@@ -8188,8 +8189,8 @@
   function rcIsAdmin(){var u=rcGetCurrentUser();return u&&u.role==='admin';}
   function rcAssertAdmin(){if(!rcIsAdmin()){alert('⛔ هذه الميزة متاحة للمشرف (Admin) فقط.');return false;}return true;}
   function rcEl(id){return document.getElementById(id);}
-  function rcShow(el){if(typeof el==='string')el=rcEl(el);if(el)el.classList.remove('hidden');}
-  function rcHide(el){if(typeof el==='string')el=rcEl(el);if(el)el.classList.add('hidden');}
+  function rcShow(el){if(typeof el==='string')el=rcEl(el);if(el){el.classList.remove('hidden');el.style.display='';}}
+  function rcHide(el){if(typeof el==='string')el=rcEl(el);if(el){el.classList.add('hidden');el.style.display='none';}}
   function rcSetText(id,txt){var e=rcEl(id);if(e)e.textContent=txt;}
   function rcFormatDate(iso){if(!iso)return'—';try{return new Date(iso).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'});}catch(e){return iso;}}
   function rcFreqLabel(f){return{daily:'يومياً',weekly:'أسبوعياً',monthly:'شهرياً'}[f]||f;}
