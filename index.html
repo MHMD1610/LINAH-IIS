@@ -2607,6 +2607,13 @@
             <div class="kpi-val" id="kp-tot">0</div>
             <div class="kpi-sub">&#1587;&#1580;&#1604; 2026</div>
           </div>
+          <div class="kpi k-t">
+            <div class="kpi-bar"></div>
+            <div class="kpi-ico">&#127796;</div>
+            <div class="kpi-lbl">&#1606;&#1587;&#1576;&#1577; &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1577;</div>
+            <div class="kpi-val" id="kp-inc-rate">0%</div>
+            <div class="kpi-sub" id="kp-inc-base">&#1605;&#1606; &#1573;&#1580;&#1605;&#1575;&#1604;&#1610; &#1575;&#1604;&#1606;&#1582;&#1610;&#1604;</div>
+          </div>
           <div class="kpi k-r" onclick="nav('crit-alerts')">
             <div class="kpi-bar"></div>
             <div class="kpi-ico">&#128680;</div>
@@ -2700,7 +2707,7 @@
           </div>
           <div class="sg">
             <div class="sc">
-              <div class="sc-hd">&#128205; &#1575;&#1604;&#1601;&#1581;&#1608;&#1589;&#1575;&#1578;
+              <div class="sc-hd">&#128205; &#1606;&#1587;&#1576;&#1577; &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1577;
                 &#1576;&#1575;&#1604;&#1602;&#1591;&#1575;&#1593;&#1575;&#1578; (&#1571;&#1593;&#1604;&#1609; 8)</div>
               <div id="st-sec"></div>
             </div>
@@ -3149,6 +3156,10 @@
                     class="fsel2" id="rp-sc" onchange="buildReport()">
                     <option value="">&#1575;&#1604;&#1603;&#1604;</option>
                   </select></div>
+                <div class="ff"><label class="fl">&#1575;&#1604;&#1578;&#1588;&#1582;&#1610;&#1589;</label><select
+                    class="fsel2" id="rp-dg" onchange="buildReport()">
+                    <option value="">&#1575;&#1604;&#1603;&#1604;</option>
+                  </select></div>
                 <div class="ff"><label class="fl">&#1583;&#1585;&#1580;&#1577;
                     &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1577;</label><select class="fsel2" id="rp-sv"
                     onchange="buildReport()">
@@ -3224,6 +3235,19 @@
               &#1575;&#1604;&#1578;&#1582;&#1586;&#1610;&#1606;</div>
             <div class="fsec-body">
               <div id="storage-info" style="font-size:.84rem;color:var(--tx2);line-height:2"></div>
+            </div>
+          </div>
+          <div class="fsec">
+            <div class="fsec-hd hb">&#128737; &#1571;&#1605;&#1575;&#1606; &#1608;&#1575;&#1587;&#1578;&#1585;&#1580;&#1575;&#1593;</div>
+            <div class="fsec-body">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                <button class="btn b-dk" onclick="createDbSnapshot('manual_backup', DB, {manual:true}); buildBackupPage(); toast('تم إنشاء نسخة أمان', 's')">&#128190; إنشاء نسخة أمان الآن</button>
+              </div>
+              <div class="sc-hd">&#1606;&#1587;&#1582; &#1575;&#1604;&#1575;&#1587;&#1578;&#1585;&#1580;&#1575;&#1593; &#1575;&#1604;&#1605;&#1581;&#1604;&#1610;&#1577;</div>
+              <div id="safety-backups-list"></div>
+              <div class="sc-hd" style="margin-top:12px">&#1587;&#1580;&#1604; &#1575;&#1604;&#1593;&#1605;&#1604;&#1610;&#1575;&#1578;</div>
+              <div id="audit-log-list"></div>
+              <small style="color:var(--tx3);display:block;margin-top:8px">يتم إنشاء نسخة أمان تلقائياً قبل الاستبدال أو المسح، ويتم تسجيل المستخدم والوقت ونوع العملية محلياً وعلى Firebase عند توفر الاتصال.</small>
             </div>
           </div>
           <!-- Export -->
@@ -3891,6 +3915,8 @@
     var DD = JSON.parse(JSON.stringify(INITDD));
     DD['\u062f\u0631\u062c\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629'] = ['\u0644\u0627 \u064a\u0648\u062c\u062f', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u062d\u0631\u062c\u0629'];
     DD['\u0627\u0644\u062d\u0627\u0644\u0629'] = ['\u0634\u0641\u0627\u0621 \u062a\u0627\u0645 (\u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u0628\u0644\u0627\u063a)', '\u0627\u0633\u062a\u0645\u0631\u0627\u0631 \u0646\u0634\u0627\u0637 (\u062f\u0648\u0631\u0629 \u0639\u0644\u0627\u062c\u064a\u0629 \u062c\u062f\u064a\u062f\u0629)', '\u0625\u0635\u0627\u0628\u0629 \u0645\u062a\u0642\u062f\u0645\u0629 (\u0625\u0639\u062f\u0627\u0645 \u0648\u0625\u0632\u0627\u0644\u0629)', '\u0625\u0635\u0627\u0628\u0629 \u0638\u0627\u0647\u0631\u064a\u0629 (\u0644\u0627 \u062a\u0633\u062a\u062f\u0639\u064a \u0627\u0644\u062a\u062f\u062e\u0644)'];
+    var PALM_COUNTS_KEY = '\u0623\u0639\u062f\u0627\u062f \u0627\u0644\u0646\u062e\u064a\u0644';
+    var DEFAULT_PALM_COUNTS = { '1': 9415, '3': 9075, '6': 6722, '17': 2927, '21': 3407, '22': 2462, '24': 895, '25': 5546, '26': 4022, '27': 7684, '28': 5494, '29': 6932, '30': 6442, '31': 6433, '32': 3522, '33': 3239 };
 
     var DB = [], filteredD = [], repD = [];
     var curPage = 1, PG = 50;
@@ -4003,6 +4029,109 @@
 
     var STORAGE_KEY = 'lf_v5_db';
     var DD_KEY = 'lf_v5_dd';
+    var DB_BACKUPS_KEY = 'lf_v5_db_backups';
+    var DB_AUDIT_KEY = 'lf_v5_audit_log';
+    var FB_BACKUPS_URL = FB_BASE + '/db_backups.json';
+    var FB_AUDIT_URL = FB_BASE + '/audit_log.json';
+    var SAFETY_CONFIRM_PHRASE = 'استرجاع آمن';
+
+    function getCurrentAuditUser() {
+      try {
+        var u = JSON.parse(localStorage.getItem('linah_session') || 'null');
+        return (u && (u.username || u.name || u.role)) ? (u.username || u.name || u.role) : 'unknown';
+      } catch (e) { return 'unknown'; }
+    }
+
+    function auditEvent(action, details) {
+      var ev = {
+        time: new Date().toISOString(),
+        user: getCurrentAuditUser(),
+        action: action,
+        count: DB.length,
+        details: details || {}
+      };
+      try {
+        var arr = JSON.parse(localStorage.getItem(DB_AUDIT_KEY) || '[]');
+        if (!Array.isArray(arr)) arr = [];
+        arr.unshift(ev);
+        localStorage.setItem(DB_AUDIT_KEY, JSON.stringify(arr.slice(0, 200)));
+      } catch (e) {}
+      try {
+        fetch(FB_AUDIT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(ev) }).catch(function(){});
+      } catch (e2) {}
+    }
+
+    function createDbSnapshot(reason, data, details) {
+      var source = Array.isArray(data) ? data : DB;
+      var snap = {
+        id: 'bk_' + new Date().toISOString().replace(/[:.]/g, '-'),
+        time: new Date().toISOString(),
+        user: getCurrentAuditUser(),
+        reason: reason || 'manual',
+        count: source.length,
+        details: details || {},
+        data: source
+      };
+      try {
+        var arr = JSON.parse(localStorage.getItem(DB_BACKUPS_KEY) || '[]');
+        if (!Array.isArray(arr)) arr = [];
+        arr.unshift(snap);
+        localStorage.setItem(DB_BACKUPS_KEY, JSON.stringify(arr.slice(0, 25)));
+      } catch (e) {}
+      try {
+        fetch(FB_BACKUPS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(snap) }).catch(function(){});
+      } catch (e2) {}
+      auditEvent('backup_created', { reason: reason || 'manual', records: source.length });
+      return snap;
+    }
+
+    function requireDangerConfirm(label, extra) {
+      var msg = label + '\n\nللتأكيد اكتب: ' + SAFETY_CONFIRM_PHRASE + (extra ? '\n' + extra : '');
+      var val = prompt(msg);
+      if (val !== SAFETY_CONFIRM_PHRASE) {
+        toast('تم إلغاء العملية الخطرة', 'w');
+        auditEvent('danger_cancelled', { label: label });
+        return false;
+      }
+      return true;
+    }
+
+    function getLocalBackups() {
+      try {
+        var arr = JSON.parse(localStorage.getItem(DB_BACKUPS_KEY) || '[]');
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    }
+
+    function restoreDbSnapshot(id) {
+      var snap = getLocalBackups().filter(function (b) { return b.id === id; })[0];
+      if (!snap || !Array.isArray(snap.data)) { toast('لم يتم العثور على النسخة', 'e'); return; }
+      if (!requireDangerConfirm('استرجاع نسخة احتياطية بعدد ' + snap.count + ' سجل؟', 'سيتم أخذ نسخة من الوضع الحالي قبل الاسترجاع.')) return;
+      createDbSnapshot('before_restore', DB, { restore_from: id, current_count: DB.length });
+      DB = snap.data.slice();
+      auditEvent('restore_backup', { backup_id: id, restored_count: DB.length });
+      saveDB({ skipAutoBackup: true, reason: 'restore_backup' });
+      computeFU(); initFilters(); applyF(); fillGlobalFilters(); buildDash(); buildBackupPage();
+      toast('تم استرجاع النسخة: ' + DB.length + ' سجل', 's');
+    }
+
+    function renderSafetyPanel() {
+      var bEl = document.getElementById('safety-backups-list');
+      if (bEl) {
+        var backups = getLocalBackups().slice(0, 10);
+        bEl.innerHTML = backups.length ? backups.map(function (b) {
+          return '<div class="sl-row"><span class="sl-name">' + new Date(b.time).toLocaleString('ar-EG') + '<br><small>' + (b.reason || '-') + ' | ' + (b.user || '-') + '</small></span><span class="sl-num">' + (b.count || 0) + '</span><button class="btn b-ol b-xs" onclick="restoreDbSnapshot(\'' + b.id + '\')">استرجاع</button></div>';
+        }).join('') : '<div style="color:var(--tx3);text-align:center;padding:12px">لا توجد نسخ أمان محلية بعد</div>';
+      }
+      var aEl = document.getElementById('audit-log-list');
+      if (aEl) {
+        var logs = [];
+        try { logs = JSON.parse(localStorage.getItem(DB_AUDIT_KEY) || '[]'); } catch (e) {}
+        aEl.innerHTML = logs.length ? logs.slice(0, 12).map(function (x) {
+          return '<div class="sl-row"><span class="sl-name">' + new Date(x.time).toLocaleString('ar-EG') + '<br><small>' + (x.user || '-') + ' | ' + (x.action || '-') + '</small></span><span class="sl-num">' + (x.count || 0) + '</span></div>';
+        }).join('') : '<div style="color:var(--tx3);text-align:center;padding:12px">لا يوجد سجل عمليات بعد</div>';
+      }
+    }
 
     function fbSetStatus(connected) {
       fbConnected = connected;
@@ -4090,7 +4219,8 @@
         fbGet(FB_DD_URL, function (err, val) {
           if (!err && val && typeof val === 'object') {
             Object.keys(val).forEach(function (k) { DD[k] = val[k]; });
-            try { localStorage.setItem(DD_KEY, JSON.stringify(val)); } catch (e) { }
+            ensurePalmCounts();
+            try { localStorage.setItem(DD_KEY, JSON.stringify(DD)); } catch (e) { }
           }
         });
         // Tracking لا يتحدث تلقائياً — يتحمّل فقط عند فتح التبويب يدوياً
@@ -4124,8 +4254,11 @@
         fbGet(FB_DD_URL, function (err2, ddVal) {
           if (!err2 && ddVal && typeof ddVal === 'object') {
             Object.keys(ddVal).forEach(function (k) { DD[k] = ddVal[k]; });
-            try { localStorage.setItem(DD_KEY, JSON.stringify(ddVal)); } catch (e) { }
+            ensurePalmCounts();
+            try { localStorage.setItem(DD_KEY, JSON.stringify(DD)); } catch (e) { }
+            if (!ddVal[PALM_COUNTS_KEY]) saveDD();
           } else if (!err2) {
+            ensurePalmCounts();
             fbPut(FB_DD_URL, DD).catch(function (e) { console.warn('FB push DD:', e); });
           }
         });
@@ -4157,11 +4290,25 @@
           Object.keys(d).forEach(function (k) { DD[k] = d[k]; });
         } catch (e) { }
       }
+      ensurePalmCounts();
     }
 
-    function saveDB() {
+    function saveDB(opts) {
+      opts = opts || {};
+      if (!opts.skipAutoBackup) {
+        try {
+          var prev = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          if (Array.isArray(prev) && prev.length) {
+            var removed = prev.length - DB.length;
+            if (removed >= 10 || DB.length < prev.length * 0.75) {
+              createDbSnapshot('auto_before_large_reduction', prev, { before: prev.length, after: DB.length, removed: removed, reason: opts.reason || '' });
+            }
+          }
+        } catch (e) {}
+      }
       // localStorage كـ cache فوري
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
+      auditEvent(opts.reason || 'save_db', { records: DB.length });
       // Firebase دايماً — بغض النظر عن fbConnected
       clearTimeout(fbSaveTimer);
       fbSaveTimer = setTimeout(function () {
@@ -4230,28 +4377,45 @@
     // ════════════════════════════════════════════════
     function computeFU() {
       FU = { ov: [], td: [], tm: [], dn: 0 };
+      // Use maps to deduplicate: one entry per record (code) per bucket
+      var ovMap = {}, tdMap = {}, tmMap = {};
       DB.forEach(function (r) {
         if (!r.treatment_date || isClosed(r)) return;
         var td;
         try { td = new Date(r.treatment_date); td.setHours(0, 0, 0, 0); } catch (e) { return; }
         var steps = [
-          { d: 7, st: r.follow7_status, ac: r.follow7_action, key: 'follow7' },
-          { d: 14, st: r.follow14_status, ac: r.follow14_action, key: 'follow14' },
-          { d: 21, st: r.follow21_status, ac: r.follow21_action, key: 'follow21' },
-          { d: 30, st: r.follow30_status, ac: r.follow30_action, key: 'follow30' },
+          { d: 7,  st: r.follow7_status,  ac: r.follow7_action  },
+          { d: 14, st: r.follow14_status, ac: r.follow14_action },
+          { d: 21, st: r.follow21_status, ac: r.follow21_action },
+          { d: 30, st: r.follow30_status, ac: r.follow30_action },
         ];
         steps.forEach(function (s) {
           var done = !!(s.st || s.ac);
           var due = new Date(td); due.setDate(td.getDate() + s.d);
           var diff = Math.round((due - today) / 864e5);
           if (done) { FU.dn++; return; }
-          var e2 = { r: r, days: s.d, due: due, diff: diff };
-          if (diff < 0) FU.ov.push(e2);
-          else if (diff === 0) FU.td.push(e2);
-          else if (diff === 1) FU.tm.push(e2);
+          // For each record, track the earliest/worst diff per bucket
+          if (diff < 0) {
+            if (!ovMap[r.id] || diff < ovMap[r.id].diff) {
+              ovMap[r.id] = { r: r, days: s.d, due: due, diff: diff, pendingCount: 0 };
+            }
+            ovMap[r.id].pendingCount = (ovMap[r.id].pendingCount || 0) + 1;
+          } else if (diff === 0) {
+            if (!tdMap[r.id]) tdMap[r.id] = { r: r, days: s.d, due: due, diff: diff, pendingCount: 0 };
+            tdMap[r.id].pendingCount = (tdMap[r.id].pendingCount || 0) + 1;
+          } else if (diff === 1) {
+            if (!tmMap[r.id]) tmMap[r.id] = { r: r, days: s.d, due: due, diff: diff, pendingCount: 0 };
+            tmMap[r.id].pendingCount = (tmMap[r.id].pendingCount || 0) + 1;
+          }
         });
       });
+      // Convert maps to arrays
+      FU.ov = Object.values ? Object.values(ovMap) : Object.keys(ovMap).map(function(k){ return ovMap[k]; });
+      FU.td = Object.values ? Object.values(tdMap) : Object.keys(tdMap).map(function(k){ return tdMap[k]; });
+      FU.tm = Object.values ? Object.values(tmMap) : Object.keys(tmMap).map(function(k){ return tmMap[k]; });
       FU.ov.sort(function (a, b) { return a.diff - b.diff; });
+      // منجزة = الحالات المغلقة (stage 5)
+      FU.dn = getClosedCases().length;
       setT('nb-fual', FU.ov.length + FU.td.length + FU.tm.length);
       setT('nb-crit', getCritRecs().length);
       setT('nb-fu', getFUCases().length);
@@ -4419,7 +4583,7 @@
         btn.innerHTML = linahSectorEditMode ? '&#10003; &#1573;&#1606;&#1607;&#1575;&#1569; &#1575;&#1604;&#1578;&#1593;&#1583;&#1610;&#1604;' : '&#9998; &#1578;&#1593;&#1583;&#1610;&#1604; &#1575;&#1604;&#1605;&#1608;&#1575;&#1602;&#1593;';
       }
       if (hint) hint.classList.toggle('on', linahSectorEditMode);
-      renderLinahMap(getDashboardFilteredData());
+      renderLinahMap(getDashboardFilteredData().filter(isInfectionRecord));
       toast(linahSectorEditMode ? '\u0648\u0636\u0639 \u062a\u0639\u062f\u064a\u0644 \u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a \u0645\u0641\u0639\u0644' : '\u062a\u0645 \u0625\u0646\u0647\u0627\u0621 \u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0648\u0627\u0642\u0639', 's');
     }
 
@@ -4468,6 +4632,40 @@
       var digits = raw.match(/\d+/);
       if (digits) return String(parseInt(digits[0], 10));
       return raw || '';
+    }
+
+    function ensurePalmCounts() {
+      if (!DD[PALM_COUNTS_KEY] || typeof DD[PALM_COUNTS_KEY] !== 'object' || Array.isArray(DD[PALM_COUNTS_KEY])) DD[PALM_COUNTS_KEY] = {};
+      Object.keys(DEFAULT_PALM_COUNTS).forEach(function (s) {
+        if (!DD[PALM_COUNTS_KEY][s]) DD[PALM_COUNTS_KEY][s] = DEFAULT_PALM_COUNTS[s];
+      });
+      Object.keys(DD[PALM_COUNTS_KEY]).forEach(function (s) {
+        var norm = linahNormalizeSector(s);
+        var n = parseInt(String(DD[PALM_COUNTS_KEY][s]).replace(/[^\d]/g, ''), 10) || 0;
+        if (norm && norm !== s) { delete DD[PALM_COUNTS_KEY][s]; DD[PALM_COUNTS_KEY][norm] = n; }
+        else DD[PALM_COUNTS_KEY][s] = n;
+      });
+      return DD[PALM_COUNTS_KEY];
+    }
+
+    function getPalmCount(sector) {
+      var counts = ensurePalmCounts();
+      return counts[linahNormalizeSector(sector)] || 0;
+    }
+
+    function getPalmTotal() {
+      var counts = ensurePalmCounts();
+      return Object.keys(counts).reduce(function (sum, s) { return sum + (parseInt(counts[s], 10) || 0); }, 0);
+    }
+
+    function isInfectionRecord(r) {
+      var d = String((r && r.diagnosis) || '').trim();
+      return !!d && d !== '\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0635\u0627\u0628\u0629' && d !== '\u0644\u0627 \u064a\u0648\u062c\u062f' && d !== '\u0633\u0644\u064a\u0645';
+    }
+
+    function fmtPct(n) {
+      n = isFinite(n) ? n : 0;
+      return (n < 1 && n > 0 ? n.toFixed(2) : n.toFixed(1)) + '%';
     }
 
     function linahSectorSort(a, b) {
@@ -4635,7 +4833,7 @@
         marker.on('dragend', function (ev) {
           saveStoredSectorCoord(s, ev.target.getLatLng());
           toast('\u062a\u0645 \u062d\u0641\u0638 \u0645\u0648\u0642\u0639 \u0642\u0637\u0627\u0639 ' + s, 's');
-          renderLinahMap(getDashboardFilteredData());
+          renderLinahMap(getDashboardFilteredData().filter(isInfectionRecord));
         });
       });
       setT('linah-map-count', data.length + ' \u0633\u062c\u0644');
@@ -4654,17 +4852,26 @@
 
     function exportExecutiveReport() {
       var data = getDashboardFilteredData();
-      var sev = cntBy(data, 'severity'), diag = objSort(cntBy(data, 'diagnosis')).slice(0, 5), sect = objSort(cntBySector(data)).slice(0, 8);
+      var infected = data.filter(isInfectionRecord);
+      var sev = cntBy(data, 'severity'), diag = objSort(cntBy(data, 'diagnosis')).slice(0, 5), sect = objSort(cntBySector(infected)).slice(0, 8);
+      var selectedSector = linahNormalizeSector((document.getElementById('gf-sector') || {}).value || '');
+      var palmDenom = selectedSector ? getPalmCount(selectedSector) : getPalmTotal();
       var rows = [
         ['LINAH-IIS Executive Report'],
         ['Generated', new Date().toLocaleString('ar-EG')],
         ['Filtered records', data.length],
+        ['Infected palms', infected.length],
+        ['Palm denominator', palmDenom || ''],
+        ['Infection rate', palmDenom ? fmtPct(infected.length / palmDenom * 100) : ''],
         ['Critical', sev['\u062d\u0631\u062c\u0629'] || 0],
         ['Medium', sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0],
         ['Low', sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0],
         [],
         ['Top Diagnoses']
-      ].concat(diag).concat([[], ['Top Sectors']]).concat(sect).concat([[], ['ID', 'Code', 'Date', 'Sector', 'Pest', 'Diagnosis', 'Severity', 'Engineer']]).concat(data.map(function (r) {
+      ].concat(diag).concat([[], ['Top Sectors', 'Infections', 'Palm Count', 'Infection Rate']]).concat(sect.map(function (x) {
+        var palms = getPalmCount(x[0]);
+        return ['Sector ' + x[0], x[1], palms || '', palms ? fmtPct(x[1] / palms * 100) : ''];
+      })).concat([[], ['ID', 'Code', 'Date', 'Sector', 'Pest', 'Diagnosis', 'Severity', 'Engineer']]).concat(data.map(function (r) {
         return [r.id, r.code, r.inspection_date, linahNormalizeSector(r.sector), r.pest_desc || r.pest_type, r.diagnosis, r.severity, r.engineer || r.sup_main || r.inspector];
       }));
       if (window.XLSX) {
@@ -4695,7 +4902,7 @@
         'code-history': function () { renderCodeHistory(); },
         perf: function () { renderPerf('inspector'); },
         resp: buildResp,
-        reports: function () { buildReport(); initReportFilters(); },
+        reports: function () { initReportFilters(); buildReport(); },
         db: buildDB,
         backup: buildBackupPage,
       };
@@ -4708,9 +4915,16 @@
     function buildDash() {
       var dashData = getDashboardFilteredData ? getDashboardFilteredData() : DB;
       var sev = cntBy(dashData, 'severity'), diag = cntBy(dashData, 'diagnosis'), sect = cntBySector(dashData);
+      var infectedDashData = dashData.filter(isInfectionRecord);
+      var infSect = cntBySector(infectedDashData);
+      var selectedSector = linahNormalizeSector((document.getElementById('gf-sector') || {}).value || '');
+      var palmDenom = selectedSector ? getPalmCount(selectedSector) : getPalmTotal();
+      var infectionRate = palmDenom ? (infectedDashData.length / palmDenom * 100) : 0;
       var insp = {}; dashData.forEach(function (r) { if (r.inspector) insp[r.inspector] = 1; });
       var rts = getRTs(dashData); var avg = rts.length ? (rts.reduce(function (a, b) { return a + b; }, 0) / rts.length).toFixed(1) : 0;
       setT('kp-tot', dashData.length); setT('kp-crit', sev['\u062d\u0631\u062c\u0629'] || 0);
+      setT('kp-inc-rate', fmtPct(infectionRate));
+      setT('kp-inc-base', infectedDashData.length + ' \u0625\u0635\u0627\u0628\u0629 \u0645\u0646 ' + (palmDenom ? palmDenom.toLocaleString('ar-EG') : '\u0628\u0644\u0627 \u062d\u0635\u0631') + ' \u0646\u062e\u0644\u0629');
       setT('kp-med', sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0); setT('kp-low', sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0);
       setT('kp-ov', FU.ov.length); setT('kp-soon', FU.td.length + FU.tm.length);
       setT('kp-fu', dashData.filter(hasPendingFollowup).length);
@@ -4721,7 +4935,7 @@
         ['rgba(198,40,40,.85)', 'rgba(230,81,0,.85)', 'rgba(21,101,192,.85)', 'rgba(120,130,120,.7)'], false);
       var td2 = objSort(diag).slice(0, 6);
       mkChart('ch-dg', 'bar', td2.map(function (x) { return x[0]; }), td2.map(function (x) { return x[1]; }), Array(td2.length).fill('rgba(45,122,64,.75)'), true);
-      statList('st-sec', objSort(sect).slice(0, 8), dashData.length || 1, '\u0642\u0637\u0627\u0639 ', '#4caf50');
+      statListSectorIncidence('st-sec', objSort(infSect), '#4caf50');
       statList('st-dg', objSort(diag).slice(0, 8), dashData.length || 1, '', '#1565c0');
       // Stage breakdown
       var stageCnts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -4740,9 +4954,9 @@
           '<div class="sl-row"><span class="sl-name">\u0623\u0637\u0648\u0644</span><span class="sl-num">' + (rts.length ? Math.max.apply(null, rts) : 0) + ' \u064a\u0648\u0645</span></div>' +
           '<div class="sl-row"><span class="sl-name">\u0623\u0633\u0631\u0639</span><span class="sl-num">' + (rts.length ? Math.min.apply(null, rts) : 0) + ' \u064a\u0648\u0645</span></div>';
       }
-      var topSectors = objSort(sect).slice(0, 8);
+      var topSectors = objSort(infSect).slice(0, 8);
       mkChart('linah-sector-chart', 'bar', topSectors.map(function (x) { return '\u0642\u0637\u0627\u0639 ' + x[0]; }), topSectors.map(function (x) { return x[1]; }), Array(topSectors.length).fill('rgba(26,92,42,.72)'), true);
-      renderLinahMap(dashData);
+      renderLinahMap(infectedDashData);
       renderLinahTasks(dashData);
     }
 
@@ -5232,8 +5446,10 @@
 
     function delRec(id) {
       if (!confirm('\u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0633\u062c\u0644 \u0646\u0647\u0627\u0626\u064a\u0627\u064b\u061f')) return;
+      var rec = DB.filter(function (r) { return r.id === id; })[0] || null;
+      auditEvent('delete_record', { id: id, code: rec ? rec.code : '' });
       DB = DB.filter(function (r) { return r.id !== id; });
-      saveDB(); applyF(); computeFU();
+      saveDB({ reason: 'delete_record' }); applyF(); computeFU();
       toast('\u062a\u0645 \u0627\u0644\u062d\u0630\u0641', 'e');
     }
 
@@ -5387,21 +5603,28 @@
       var sectSet = Object.keys(cntBy(DB, 'sector')).sort(function (a, b) { return +a - +b; });
       var el = document.getElementById('rp-sc');
       if (el) { el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; sectSet.forEach(function (s) { el.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; }); }
+      var dg = document.getElementById('rp-dg');
+      if (dg) { var cur = dg.value; dg.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; Object.keys(cntBy(DB, 'diagnosis')).sort().forEach(function (d) { if (d && d !== '(\u0641\u0627\u0631\u063a)') dg.innerHTML += '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>'; }); if (cur) dg.value = cur; }
     }
 
     function buildReport() {
       var sc = (document.getElementById('rp-sc') || {}).value || '';
+      var dg = (document.getElementById('rp-dg') || {}).value || '';
       var sv = (document.getElementById('rp-sv') || {}).value || '';
       var fr = (document.getElementById('rp-fr') || {}).value || '';
       var to = (document.getElementById('rp-to') || {}).value || '';
       repD = DB.filter(function (r) {
-        if (sc && r.sector !== sc) return false;
+        if (sc && linahNormalizeSector(r.sector) !== linahNormalizeSector(sc)) return false;
+        if (dg && r.diagnosis !== dg) return false;
         if (sv && r.severity !== sv) return false;
         if (fr && r.inspection_date && r.inspection_date < fr) return false;
         if (to && r.inspection_date && r.inspection_date > to) return false;
         return true;
       });
       var sev = cntBy(repD, 'severity'), diag = cntBy(repD, 'diagnosis');
+      var infectedRepD = repD.filter(isInfectionRecord);
+      var palmDenom = sc ? getPalmCount(sc) : getPalmTotal();
+      var incRate = palmDenom ? (infectedRepD.length / palmDenom * 100) : 0;
       var sl = ['\u062d\u0631\u062c\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0644\u0627 \u064a\u0648\u062c\u062f'];
       mkChart('rp-c1', 'pie', sl, sl.map(function (l) { return sev[l] || 0; }), ['rgba(198,40,40,.85)', 'rgba(230,81,0,.85)', 'rgba(21,101,192,.85)', 'rgba(120,130,120,.7)'], false);
       var td5 = objSort(diag).slice(0, 7);
@@ -5409,6 +5632,7 @@
       var inspSet = {}; repD.forEach(function (r) { if (r.inspector) inspSet[r.inspector] = 1; });
       var sum = document.getElementById('rp-sum');
       if (sum) sum.innerHTML = '<div class="sl-row"><span class="sl-name">\u0625\u062c\u0645\u0627\u0644\u064a</span><span class="sl-num">' + repD.length + '</span></div>' +
+        '<div class="sl-row"><span class="sl-name">\u0646\u0633\u0628\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629</span><span class="sl-num" style="color:var(--grn)">' + fmtPct(incRate) + '</span><span class="sl-pct">' + infectedRepD.length + ' / ' + (palmDenom ? palmDenom.toLocaleString('ar-EG') : '\u0628\u0644\u0627 \u062d\u0635\u0631') + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u062d\u0631\u062c\u0629</span><span class="sl-num" style="color:var(--red)">' + (sev['\u062d\u0631\u062c\u0629'] || 0) + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u0645\u062a\u0648\u0633\u0637\u0629</span><span class="sl-num" style="color:var(--ora)">' + (sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0) + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u0645\u0646\u062e\u0641\u0636\u0629</span><span class="sl-num" style="color:var(--blu)">' + (sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0) + '</span></div>' +
@@ -5439,7 +5663,55 @@
           }).join('') + '</div>' +
           '<div class="db-add"><input class="finp" id="dbadd-' + kid + '" placeholder="\u0623\u0636\u0641 \u0639\u0646\u0635\u0631\u0627\u064b..." style="font-size:.77rem"><button class="btn b-gr b-sm" onclick="dbAdd(\'' + key + '\')">&#10133;</button></div>' +
           '</div>';
-      }).join('') + buildInspectorGenderDB();
+      }).join('') + buildPalmCountsDB() + buildInspectorGenderDB();
+    }
+
+    function buildPalmCountsDB() {
+      var counts = ensurePalmCounts();
+      var sectors = Object.keys(counts);
+      Object.keys(cntBySector(DB)).forEach(function (s) { if (sectors.indexOf(s) < 0) sectors.push(s); });
+      sectors.sort(linahSectorSort);
+      var total = sectors.reduce(function (a, s) { return a + (parseInt(counts[s], 10) || 0); }, 0);
+      return '<div class="db-card"><div class="db-card-hd"><div class="db-card-title">\u0623\u0639\u062f\u0627\u062f \u0627\u0644\u0646\u062e\u064a\u0644 \u062d\u0633\u0628 \u0627\u0644\u0642\u0637\u0627\u0639</div><span style="font-size:.7rem;color:var(--tx3)">' + total.toLocaleString('ar-EG') + ' \u0646\u062e\u0644\u0629</span></div>' +
+        '<div style="margin-bottom:7px;font-size:.73rem;color:var(--tx3)">\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0641\u064a \u062d\u0633\u0627\u0628 \u0646\u0633\u0628\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629 \u0641\u064a \u0627\u0644\u062f\u0627\u0634\u0628\u0648\u0631\u062f \u0648\u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631.</div>' +
+        '<div class="db-list">' + sectors.map(function (s) {
+          return '<div class="db-item"><span style="width:80px">\u0642\u0637\u0627\u0639 ' + escH(s) + '</span>' +
+            '<input class="finp" type="number" min="0" step="1" value="' + (counts[s] || 0) + '" style="width:120px;font-size:.76rem" onchange="dbSetPalmCount(\'' + escH(s) + '\',this.value)">' +
+            '<button class="btn b-rd b-xs" onclick="dbDelPalmCount(\'' + escH(s) + '\')">&#10005;</button></div>';
+        }).join('') + '</div>' +
+        '<div class="db-add"><input class="finp" id="db-palm-sector" placeholder="\u0631\u0642\u0645 \u0627\u0644\u0642\u0637\u0627\u0639" style="font-size:.77rem"><input class="finp" id="db-palm-count" type="number" min="0" step="1" placeholder="\u0639\u062f\u062f \u0627\u0644\u0646\u062e\u064a\u0644" style="font-size:.77rem"><button class="btn b-gr b-sm" onclick="dbAddPalmCount()">&#10133;</button></div>' +
+        '</div>';
+    }
+
+    function dbSetPalmCount(sector, value) {
+      var s = linahNormalizeSector(sector);
+      var n = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
+      if (!s || isNaN(n) || n < 0) { toast('\u0623\u062f\u062e\u0644 \u0631\u0642\u0645\u0627\u064b \u0635\u062d\u064a\u062d\u0627\u064b', 'w'); buildDB(); return; }
+      ensurePalmCounts()[s] = n;
+      saveDD();
+      buildDash();
+      toast('\u062a\u0645 \u062d\u0641\u0638 \u0639\u062f\u062f \u0627\u0644\u0646\u062e\u064a\u0644 \u0644\u0642\u0637\u0627\u0639 ' + s, 's');
+    }
+
+    function dbAddPalmCount() {
+      var s = linahNormalizeSector((document.getElementById('db-palm-sector') || {}).value || '');
+      var n = parseInt(((document.getElementById('db-palm-count') || {}).value || '').replace(/[^\d]/g, ''), 10);
+      if (!s || isNaN(n) || n < 0) { toast('\u0623\u062f\u062e\u0644 \u0627\u0644\u0642\u0637\u0627\u0639 \u0648\u0639\u062f\u062f \u0627\u0644\u0646\u062e\u064a\u0644', 'w'); return; }
+      ensurePalmCounts()[s] = n;
+      saveDD();
+      buildDB();
+      buildDash();
+      toast('\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0642\u0637\u0627\u0639', 's');
+    }
+
+    function dbDelPalmCount(sector) {
+      var s = linahNormalizeSector(sector);
+      if (!s || !confirm('\u062d\u0630\u0641 \u0639\u062f\u062f \u0627\u0644\u0646\u062e\u064a\u0644 \u0644\u0642\u0637\u0627\u0639 ' + s + '\u061f')) return;
+      delete ensurePalmCounts()[s];
+      saveDD();
+      buildDB();
+      buildDash();
+      toast('\u062a\u0645 \u0627\u0644\u062d\u0630\u0641', 'e');
     }
 
     function buildInspectorGenderDB() {
@@ -5486,6 +5758,7 @@
         '&#9729; Firebase: <span id="fb-status-bk">' + (fbConnected ? '<b style="color:var(--grn)">متصل ✓</b>' : '<b style="color:var(--red)">غير متصل</b>') + '</span><br>' +
         '&#128336; آخر تحديث: <b>' + new Date().toLocaleString('ar-EG') + '</b><br>' +
         '<small style="color:var(--tx3)">&#8505; البيانات مخزنة في Firebase وlocal كنسخة احتياطية.</small>';
+      renderSafetyPanel();
     }
 
     function onFileSelect(inp) { if (inp.files[0]) procFile(inp.files[0]); }
@@ -5509,8 +5782,9 @@
 
     function doImport() {
       if (!impRaw) return;
-      if (!confirm('\u0633\u064a\u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0627\u0644\u064a\u0629. \u0647\u0644 \u062a\u0631\u064a\u062f \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629\u061f')) return;
-      DB = impRaw; saveDB(); computeFU(); applyF(); initFilters();
+      if (!requireDangerConfirm('\u0633\u064a\u062a\u0645 \u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u062c\u0645\u064a\u0639 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0641\u062d\u0635 \u0628\u0645\u0644\u0641 JSON.', '\u0639\u062f\u062f \u0627\u0644\u062d\u0627\u0644\u064a: ' + DB.length + ' | \u0639\u062f\u062f \u0627\u0644\u062c\u062f\u064a\u062f: ' + impRaw.length)) return;
+      createDbSnapshot('before_json_restore', DB, { incoming_count: impRaw.length });
+      DB = impRaw; saveDB({ skipAutoBackup: true, reason: 'json_restore' }); computeFU(); applyF(); initFilters();
       toast('\u062a\u0645 \u0627\u0633\u062a\u0639\u0627\u062f\u0629 ' + DB.length + ' \u0633\u062c\u0644', 's');
       clearImport(); buildBackupPage();
     }
@@ -5543,8 +5817,9 @@
     function expJSON() { dlBlob(new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' }), '\u0633\u062c\u0644_\u0627\u0644\u0641\u062d\u0635_backup.json'); toast('\u062a\u0645 \u062a\u0635\u062f\u064a\u0631 JSON', 's'); }
     function dlBlob(blob, name) { var u = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); }
     function nukeAll() {
-      if (!confirm('\u062d\u0630\u0641 \u062c\u0645\u064a\u0639 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a\u061f')) return;
-      if (!confirm('\u062a\u0623\u0643\u064a\u062f \u0623\u062e\u064a\u0631: \u0633\u064a\u062a\u0645 \u0645\u0633\u062d Firebase \u0648\u0627\u0644\u062a\u062e\u0632\u064a\u0646 \u0627\u0644\u0645\u062d\u0644\u064a. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
+      if (!requireDangerConfirm('\u062d\u0630\u0641 \u062c\u0645\u064a\u0639 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0641\u062d\u0635 \u0645\u0646 Firebase \u0648\u0627\u0644\u062c\u0647\u0627\u0632.', '\u0633\u064a\u062a\u0645 \u0623\u062e\u0630 \u0646\u0633\u062e\u0629 \u0623\u0645\u0627\u0646 \u0642\u0628\u0644 \u0627\u0644\u0645\u0633\u062d.')) return;
+      createDbSnapshot('before_delete_all', DB, { records: DB.length });
+      auditEvent('delete_all', { before: DB.length });
       DB = [];
       try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
       applyF(); computeFU(); buildDash();
@@ -5558,8 +5833,9 @@
       });
     }
     function nukeAndReimport() {
-      if (!confirm('\u0633\u064a\u062a\u0645 \u0645\u0633\u062d \u062c\u0645\u064a\u0639 \u0627\u0644\u0633\u062c\u0644\u0627\u062a \u0645\u0646 Firebase\u060c \u062b\u0645 \u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0644\u0641 Excel \u062c\u062f\u064a\u062f \u0644\u0644\u0631\u0641\u0639. \u0647\u0644 \u062a\u0643\u0645\u0644\u061f')) return;
-      if (!confirm('\u062a\u0623\u0643\u064a\u062f \u0623\u062e\u064a\u0631: \u0645\u0633\u062d \u0643\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u0646\u0647\u0627\u0626\u064a\u0627\u064b. \u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f\u061f')) return;
+      if (!requireDangerConfirm('\u0645\u0633\u062d \u0627\u0644\u0643\u0644 \u062b\u0645 \u0631\u0641\u0639 Excel \u062c\u062f\u064a\u062f.', '\u0633\u064a\u062a\u0645 \u0623\u062e\u0630 \u0646\u0633\u062e\u0629 \u0623\u0645\u0627\u0646 \u0642\u0628\u0644 \u0627\u0644\u0645\u0633\u062d.')) return;
+      createDbSnapshot('before_delete_all_reimport', DB, { records: DB.length });
+      auditEvent('delete_all_reimport_start', { before: DB.length });
       DB = [];
       try { localStorage.setItem('lf_v5_db', JSON.stringify(DB)); } catch(e) {}
       applyF(); computeFU(); buildDash();
@@ -5613,6 +5889,22 @@
       el.innerHTML = items.map(function (i2) {
         var k = i2[0], v = i2[1];
         return '<div class="sl-row"><span class="sl-name">' + pre + k + '</span><div class="sl-bar"><div class="sl-fill" style="width:' + (v / mx * 100).toFixed(0) + '%;background:' + color + '"></div></div><span class="sl-num">' + v + '</span><span class="sl-pct">' + ((v / total * 100).toFixed(0)) + '%</span></div>';
+      }).join('');
+    }
+
+    function statListSectorIncidence(id, items, color) {
+      var el = document.getElementById(id); if (!el) return;
+      if (!items.length) { el.innerHTML = '<div style="color:var(--tx3);text-align:center;padding:12px">\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0635\u0627\u0628\u0627\u062a \u0636\u0645\u0646 \u0627\u0644\u0641\u0644\u0627\u062a\u0631</div>'; return; }
+      var enriched = items.map(function (i2) {
+        var palms = getPalmCount(i2[0]);
+        return { sector: i2[0], infected: i2[1], palms: palms, pct: palms ? (i2[1] / palms * 100) : 0 };
+      }).sort(function (a, b) { return b.pct - a.pct || b.infected - a.infected || linahSectorSort(a.sector, b.sector); });
+      var mx = enriched[0] ? enriched[0].pct : 1;
+      el.innerHTML = enriched.slice(0, 8).map(function (x) {
+        var label = '\u0642\u0637\u0627\u0639 ' + x.sector;
+        var base = x.palms ? (x.infected + ' / ' + x.palms.toLocaleString('ar-EG')) : (x.infected + ' / \u0628\u0644\u0627 \u062d\u0635\u0631');
+        var width = mx ? Math.max(3, x.pct / mx * 100).toFixed(0) : 0;
+        return '<div class="sl-row"><span class="sl-name">' + label + '</span><div class="sl-bar"><div class="sl-fill" style="width:' + width + '%;background:' + color + '"></div></div><span class="sl-num">' + base + '</span><span class="sl-pct">' + (x.palms ? fmtPct(x.pct) : '\u2014') + '</span></div>';
       }).join('');
     }
 
@@ -6289,7 +6581,9 @@
 
     function doImportExcelReplace() {
       if (!impExcelRaw || !impExcelRaw.records.length) return;
-      if (!confirm('سيتم استبدال كل سجلات الفحص بالملف المستورد. هل تكمل؟')) return;
+      if (!requireDangerConfirm('سيتم استبدال كل سجلات الفحص بالملف المستورد.', 'الحالي: ' + DB.length + ' | الملف: ' + impExcelRaw.records.length)) return;
+      createDbSnapshot('before_excel_replace', DB, { incoming_count: impExcelRaw.records.length });
+      auditEvent('excel_replace_start', { before: DB.length, incoming: impExcelRaw.records.length });
       fbImporting = true;
       if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
       DB = impExcelRaw.records.map(function (r,i) {
@@ -6303,6 +6597,7 @@
       var st = document.getElementById('imp-fb-status');
       if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 استبدال '+total+' سجل على Firebase...'; }
       try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
+      auditEvent('excel_replace_local_saved', { records: total });
       computeFU(); initFilters(); applyF(); buildDash(); clearImportExcel();
       fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
@@ -8658,6 +8953,20 @@
       return d && d !== 'لا توجد إصابة' && d !== 'لا يوجد' && d !== 'سليم';
     });
     var total = infected.length;
+    function rcPalmCount(sectorName) {
+      try { if (typeof getPalmCount === 'function') return getPalmCount(sectorName); } catch(e) {}
+      return 0;
+    }
+    function rcPalmTotal() {
+      try { if (typeof getPalmTotal === 'function') return getPalmTotal(); } catch(e) {}
+      return 0;
+    }
+    var palmDenom = f.sector ? rcPalmCount(f.sector) : rcPalmTotal();
+    var infectionRate = palmDenom ? (total / palmDenom * 100) : 0;
+    function rcFmtPct(n) {
+      n = isFinite(n) ? n : 0;
+      return (n < 1 && n > 0 ? n.toFixed(2) : n.toFixed(1)) + '%';
+    }
     var dateLabel = '';
     if(weeklySatFri) dateLabel = 'الأسبوع: السبت إلى الجمعة (' + weekRange.label.replace(/ → /g, ' - ') + ')';
     else if(f.date_mode === 'last') dateLabel = 'آخر ' + (f.date_last_days || 7) + ' أيام';
@@ -8693,10 +9002,14 @@
 
     // ── Plain text summary (for summary_text field in EmailJS) ──
     var diagLines = diagEntries.map(function(k){ return k + ': ' + byDiag[k]; }).join('\n') || 'لا توجد إصابات';
-    var sectorLines = sectorEntries.map(function(k){ return k + ': ' + bySector[k]; }).join('\n') || 'لا توجد إصابات';
+    var sectorLines = sectorEntries.map(function(k){
+      var palms = rcPalmCount(k), pctTxt = palms ? ' (' + rcFmtPct(bySector[k] / palms * 100) + ')' : '';
+      return k + ': ' + bySector[k] + (palms ? ' من ' + palms : '') + pctTxt;
+    }).join('\n') || 'لا توجد إصابات';
     var summaryText = 'تقرير إصابات Linah Farms' +
       '\nالفترة: ' + dateLabel +
       '\nإجمالي الإصابات: ' + total +
+      '\nنسبة الإصابة: ' + rcFmtPct(infectionRate) + (palmDenom ? ' (' + total + ' من ' + palmDenom + ' نخلة)' : '') +
       '\n\nعدد الإصابات حسب القطاع:\n' + sectorLines +
       '\n\nعدد الإصابات حسب التشخيص:\n' + diagLines;
 
@@ -8847,6 +9160,8 @@
       '<td style="background:#e9f5ed;border:1px solid #cfe2d5;border-radius:6px;padding:16px;text-align:center">' +
       '<div style="font-size:34px;line-height:1;color:#14532d;font-weight:900">' + arNum(total) + '</div>' +
       '<div style="font-size:13px;color:#456250;margin-top:6px">إجمالي الإصابات</div>' +
+      '<div style="font-size:18px;color:#0f5d2a;font-weight:900;margin-top:10px">' + rcFmtPct(infectionRate) + '</div>' +
+      '<div style="font-size:12px;color:#456250;margin-top:3px">نسبة الإصابة من عدد النخيل' + (palmDenom ? ' (' + arNum(total) + ' / ' + arNum(palmDenom) + ')' : '') + '</div>' +
       '</td></tr></table>';
 
     H += rcFilterChips();
@@ -8856,7 +9171,11 @@
     if(sectorEntries.length) {
       H += '<div style="margin-bottom:24px"><div style="font-size:17px;color:#14532d;font-weight:800;border-bottom:2px solid #cfe2d5;padding-bottom:8px;margin-bottom:10px">عدد الإصابات حسب القطاع</div>' +
         '<table role="presentation" width="100%" cellspacing="0" cellpadding="0">';
-      sectorEntries.forEach(function(k) { H += barRow(k, bySector[k], maxSec, '#1f7a3a'); });
+      sectorEntries.forEach(function(k) {
+        var palms = rcPalmCount(k);
+        var label = k + (palms ? ' - ' + rcFmtPct(bySector[k] / palms * 100) : '');
+        H += barRow(label, bySector[k], maxSec, '#1f7a3a');
+      });
       H += '</table></div>';
     }
 
@@ -8878,7 +9197,7 @@
     H += '</td></tr><tr><td style="background:#f4f8f5;color:#617268;padding:14px 28px;text-align:center;font-size:12px;border-top:1px solid #d8e6dc">Linah Farms System IIS | تم الإرسال تلقائياً</td></tr>' +
       '</table></td></tr></table></body></html>';
 
-    return { filtered: infected, total: total, dateLabel: dateLabel, summaryText: summaryText, htmlBody: H, bySector: bySector, byDiag: byDiag, sectorLines: sectorLines, diagLines: diagLines, mapSpec: reportMapSpec };
+    return { filtered: infected, total: total, dateLabel: dateLabel, summaryText: summaryText, htmlBody: H, bySector: bySector, byDiag: byDiag, sectorLines: sectorLines, diagLines: diagLines, infectionRate: rcFmtPct(infectionRate), palmDenominator: palmDenom, mapSpec: reportMapSpec };
   }
 
   function rcRenderReportMapImage(mapSpec) {
@@ -9058,6 +9377,8 @@
           details_html:detailsHtml,
           total_records:String(total),
           total_infections:String(total),
+          infection_rate:data.infectionRate || '',
+          palm_denominator:data.palmDenominator ? String(data.palmDenominator) : '',
           sector_breakdown:sectorLines,
           diagnosis_breakdown:diagLines,
           report_type:rcTypeLabel(cfg.report_type),
