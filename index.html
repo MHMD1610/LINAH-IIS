@@ -4357,14 +4357,11 @@
     var linahSectorEditMode = false, LINAH_SECTOR_COORDS_KEY = 'linah_iis_sector_coords_v1';
     var FB_SECTOR_COORDS_URL = FB_BASE + '/sector_coords.json';
     var LINAH_SECTOR_COORDS = {
-      '1': [28.219, 28.946], '2': [28.224, 28.952], '3': [28.229, 28.958], '4': [28.234, 28.964],
-      '5': [28.239, 28.970], '6': [28.244, 28.976], '7': [28.249, 28.982], '8': [28.254, 28.988],
-      '9': [28.216, 28.995], '10': [28.221, 29.001], '11': [28.226, 29.007], '12': [28.231, 29.013],
-      '13': [28.236, 29.019], '14': [28.241, 29.025], '15': [28.246, 29.031], '16': [28.251, 29.037],
-      '17': [28.210, 28.962], '18': [28.214, 28.969], '19': [28.218, 28.976], '20': [28.222, 28.983],
-      '21': [28.226, 28.990], '22': [28.230, 28.997], '23': [28.234, 29.004], '24': [28.238, 29.011],
-      '25': [28.242, 29.018], '26': [28.246, 29.025], '27': [28.250, 29.032], '28': [28.254, 29.039],
-      '29': [28.258, 29.046], '30': [28.262, 29.053], '31': [28.266, 29.060], '32': [28.270, 29.067]
+      '1': [28.231091, 28.953395], '3': [28.217592, 28.953009], '6': [28.230297, 28.96202],
+      '21': [28.22697, 28.958287], '22': [28.220504, 28.956699], '24': [28.218991, 28.990473],
+      '25': [28.223907, 28.991075], '26': [28.228104, 28.990303], '27': [28.227878, 28.982019],
+      '28': [28.225779, 28.973823], '29': [28.225193, 28.969553], '30': [28.237708, 28.981589],
+      '31': [28.233322, 28.967942], '32': [28.23302, 28.945284], '33': [28.226289, 28.963094]
     };
 
     // ── مواضع القطاعات: localStorage كـ cache فوري + Firebase للمزامنة بين الأجهزة ──
@@ -6220,13 +6217,13 @@
         var converted = convertImportedRows(rows);
         var existingMap = {};
         DB.forEach(function (r) { existingMap[(r.code||'')+'|'+(r.inspection_date||'')] = r; });
+        var updateFields = importUpdateFields();
         var newRows = converted.records.filter(function (r) { return !existingMap[(r.code||'')+'|'+(r.inspection_date||'')]; });
         var dupRows = converted.records.filter(function (r) {
           var key = (r.code||'')+'|'+(r.inspection_date||'');
           if (!existingMap[key]) return false;
           var old = existingMap[key];
-          var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-          return flds.some(function(f){ return String(r[f]||'') !== String(old[f]||''); });
+          return importRecordHasChanges(r, old, updateFields);
         });
         impExcelRaw = { records: converted.records, newRows: newRows, dupRows: dupRows, total: rows.length, warnings: converted.warnings };
         var dup = converted.records.length - newRows.length;
@@ -6318,21 +6315,24 @@
       if (!impExcelRaw || !impExcelRaw.dupRows || !impExcelRaw.dupRows.length) return;
       fbImporting = true;
       if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
-      var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-      var updated = 0;
+      var flds = importUpdateFields();
+      var updated = 0, changedCells = 0;
       impExcelRaw.dupRows.forEach(function(nr) {
         var key = (nr.code||'')+'|'+(nr.inspection_date||'');
         var idx = DB.findIndex(function(r){ return ((r.code||'')+'|'+(r.inspection_date||''))===key; });
-        if (idx >= 0) { flds.forEach(function(f){ if(nr[f]!==undefined && nr[f]!=='') DB[idx][f]=nr[f]; }); updated++; }
+        if (idx >= 0) {
+          var ch = applyImportedRecordUpdate(DB[idx], nr, flds);
+          if (ch) { updated++; changedCells += ch; }
+        }
       });
       var snapshot = JSON.stringify(DB);
       var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري تحديث '+updated+' سجل على Firebase...'; }
+      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري تحديث '+updated+' سجل ('+changedCells+' خانة) على Firebase...'; }
       try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
       computeFU(); initFilters(); applyF();
       fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ تم تحديث '+updated+' سجل مكرر على Firebase','s'); closeImportModal();
+        toast('✅ تم تحديث '+updated+' سجل ('+changedCells+' خانة) على Firebase','s'); closeImportModal();
       }).catch(function(err){
         toast('⚠️ حُفظ محلياً — Firebase: '+err.message,'w');
         var st2=document.getElementById('imp-fb-status');
@@ -6347,13 +6347,16 @@
       if (!hasNew && !hasDup) return;
       fbImporting = true;
       if (fbPollTimer) { clearInterval(fbPollTimer); fbPollTimer = null; }
-      var flds = ['severity','diagnosis','recommendation','stage','status','inspector','supervisor','notes','pesticide','pesticide_date','recheck_date'];
-      var updated = 0;
+      var flds = importUpdateFields();
+      var updated = 0, changedCells = 0;
       if (hasDup) {
         impExcelRaw.dupRows.forEach(function(nr) {
           var key = (nr.code||'')+'|'+(nr.inspection_date||'');
           var idx = DB.findIndex(function(r){ return ((r.code||'')+'|'+(r.inspection_date||''))===key; });
-          if (idx >= 0) { flds.forEach(function(f){ if(nr[f]!==undefined && nr[f]!=='') DB[idx][f]=nr[f]; }); updated++; }
+          if (idx >= 0) {
+            var ch = applyImportedRecordUpdate(DB[idx], nr, flds);
+            if (ch) { updated++; changedCells += ch; }
+          }
         });
       }
       var added = 0;
@@ -6367,12 +6370,12 @@
       }
       var snapshot = JSON.stringify(DB);
       var st = document.getElementById('imp-fb-status');
-      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع — '+added+' جديد + '+updated+' تحديث...'; }
+      if(st){ st.style.background='var(--bbg)'; st.style.color='var(--blu)'; st.innerHTML='🔄 جاري الرفع — '+added+' جديد + '+updated+' تحديث ('+changedCells+' خانة)...'; }
       try { localStorage.setItem('lf_v5_db', snapshot); } catch(e) {}
       computeFU(); initFilters(); applyF();
       fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:snapshot})
       .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status);
-        toast('✅ '+added+' سجل جديد + '+updated+' تحديث على Firebase','s'); closeImportModal();
+        toast('✅ '+added+' سجل جديد + '+updated+' تحديث ('+changedCells+' خانة) على Firebase','s'); closeImportModal();
       }).catch(function(err){
         toast('⚠️ حُفظ محلياً — Firebase: '+err.message,'w');
         var st2=document.getElementById('imp-fb-status');
@@ -6442,6 +6445,32 @@
       map[normalizeHeader('\u0648\u0635\u0641 \u0627\u0644\u0627\u0641\u0629')] = 'pest_desc';
       map[normalizeHeader('\u062a\u0635\u0646\u064a\u0641 \u0627\u0644\u0627\u0641\u0629')] = 'pest_type';
       return map;
+    }
+
+    function importUpdateFields() {
+      return recordCols().filter(function(c) {
+        return c !== 'id' && c !== 'code' && c !== 'inspection_date';
+      });
+    }
+
+    function importRecordHasChanges(newRec, oldRec, fields) {
+      fields = fields || importUpdateFields();
+      return fields.some(function(f) {
+        if (newRec[f] === undefined) return false;
+        return String(newRec[f] || '') !== String(oldRec[f] || '');
+      });
+    }
+
+    function applyImportedRecordUpdate(target, source, fields) {
+      var changed = 0;
+      fields = fields || importUpdateFields();
+      fields.forEach(function(f) {
+        if (source[f] === undefined) return;
+        if (String(target[f] || '') === String(source[f] || '')) return;
+        target[f] = source[f];
+        changed++;
+      });
+      return changed;
     }
 
     function convertImportedRows(rows) {
@@ -8069,7 +8098,7 @@
         </div>
         <div id="ejs-status" class="ejs-status"></div>
         <p style="font-size:.78rem;color:#666;margin:8px 0 0">
-          سجّل على <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> مجاناً، ثم احصل على هذه البيانات من لوحة التحكم. في قالب EmailJS ضع <b>{{{details_html}}}</b> داخل محتوى الرسالة لعرض التقرير بتنسيقه.
+          سجّل على <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> مجاناً، ثم احصل على هذه البيانات من لوحة التحكم. في قالب EmailJS ضع <b>{{{details_html}}}</b> داخل محتوى الرسالة. ملاحظة: الخطة الحالية لا تدعم المرفقات الديناميكية، لذلك يتم إرسال الخريطة كرابط صورة خارجي.
         </p>
       </div>
       <div id="rc-loading" class="rc-loading hidden"><div class="rc-spinner"></div><span>جارٍ التحميل…</span></div>
@@ -8586,6 +8615,10 @@
     function rcFormatISODate(d) {
       return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     }
+    function rcSafeMailDate(d) {
+      d = d || new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
     function rcWeeklyRange(baseDate) {
       var start = new Date(baseDate || new Date());
       start.setHours(0,0,0,0);
@@ -8626,9 +8659,9 @@
     });
     var total = infected.length;
     var dateLabel = '';
-    if(weeklySatFri) dateLabel = 'الأسبوع: السبت إلى الجمعة (' + weekRange.label + ')';
+    if(weeklySatFri) dateLabel = 'الأسبوع: السبت إلى الجمعة (' + weekRange.label.replace(/ → /g, ' - ') + ')';
     else if(f.date_mode === 'last') dateLabel = 'آخر ' + (f.date_last_days || 7) + ' أيام';
-    else if(f.date_mode === 'range') dateLabel = (f.date_from || '') + (f.date_to ? ' → ' + f.date_to : '');
+    else if(f.date_mode === 'range') dateLabel = (f.date_from || '') + (f.date_to ? ' - ' + f.date_to : '');
     else dateLabel = 'كل البيانات';
 
     // Count infections by sector.
@@ -8694,6 +8727,7 @@
       var row = Math.floor((n - 1) / 8), col = (n - 1) % 8;
       return [28.212 + row * 0.011, 28.948 + col * 0.014];
     }
+    var reportMapSpec = null;
     function rcBuildMapSnapshot() {
       if(!sectorEntries.length) return '';
       var points = sectorEntries.map(function(k) {
@@ -8706,46 +8740,86 @@
       var maxLng = Math.max.apply(null, points.map(function(p){return p.lng;}));
       if(minLat === maxLat) { minLat -= .01; maxLat += .01; }
       if(minLng === maxLng) { minLng -= .01; maxLng += .01; }
-      var w = 720, h = 360, pad = 54, maxVal = Math.max.apply(null, points.map(function(p){return p.value;})) || 1;
-      function x(lng){ return pad + ((lng - minLng) / (maxLng - minLng)) * (w - pad * 2); }
-      function y(lat){ return h - pad - ((lat - minLat) / (maxLat - minLat)) * (h - pad * 2); }
+      var w = 560, h = 306, maxVal = Math.max.apply(null, points.map(function(p){return p.value;})) || 1;
+      var farmBounds = { west: 28.9400, south: 28.2125, east: 28.9960, north: 28.2405 };
+      function x(lng){ return ((lng - farmBounds.west) / (farmBounds.east - farmBounds.west)) * w; }
+      function y(lat){ return ((farmBounds.north - lat) / (farmBounds.north - farmBounds.south)) * h; }
       var sortedPoints = points.slice().sort(function(a,b){ return b.value-a.value; });
-      var bg = '';
-      for(var bi=0; bi<26; bi++) {
-        var bx = 28 + ((bi * 83) % 650), by = 38 + ((bi * 47) % 270), bw = 38 + ((bi * 11) % 64), bh = 22 + ((bi * 7) % 48);
-        var col = ['#9a8f66','#6f7d58','#b7a879','#4f6848'][bi%4];
-        bg += '<rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="12" fill="' + col + '" opacity=".22"/>';
+      var mapUrl = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=' +
+        farmBounds.west + ',' + farmBounds.south + ',' + farmBounds.east + ',' + farmBounds.north +
+        '&bboxSR=4326&imageSR=4326&size=' + w + ',' + h + '&format=jpg&f=image';
+      var mapHref = mapUrl.replace(/&/g, '&amp;');
+      var markerPoints = sortedPoints.map(function(p) {
+        return {
+          name: p.name,
+          sector: rcNormalizeSector(p.name),
+          value: p.value,
+          x: x(p.lng),
+          y: y(p.lat)
+        };
+      });
+      var bubbleOffsets = [
+        [18,-24],[-28,-24],[20,10],[-30,10],[0,-34],[0,22],[30,-6],[-38,-6]
+      ];
+      function nearestDistance(pt) {
+        var min = 9999;
+        markerPoints.forEach(function(other) {
+          if(other === pt) return;
+          var dx = pt.x - other.x, dy = pt.y - other.y;
+          var d = Math.sqrt(dx*dx + dy*dy);
+          if(d < min) min = d;
+        });
+        return min;
       }
-      var heat = sortedPoints.map(function(p) {
-        var px = x(p.lng), py = y(p.lat);
-        var rr = 34 + Math.round((p.value / maxVal) * 48);
-        var hot = p.value === maxVal ? '#e53935' : (p.value >= maxVal * .55 ? '#ff8f00' : '#1e88e5');
-        return '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + rr + '" fill="' + hot + '" opacity=".20"/>' +
-          '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + Math.round(rr*.55) + '" fill="' + hot + '" opacity=".24"/>';
-      }).join('');
-      var nodes = sortedPoints.map(function(p) {
-        var sectorNo = rcNormalizeSector(p.name);
-        var r = 15;
+      function chooseBubbleOffset(pt, index) {
+        var best = bubbleOffsets[0], bestScore = -999999;
+        bubbleOffsets.forEach(function(off, oi) {
+          var bx = pt.x + off[0], by = pt.y + off[1], score = 0;
+          markerPoints.forEach(function(other) {
+            if(other === pt) return;
+            var dx = bx - other.x, dy = by - other.y;
+            var d = Math.sqrt(dx*dx + dy*dy);
+            score += Math.min(d, 80);
+            if(d < 28) score -= 300;
+          });
+          if(bx < 16 || bx > w-16 || by < 14 || by > h-14) score -= 500;
+          score -= oi * .1;
+          if(score > bestScore) { bestScore = score; best = off; }
+        });
+        return best;
+      }
+      var markersHtml = markerPoints.map(function(p, idx) {
+        var sectorNo = p.sector;
         var fill = p.value === maxVal ? '#d32f2f' : (p.value >= maxVal * .55 ? '#ef6c00' : '#2e7d32');
-        var px = x(p.lng), py = y(p.lat);
-        return '<g><circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + r + '" fill="' + fill + '" stroke="#ffffff" stroke-width="3"/>' +
-          '<text x="' + px.toFixed(1) + '" y="' + (py + 5).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="900" fill="#ffffff">' + escH(sectorNo) + '</text>' +
-          '<circle cx="' + (px + 14).toFixed(1) + '" cy="' + (py - 14).toFixed(1) + '" r="10" fill="#ffffff" stroke="' + fill + '" stroke-width="2"/>' +
-          '<text x="' + (px + 14).toFixed(1) + '" y="' + (py - 10).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="900" fill="' + fill + '">' + arNum(p.value) + '</text></g>';
+        var left = Math.max(3, Math.min(96, (p.x / w) * 100));
+        var topPos = Math.max(5, Math.min(94, (p.y / h) * 100));
+        var off = chooseBubbleOffset(p, idx);
+        var bLeft = Math.max(3, Math.min(97, ((p.x + off[0]) / w) * 100));
+        var bTop = Math.max(4, Math.min(96, ((p.y + off[1]) / h) * 100));
+        var closeClass = nearestDistance(p) < 42 ? 'box-shadow:0 0 0 2px rgba(255,255,255,.65);' : '';
+        return '<div style="position:absolute;left:' + left.toFixed(2) + '%;top:' + topPos.toFixed(2) + '%;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:' + fill + ';border:3px solid #ffffff;color:#ffffff;text-align:center;line-height:29px;font-size:13px;font-weight:900;font-family:Tahoma,Arial,sans-serif;box-shadow:0 0 0 2px rgba(0,0,0,.18);z-index:2">' + escH(sectorNo) + '</div>' +
+          '<div style="position:absolute;left:' + bLeft.toFixed(2) + '%;top:' + bTop.toFixed(2) + '%;width:22px;height:22px;margin-left:-11px;margin-top:-11px;border-radius:50%;background:#ffffff;border:2px solid ' + fill + ';color:' + fill + ';text-align:center;line-height:18px;font-size:9px;font-weight:900;font-family:Tahoma,Arial,sans-serif;z-index:3;' + closeClass + '">' + arNum(p.value) + '</div>';
       }).join('');
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
-        '<defs><linearGradient id="sat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9b783"/><stop offset=".45" stop-color="#8f9b6b"/><stop offset="1" stop-color="#d1be8f"/></linearGradient></defs>' +
-        '<rect width="100%" height="100%" rx="12" fill="url(#sat)"/>' +
-        '<rect x="18" y="18" width="' + (w-36) + '" height="' + (h-36) + '" rx="10" fill="#244d35" opacity=".10" stroke="#ffffff" stroke-opacity=".55"/>' +
-        bg +
-        '<path d="M30 290 C150 240,210 300,320 246 S520 142,690 96" fill="none" stroke="#efe3b8" stroke-width="18" opacity=".28"/>' +
-        '<path d="M38 294 C155 245,212 300,322 250 S526 146,690 102" fill="none" stroke="#5e6f4f" stroke-width="5" opacity=".25"/>' +
-        heat + nodes +
-        '</svg>';
-      var img = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      reportMapSpec = {
+        width: w,
+        height: h,
+        mapUrl: mapUrl,
+        maxVal: maxVal,
+        points: sortedPoints.map(function(p) {
+          return {
+            sector: rcNormalizeSector(p.name),
+            value: p.value,
+            x: x(p.lng),
+            y: y(p.lat)
+          };
+        })
+      };
       var top = sortedPoints.slice(0, 6).map(function(p) { return '<span style="display:inline-block;background:#eef6f0;border:1px solid #cfe2d5;border-radius:14px;padding:4px 9px;margin:3px;color:#203b29;font-size:12px">' + escH(p.name) + ': <b>' + arNum(p.value) + '</b></span>'; }).join('');
       return '<div style="margin-bottom:24px"><div style="font-size:17px;color:#14532d;font-weight:800;border-bottom:2px solid #cfe2d5;padding-bottom:8px;margin-bottom:10px">لقطة خريطة الإصابات حسب الفلتر</div>' +
-        '<img src="' + img + '" alt="خريطة الإصابات حسب الفلتر" width="720" style="display:block;width:100%;max-width:720px;border:1px solid #d8e6dc;border-radius:8px;background:#edf4ef;margin:0 auto 10px">' +
+        '<div style="position:relative;width:100%;max-width:560px;margin:0 auto 10px;border:1px solid #d8e6dc;border-radius:8px;background:#edf4ef;overflow:hidden;line-height:0">' +
+        '<img src="' + mapHref + '" alt="خريطة المزرعة" width="560" style="display:block;width:100%;max-width:560px;border:0;margin:0">' +
+        markersHtml +
+        '</div>' +
         '<div style="text-align:center">' + top + '</div></div>';
     }
     function rcFilterChips() {
@@ -8766,7 +8840,7 @@
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px;background:#ffffff;border:1px solid #d8e6dc;border-radius:8px;overflow:hidden">' +
       '<tr><td style="background:#14532d;color:#ffffff;padding:24px 28px;text-align:center">' +
       '<div style="font-size:22px;font-weight:800;margin-bottom:6px">تقرير إصابات Linah Farms</div>' +
-      '<div style="font-size:13px;opacity:.9">' + escH(cfg.report_name || 'تقرير الإصابات') + ' | ' + escH(dateLabel) + ' | ' + new Date().toLocaleDateString('ar-EG') + '</div>' +
+      '<div style="font-size:13px;opacity:.9">' + escH(cfg.report_name || 'تقرير الإصابات') + ' | ' + escH(dateLabel) + ' | ' + rcSafeMailDate(new Date()) + '</div>' +
       '</td></tr>' +
       '<tr><td style="padding:24px 28px">' +
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px"><tr>' +
@@ -8804,7 +8878,124 @@
     H += '</td></tr><tr><td style="background:#f4f8f5;color:#617268;padding:14px 28px;text-align:center;font-size:12px;border-top:1px solid #d8e6dc">Linah Farms System IIS | تم الإرسال تلقائياً</td></tr>' +
       '</table></td></tr></table></body></html>';
 
-    return { filtered: infected, total: total, dateLabel: dateLabel, summaryText: summaryText, htmlBody: H, bySector: bySector, byDiag: byDiag, sectorLines: sectorLines, diagLines: diagLines };
+    return { filtered: infected, total: total, dateLabel: dateLabel, summaryText: summaryText, htmlBody: H, bySector: bySector, byDiag: byDiag, sectorLines: sectorLines, diagLines: diagLines, mapSpec: reportMapSpec };
+  }
+
+  function rcRenderReportMapImage(mapSpec) {
+    return new Promise(function(resolve) {
+      if(!mapSpec || !mapSpec.points || !mapSpec.points.length) return resolve('');
+      var canvas = document.createElement('canvas');
+      canvas.width = mapSpec.width || 720;
+      canvas.height = mapSpec.height || 394;
+      var ctx = canvas.getContext('2d');
+      function drawFallbackBackground() {
+        var g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        g.addColorStop(0, '#c9b783');
+        g.addColorStop(.45, '#8f9b6b');
+        g.addColorStop(1, '#d1be8f');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      function circle(x, y, r, fill, stroke, strokeWidth, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        if(stroke) {
+          ctx.lineWidth = strokeWidth || 1;
+          ctx.strokeStyle = stroke;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      function drawMarkers() {
+        ctx.fillStyle = 'rgba(23,61,40,.10)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        (mapSpec.points || []).forEach(function(p) {
+          var rr = 34 + Math.round((p.value / mapSpec.maxVal) * 48);
+          var hot = p.value === mapSpec.maxVal ? '#e53935' : (p.value >= mapSpec.maxVal * .55 ? '#ff8f00' : '#1e88e5');
+          circle(p.x, p.y, rr, hot, null, 0, .20);
+          circle(p.x, p.y, Math.round(rr * .55), hot, null, 0, .24);
+        });
+        (mapSpec.points || []).forEach(function(p) {
+          var fill = p.value === mapSpec.maxVal ? '#d32f2f' : (p.value >= mapSpec.maxVal * .55 ? '#ef6c00' : '#2e7d32');
+          circle(p.x, p.y, 15, fill, '#ffffff', 3, 1);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 13px Tahoma, Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(p.sector), p.x, p.y + 1);
+          circle(p.x + 14, p.y - 14, 10, '#ffffff', fill, 2, 1);
+          ctx.fillStyle = fill;
+          ctx.font = '900 10px Tahoma, Arial, sans-serif';
+          ctx.fillText(String(p.value).replace(/\d/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'[d]; }), p.x + 14, p.y - 13);
+        });
+      }
+      function compressedJpegDataUrl(maxChars) {
+        var qualities = [.72, .62, .52, .44, .36, .30];
+        for(var i=0; i<qualities.length; i++) {
+          try {
+            var dataUrl = canvas.toDataURL('image/jpeg', qualities[i]);
+            if(!maxChars || dataUrl.length <= maxChars || i === qualities.length - 1) return dataUrl;
+          } catch(e) {}
+        }
+        return '';
+      }
+      function shrinkCanvasTo(maxWidth) {
+        if(canvas.width <= maxWidth) return;
+        var ratio = maxWidth / canvas.width;
+        var small = document.createElement('canvas');
+        small.width = Math.round(canvas.width * ratio);
+        small.height = Math.round(canvas.height * ratio);
+        var sctx = small.getContext('2d');
+        sctx.drawImage(canvas, 0, 0, small.width, small.height);
+        canvas = small;
+        ctx = sctx;
+      }
+      function finish() {
+        drawMarkers();
+        var out = compressedJpegDataUrl(30000);
+        if(out && out.length > 30000) {
+          shrinkCanvasTo(420);
+          out = compressedJpegDataUrl(24000);
+        }
+        resolve(out || '');
+      }
+      try {
+        fetch(mapSpec.mapUrl, { mode: 'cors' })
+          .then(function(r){ if(!r.ok) throw new Error('map image failed'); return r.blob(); })
+          .then(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var img = new Image();
+            img.onload = function() {
+              try { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); }
+              catch(e) { drawFallbackBackground(); }
+              URL.revokeObjectURL(url);
+              finish();
+            };
+            img.onerror = function() {
+              URL.revokeObjectURL(url);
+              drawFallbackBackground();
+              finish();
+            };
+            img.src = url;
+          })
+          .catch(function() {
+            drawFallbackBackground();
+            finish();
+          });
+      } catch(e) {
+        drawFallbackBackground();
+        finish();
+      }
+    });
+  }
+
+  function rcEmailSafeDate(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
 
   /* ── Preview modal ── */
@@ -8842,7 +9033,6 @@
       var total = data.total;
       var dateLabel = data.dateLabel;
       var summaryText = cfg.include_summary ? data.summaryText : '';
-      var detailsHtml = data.htmlBody;
 
       var byDiag = data.byDiag;
       var diagLines = data.diagLines || Object.keys(byDiag).sort(function(a,b){ return byDiag[b]-byDiag[a]; }).map(function(k){ return k+': '+byDiag[k]; }).join('\n');
@@ -8853,15 +9043,16 @@
 
       try{ emailjs.init({publicKey:s.publicKey}); }catch(e){}
 
-      var sent=0;var failed=0;
-      var total_recip=recipients.length;
+      var detailsHtml = data.htmlBody;
+        var sent=0;var failed=0;
+        var total_recip=recipients.length;
 
-      recipients.forEach(function(email){
+        recipients.forEach(function(email){
         var params={
           to_email:email,
           to_name:email.split('@')[0],
           report_name:cfg.report_name||'تقرير Linah Farms',
-          send_date:new Date().toLocaleDateString('ar-EG'),
+          send_date:rcEmailSafeDate(new Date()),
           date_range:dateLabel,
           summary_text:summaryText,
           details_html:detailsHtml,
@@ -8892,7 +9083,7 @@
             }
           }
         );
-      });
+        });
   }
 
   // ─── Diagnosis Multiselect Helpers ───
