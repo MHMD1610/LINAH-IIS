@@ -200,6 +200,25 @@
       color: #fff
     }
 
+    .searchable-select .ss-option.ss-multi {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: normal
+    }
+
+    .searchable-select .ss-option.ss-multi input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--br);
+      flex-shrink: 0
+    }
+
+    .searchable-select .ss-option.ss-multi.selected {
+      background: var(--pale);
+      color: var(--dk)
+    }
+
     .searchable-select .ss-empty {
       color: var(--tx3);
       cursor: default;
@@ -2458,10 +2477,14 @@
       </div>
       <div class="lf-group">
         <label>كلمة المرور</label>
-        <input type="password" id="login-pass" placeholder="أدخل كلمة المرور" autocomplete="current-password">
+        <div style="position:relative">
+          <input type="password" id="login-pass" placeholder="أدخل كلمة المرور" autocomplete="current-password" style="width:100%;padding-left:40px;box-sizing:border-box" onkeydown="if(event.key==='Enter')doLogin()">
+          <button type="button" onclick="var i=document.getElementById('login-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;padding:0;line-height:1">👁</button>
+        </div>
       </div>
       <button class="login-btn" onclick="doLogin()">تسجيل الدخول</button>
       <div class="login-err" id="login-err"></div>
+
     </div>
   </div>
 
@@ -2524,6 +2547,7 @@
       <div class="sb-sec">
         <div class="sb-lbl">&#1575;&#1604;&#1573;&#1593;&#1583;&#1575;&#1583;&#1575;&#1578;</div>
         <button class="ni" onclick="openReportConfig()" data-perm="admin"><span class="ic">📧</span><span>تقارير بريدية</span></button>
+        <button class="ni" onclick="nav('notifications')" data-perm="admin"><span class="ic">&#128276;</span><span>&#1573;&#1593;&#1583;&#1575;&#1583;&#1575;&#1578; &#1575;&#1604;&#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578;</span></button>
         <button class="ni" onclick="nav('users')" data-perm="admin"><span class="ic">👥</span><span>إدارة المستخدمين</span></button>
         <button class="ni" onclick="nav('db')"><span
             class="ic">&#128450;</span><span>&#1602;&#1608;&#1575;&#1593;&#1583;
@@ -2836,13 +2860,22 @@
               <option>&#1605;&#1578;&#1608;&#1587;&#1591;&#1577;</option>
               <option>&#1605;&#1606;&#1582;&#1601;&#1590;&#1577;</option>
             </select>
-            <button class="btn b-gld" onclick="expCSV(getFUCases())">&#11015;
+            <select class="fsel" id="fu-pdesc" onchange="renderFUPage()" style="display:none">
+              <option value="">&#1603;&#1604; &#1571;&#1608;&#1589;&#1575;&#1601; &#1575;&#1604;&#1570;&#1601;&#1577;</option>
+            </select>
+            <button class="btn b-gld" onclick="expCSV(getFollowupPageExportCases())">&#11015;
               &#1578;&#1589;&#1583;&#1610;&#1585;</button>
           </div>
         </div>
+        <div style="display:flex;border-bottom:2px solid var(--bd);padding:0 24px;background:var(--sf)">
+          <button class="mo-tab on" id="fu-page-t-follow" onclick="fuPageSwitch('follow')">&#128197;
+            &#1602;&#1610;&#1583; &#1575;&#1604;&#1605;&#1578;&#1575;&#1576;&#1593;&#1577; <span id="fu-page-cnt-follow"></span></button>
+          <button class="mo-tab" id="fu-page-t-care" onclick="fuPageSwitch('care')">&#128138;
+            &#1594;&#1610;&#1585; &#1605;&#1593;&#1575;&#1604;&#1580;&#1577; <span id="fu-page-cnt-care"></span></button>
+        </div>
         <div class="cp" style="padding-top:14px">
           <div style="margin-bottom:10px"><input class="finp" placeholder="&#128269; &#1576;&#1581;&#1579;..."
-              oninput="filterList(this,'fu-al-list')" style="max-width:320px"></div>
+              oninput="renderFUPage()" style="max-width:320px"></div>
           <div id="fu-al-list"></div>
         </div>
       </div>
@@ -3575,6 +3608,130 @@
       </div>
 
       <!-- ══════ USER MANAGEMENT PAGE ══════ -->
+      <section class="pg" id="pg-notifications">
+        <div class="ph">
+          <div class="ph-left">
+            <div class="pt">&#128276; &#1573;&#1593;&#1583;&#1575;&#1583;&#1575;&#1578; &#1575;&#1604;&#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578;</div>
+            <div class="ps">&#1578;&#1582;&#1589;&#1610;&#1589; &#1578;&#1606;&#1576;&#1610;&#1607;&#1575;&#1578; WhatsApp &#1608; Email &#1581;&#1587;&#1576; &#1575;&#1604;&#1583;&#1608;&#1585; &#1608;&#1606;&#1608;&#1593; &#1575;&#1604;&#1581;&#1583;&#1579;</div>
+          </div>
+          <div class="pa">
+            <button class="btn b-dk" onclick="saveNotificationSettings()">&#128190; &#1581;&#1601;&#1592;</button>
+            <button class="btn b-ol" onclick="testNotificationSettings()">&#128226; &#1575;&#1582;&#1578;&#1576;&#1575;&#1585;</button>
+            <button class="btn b-gld" onclick="scanExistingNotifications()">&#128269; &#1601;&#1581;&#1589; &#1575;&#1604;&#1576;&#1610;&#1575;&#1606;&#1575;&#1578; &#1575;&#1604;&#1581;&#1575;&#1604;&#1610;&#1577;</button>
+          </div>
+        </div>
+        <div class="cp" style="padding-top:16px">
+          <div class="grid2" style="align-items:start">
+            <div class="sc">
+              <div class="sc-hd">&#9881; &#1575;&#1604;&#1578;&#1588;&#1594;&#1610;&#1604; &#1608;&#1575;&#1604;&#1605;&#1581;&#1601;&#1586;&#1575;&#1578;</div>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-enabled"> &#1578;&#1601;&#1593;&#1610;&#1604; &#1606;&#1592;&#1575;&#1605; &#1575;&#1604;&#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578;</label>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-trig-critical"> &#1593;&#1606;&#1583; &#1583;&#1585;&#1580;&#1577; &#1581;&#1585;&#1580;&#1577;</label>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-trig-curative"> &#1593;&#1606;&#1583; &#1575;&#1604;&#1578;&#1608;&#1589;&#1610;&#1577; &#1576;&#1573;&#1580;&#1585;&#1575;&#1569; &#1593;&#1604;&#1575;&#1580;&#1610;</label>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-trig-untreated"> &#1593;&#1606;&#1583; &#1608;&#1580;&#1608;&#1583; &#1581;&#1575;&#1604;&#1577; &#1576;&#1583;&#1608;&#1606; &#1605;&#1593;&#1575;&#1605;&#1604;&#1577;</label>
+              <div style="margin-top:12px;color:var(--tx2);font-size:.82rem;line-height:1.7">&#1575;&#1604;&#1573;&#1588;&#1593;&#1575;&#1585;&#1575;&#1578; &#1578;&#1593;&#1605;&#1604; &#1576;&#1593;&#1583; &#1581;&#1601;&#1592; &#1575;&#1604;&#1587;&#1580;&#1604; &#1608;&#1604;&#1575; &#1578;&#1608;&#1602;&#1601; &#1581;&#1601;&#1592; Firebase &#1571;&#1576;&#1583;&#1575;.</div>
+            </div>
+            <div class="sc">
+              <div class="sc-hd">&#128241; WhatsApp</div>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-wa-enabled"> &#1578;&#1601;&#1593;&#1610;&#1604; WhatsApp</label>
+              <label class="fl">&#1591;&#1585;&#1610;&#1602;&#1577; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604;</label>
+              <select class="fsel2" id="nt-wa-mode" style="width:100%"><option value="manual">&#1605;&#1580;&#1575;&#1606;&#1610;: &#1585;&#1587;&#1575;&#1574;&#1604; &#1580;&#1575;&#1607;&#1586;&#1577; &#1578;&#1601;&#1578;&#1581; WhatsApp</option><option value="api">API / Webhook &#1578;&#1604;&#1602;&#1575;&#1574;&#1610;</option></select>
+              <label class="fl" style="margin-top:8px">API URL</label><input class="finp" id="nt-wa-url" placeholder="https://your-server.com/api/whatsapp" style="width:100%">
+              <label class="fl" style="margin-top:8px">API Token</label><input class="finp" id="nt-wa-token" placeholder="&#1610;&#1601;&#1590;&#1604; &#1571;&#1604;&#1575; &#1610;&#1608;&#1590;&#1593; &#1583;&#1575;&#1582;&#1604; HTML" style="width:100%">
+            </div>
+            <div class="sc">
+              <div class="sc-hd">&#128101; &#1605;&#1587;&#1578;&#1604;&#1605;&#1608; WhatsApp</div>
+              <label class="fl">&#1601;&#1585;&#1610;&#1602; &#1575;&#1604;&#1593;&#1604;&#1575;&#1580; / &#1575;&#1604;&#1605;&#1610;&#1583;&#1575;&#1606;</label>
+              <textarea class="finp" id="nt-wa-field" style="width:100%;min-height:90px" placeholder="+201000000000&#10;+201111111111"></textarea>
+              <label class="fl" style="margin-top:8px">&#1575;&#1604;&#1605;&#1588;&#1585;&#1601;&#1608;&#1606; &#1575;&#1604;&#1571;&#1587;&#1575;&#1587;&#1610;&#1608;&#1606;</label>
+              <textarea class="finp" id="nt-wa-sup" style="width:100%;min-height:90px" placeholder="+201222222222"></textarea>
+            </div>
+            <div class="sc">
+              <div class="sc-hd">&#9993; EmailJS</div>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-email-enabled"> &#1578;&#1601;&#1593;&#1610;&#1604; &#1575;&#1604;&#1576;&#1585;&#1610;&#1583;</label>
+              <label style="display:block;margin:8px 0"><input type="checkbox" id="nt-email-existing"> &#1575;&#1587;&#1578;&#1582;&#1583;&#1605; &#1573;&#1593;&#1583;&#1575;&#1583;&#1575;&#1578; EmailJS &#1575;&#1604;&#1605;&#1608;&#1580;&#1608;&#1583;&#1577;</label>
+              <input class="finp" id="nt-email-service" placeholder="service_id" style="width:100%;margin-top:6px">
+              <input class="finp" id="nt-email-template" placeholder="template_id" style="width:100%;margin-top:6px">
+              <input class="finp" id="nt-email-public" placeholder="public_key" style="width:100%;margin-top:6px">
+              <label class="fl" style="margin-top:8px">&#1573;&#1610;&#1605;&#1610;&#1604;&#1575;&#1578; &#1575;&#1604;&#1573;&#1583;&#1575;&#1585;&#1577;</label>
+              <textarea class="finp" id="nt-email-admins" style="width:100%;min-height:80px" placeholder="manager@example.com&#10;admin@example.com"></textarea>
+            </div>
+          </div>
+          <!-- ══ AUTO SCHEDULER CARD ══ -->
+          <div class="sc" style="margin-top:14px;border:2px solid var(--br);border-radius:10px">
+            <div class="sc-hd" style="display:flex;align-items:center;gap:8px">
+              <span>&#9200; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1578;&#1604;&#1602;&#1575;&#1626;&#1610; &#1575;&#1604;&#1605;&#1580;&#1583;&#1608;&#1604;</span>
+              <span id="nt-sched-badge" style="font-size:.72rem;padding:2px 10px;border-radius:20px;background:#e53935;color:#fff;font-weight:700">&#9679; &#1605;&#1608;&#1602;&#1608;&#1601;</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px">
+              <!-- Enable toggle -->
+              <div style="background:var(--bg);border-radius:8px;padding:12px">
+                <div style="font-weight:700;margin-bottom:8px;font-size:.85rem">&#9881; &#1578;&#1588;&#1594;&#1610;&#1604; &#1575;&#1604;&#1580;&#1583;&#1608;&#1604;</div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="nt-sched-enabled" onchange="ntSchedToggle()" style="width:18px;height:18px;accent-color:var(--br)">
+                  <span id="nt-sched-toggle-label" style="font-size:.85rem">&#1578;&#1601;&#1593;&#1610;&#1604; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1578;&#1604;&#1602;&#1575;&#1626;&#1610;</span>
+                </label>
+                <div style="margin-top:10px;font-size:.78rem;color:var(--tx2)" id="nt-sched-status-txt">&#1575;&#1604;&#1580;&#1583;&#1608;&#1604; &#1605;&#1608;&#1602;&#1608;&#1601;</div>
+              </div>
+              <!-- Time picker -->
+              <div style="background:var(--bg);border-radius:8px;padding:12px">
+                <div style="font-weight:700;margin-bottom:8px;font-size:.85rem">&#9200; &#1608;&#1602;&#1578; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1610;&#1608;&#1605;&#1610;</div>
+                <input type="time" id="nt-sched-time" value="07:00" class="finp" style="width:100%;font-size:1rem;font-weight:700;text-align:center" onchange="ntSchedSave()">
+                <div style="margin-top:6px;font-size:.78rem;color:var(--tx2)">&#1610;&#1578;&#1605; &#1575;&#1604;&#1601;&#1581;&#1589; &#1603;&#1604; 5 &#1583;&#1602;&#1575;&#1574;&#1602; &#1608;&#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1593;&#1606;&#1583; &#1575;&#1604;&#1608;&#1602;&#1578; &#1575;&#1604;&#1605;&#1581;&#1583;&#1583;</div>
+              </div>
+              <!-- Days of week -->
+              <div style="background:var(--bg);border-radius:8px;padding:12px">
+                <div style="font-weight:700;margin-bottom:8px;font-size:.85rem">&#128197; &#1571;&#1610;&#1575;&#1605; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604;</div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px" id="nt-sched-days">
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="0" onchange="ntSchedSave()"> &#1575;&#1604;&#1571;&#1581;&#1583;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="1" onchange="ntSchedSave()" checked> &#1575;&#1604;&#1575;&#1579;&#1606;&#1610;&#1606;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="2" onchange="ntSchedSave()" checked> &#1575;&#1604;&#1579;&#1604;&#1575;&#1579;&#1575;&#1569;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="3" onchange="ntSchedSave()" checked> &#1575;&#1604;&#1571;&#1585;&#1576;&#1593;&#1575;&#1569;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="4" onchange="ntSchedSave()" checked> &#1575;&#1604;&#1582;&#1605;&#1610;&#1587;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="5" onchange="ntSchedSave()" checked> &#1575;&#1604;&#1580;&#1605;&#1593;&#1577;</label>
+                  <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;cursor:pointer"><input type="checkbox" data-day="6" onchange="ntSchedSave()"> &#1575;&#1604;&#1587;&#1576;&#1578;</label>
+                </div>
+              </div>
+              <!-- Last sent info + manual trigger -->
+              <div style="background:var(--bg);border-radius:8px;padding:12px">
+                <div style="font-weight:700;margin-bottom:8px;font-size:.85rem">&#128203; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1571;&#1582;&#1610;&#1585;</div>
+                <div id="nt-sched-last" style="font-size:.8rem;color:var(--tx2);min-height:36px">&#1604;&#1605; &#1610;&#1578;&#1605; &#1573;&#1585;&#1587;&#1575;&#1604; &#1576;&#1593;&#1583;</div>
+                <div style="font-weight:700;margin-top:10px;margin-bottom:8px;font-size:.85rem">&#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1578;&#1575;&#1604;&#1610;</div>
+                <div id="nt-sched-next" style="font-size:.8rem;color:var(--br);font-weight:600;min-height:24px">-</div>
+              </div>
+            </div>
+            <!-- Action buttons -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--br2)">
+              <button class="btn b-gld" onclick="ntSchedRunNow()" style="display:flex;align-items:center;gap:6px">
+                &#9889; &#1578;&#1588;&#1594;&#1610;&#1604; &#1578;&#1604;&#1602;&#1575;&#1626;&#1610; &#1575;&#1604;&#1570;&#1606;
+              </button>
+              <button class="btn b-ol" onclick="ntSchedTest()" style="display:flex;align-items:center;gap:6px">
+                &#129514; &#1575;&#1582;&#1578;&#1576;&#1575;&#1585; &#1575;&#1604;&#1580;&#1583;&#1608;&#1604; (Test)
+              </button>
+              <button class="btn" onclick="ntSchedClearHistory()" style="background:var(--tx2);color:#fff;display:flex;align-items:center;gap:6px">
+                &#128465; &#1605;&#1587;&#1581; &#1587;&#1580;&#1604; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604;
+              </button>
+              <div id="nt-sched-spinner" style="display:none;align-items:center;gap:6px;color:var(--br);font-size:.85rem;font-weight:600">
+                <div style="width:16px;height:16px;border:2px solid var(--br);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></div>
+                &#1580;&#1575;&#1585;&#1610; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604;...
+              </div>
+            </div>
+            <!-- Log -->
+            <div style="margin-top:12px">
+              <div style="font-size:.8rem;font-weight:700;margin-bottom:6px;color:var(--tx2)">&#128196; &#1587;&#1580;&#1604; &#1575;&#1604;&#1573;&#1585;&#1587;&#1575;&#1604; &#1575;&#1604;&#1578;&#1604;&#1602;&#1575;&#1626;&#1610;</div>
+              <div id="nt-sched-log" style="max-height:140px;overflow-y:auto;background:var(--bg);border-radius:6px;padding:8px;font-size:.78rem;font-family:monospace;color:var(--tx);line-height:1.8">
+                <span style="color:var(--tx2)">&#1604;&#1575; &#1578;&#1608;&#1580;&#1583; &#1587;&#1580;&#1604;&#1575;&#1578; &#1576;&#1593;&#1583;</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sc" style="margin-top:14px">
+            <div class="sc-hd">&#128221; &#1591;&#1575;&#1576;&#1608;&#1585; WhatsApp &#1575;&#1604;&#1605;&#1580;&#1575;&#1606;&#1610;</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn b-ol" onclick="renderNotificationQueue()">&#8635; &#1578;&#1581;&#1583;&#1610;&#1579;</button><button class="btn b-rd" onclick="clearNotificationQueue()">&#128465; &#1605;&#1587;&#1581; &#1575;&#1604;&#1591;&#1575;&#1576;&#1608;&#1585;</button></div>
+            <div id="nt-queue"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="pg" id="pg-users">
         <div class="card">
           <h2>👥 إدارة المستخدمين</h2>
@@ -3693,8 +3850,11 @@
         .then(function(data){
           var users = Array.isArray(data) ? data : (data ? Object.values(data) : []);
           if (!users.length) {
-            // Firebase فارغ → ارفع الافتراضيين
-            users = DEFAULT_USERS.slice();
+            // Firebase فارغ → ابدأ بالمستخدمين الافتراضيين
+            var local = localStorage.getItem(AUTH_KEY);
+            var localArr = [];
+            try { localArr = local ? JSON.parse(local) : []; } catch(e) {}
+            users = (Array.isArray(localArr) && localArr.length) ? localArr : DEFAULT_USERS.slice();
             saveUsersToFirebase(users);
           }
           localStorage.setItem(AUTH_KEY, JSON.stringify(users));
@@ -3739,24 +3899,81 @@
       try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { return null; }
     }
 
+    function emergencyReset() {
+      var code = prompt('أدخل رمز إعادة التعيين للتأكيد:\n(الرمز هو: LINAH-RESET)');
+      if (code !== 'LINAH-RESET') { alert('رمز غير صحيح'); return; }
+      // مسح كل بيانات المستخدمين
+      localStorage.removeItem('linah_users');
+      localStorage.removeItem('linah_session');
+      // رفع المستخدم الافتراضي على Firebase
+      fetch('https://linah-iis-default-rtdb.firebaseio.com/linah_farms/users.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DEFAULT_USERS)
+      }).catch(function(){});
+      localStorage.setItem('linah_users', JSON.stringify(DEFAULT_USERS));
+      alert('✅ تم إعادة التعيين!\n\nاسم المستخدم: admin\nكلمة المرور: Linah@2026!\n\nغيّر كلمة المرور فور دخولك.');
+    }
+
     function doLogin() {
       var u = (document.getElementById('login-user').value || '').trim();
       var p = (document.getElementById('login-pass').value || '').trim();
       var err = document.getElementById('login-err');
+      var btn = document.querySelector('.login-btn');
       if (!u || !p) { err.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور'; return; }
-      // حاول من Firebase أولاً (يضمن جلب أحدث المستخدمين) ثم من الـ cache
-      loadUsersFromFirebase(function(e, users) {
+
+      // إظهار حالة التحميل
+      err.textContent = '';
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التحقق...'; }
+
+      function restoreBtn() {
+        if (btn) { btn.disabled = false; btn.textContent = 'تسجيل الدخول'; }
+      }
+
+      function tryLogin(users) {
         var found = null;
         for (var i = 0; i < users.length; i++) {
           if (users[i].username === u && users[i].password === p) { found = users[i]; break; }
         }
-        if (!found) { err.textContent = 'اسم المستخدم أو كلمة المرور غير صحيح'; return; }
+        if (!found) {
+          err.textContent = 'اسم المستخدم أو كلمة المرور غير صحيح';
+          restoreBtn();
+          return;
+        }
         localStorage.setItem(SESSION_KEY, JSON.stringify({ username: found.username, role: found.role }));
         err.textContent = '';
+        restoreBtn();
         document.getElementById('login-overlay').classList.add('hidden');
         renderUserBadge();
         applyPermissions();
         nav('dash');
+      }
+
+      // أولاً: جرّب من localStorage مباشرة (سريع وبدون انتظار)
+      var localUsers = initUsersLocal();
+      var localFound = localUsers.some(function(x){ return x.username === u && x.password === p; });
+      if (localFound) {
+        tryLogin(localUsers);
+        // في الخلفية: زامن مع Firebase
+        loadUsersFromFirebase(function(){});
+        return;
+      }
+
+      // ثانياً: جرّب Firebase مع timeout 5 ثواني
+      var fbDone = false;
+      var fbTimeout = setTimeout(function() {
+        if (!fbDone) {
+          fbDone = true;
+          // Firebase بطيئة — جرب local مرة أخرى
+          tryLogin(initUsersLocal());
+        }
+      }, 5000);
+
+      loadUsersFromFirebase(function(e, users) {
+        if (fbDone) return;
+        fbDone = true;
+        clearTimeout(fbTimeout);
+        tryLogin(users);
       });
     }
 
@@ -3778,12 +3995,13 @@
       badge.innerHTML =
         '<div class="ub-name">&#128100; ' + user.username + '</div>' +
         '<div class="ub-role">' + (ROLE_LABELS[user.role] || user.role) + '</div>' +
+        '<button class="ub-logout" style="background:rgba(21,101,192,.8)" onclick="editUser(\'' + user.username + '\')">&#128274; تغيير البيانات</button>' +
         '<button class="ub-logout" onclick="doLogout()">&#128682; تسجيل خروج</button>';
     }
 
     // ── صلاحيات الأدوار ──
     var ROLE_PAGES = {
-      admin:    ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup','db','backup','users','hof'],
+      admin:    ['dash','fu-alerts','crit-alerts','followup','closed','records','form','perf','resp','code-history','reports','tracking','tracking-lookup','db','backup','users','notifications','hof'],
       inspector:['dash','fu-alerts','crit-alerts','followup','closed','records','perf','resp','code-history','reports','tracking-lookup','form','tracking','hof'],
       viewer:   ['dash','fu-alerts','crit-alerts','followup','closed','records','perf','resp','code-history','reports','tracking-lookup','hof']
     };
@@ -3820,10 +4038,12 @@
       tb.innerHTML = users.map(function(u) {
         var safeName = u.username.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         var safePw   = u.password.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        var del = (u.username !== cur.username)
-          ? '<span class="um-act" onclick="deleteUser(\'' + safeName + '\')">&#128465; حذف</span>' : '—';
+        var isSelf = (u.username === cur.username);
+        var del = !isSelf
+          ? '<span class="um-act" onclick="deleteUser(\'' + safeName + '\')">&#128465; حذف</span>' : '';
+        var editBtn = '<span class="um-act" style="color:#1565c0;margin-left:8px" onclick="editUser(\'' + safeName + '\')">&#9998; تعديل</span>';
         var pwCell = '<span style="cursor:pointer;font-family:monospace" title="اضغط لإظهار" onclick="this.textContent=this.textContent===\'●●●●●●\'?\'' + safePw + '\':\'●●●●●●\'">●●●●●●</span>';
-        return '<tr><td>' + u.username + '</td><td>' + pwCell + '</td><td>' + (ROLE_LABELS[u.role] || u.role) + '</td><td>' + del + '</td></tr>';
+        return '<tr><td>' + u.username + (isSelf ? ' <span style="font-size:.7rem;background:#e8f5e9;padding:2px 6px;border-radius:10px;color:#2e7d32">أنت</span>' : '') + '</td><td>' + pwCell + '</td><td>' + (ROLE_LABELS[u.role] || u.role) + '</td><td>' + editBtn + (del ? ' ' + del : '') + '</td></tr>';
       }).join('');
     }
 
@@ -3852,6 +4072,144 @@
       var users = initUsersLocal().filter(function(x){ return x.username !== username; });
       saveUsers(users);
       renderUsersTable();
+    }
+
+    function editUser(username) {
+      loadUsersFromFirebase(function(e, users) {
+        var user = users.find(function(x){ return x.username === username; });
+        if (!user) { alert('المستخدم غير موجود'); return; }
+        var cur = getCurrentUser();
+        var isSelf = (cur && cur.username === username);
+
+        // بناء المودال بـ DOM مش innerHTML لتجنب مشاكل الـ quotes
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+        var box = document.createElement('div');
+        box.style.cssText = 'background:#fff;border-radius:12px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden';
+
+        // Header
+        var hdr = document.createElement('div');
+        hdr.style.cssText = 'background:#1b5e20;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center';
+        hdr.innerHTML = '<b>&#9998; تعديل المستخدم: ' + username + (isSelf ? ' <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px">أنت</span>' : '') + '</b>';
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.cssText = 'background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:1rem';
+        hdr.appendChild(closeBtn);
+        box.appendChild(hdr);
+
+        // Body
+        var body = document.createElement('div');
+        body.style.cssText = 'padding:20px';
+
+        // Username field
+        var lbName = document.createElement('label');
+        lbName.style.cssText = 'display:block;margin-bottom:6px;font-weight:700;font-size:.85rem';
+        lbName.textContent = 'اسم المستخدم';
+        var inpName = document.createElement('input');
+        inpName.className = 'finp';
+        inpName.value = username;
+        inpName.style.cssText = 'width:100%;margin-bottom:12px;box-sizing:border-box';
+        body.appendChild(lbName);
+        body.appendChild(inpName);
+
+        // Password field
+        var lbPw = document.createElement('label');
+        lbPw.style.cssText = 'display:block;margin-bottom:6px;font-weight:700;font-size:.85rem';
+        lbPw.innerHTML = 'كلمة المرور الجديدة <span style="color:#888;font-weight:400">(اتركها فارغة للإبقاء على الحالية)</span>';
+        var inpPw = document.createElement('input');
+        inpPw.className = 'finp';
+        inpPw.type = 'password';
+        inpPw.placeholder = 'أدخل كلمة المرور الجديدة';
+        inpPw.style.cssText = 'width:100%;margin-bottom:6px;box-sizing:border-box';
+        body.appendChild(lbPw);
+        body.appendChild(inpPw);
+
+        // Show password toggle
+        var lbShow = document.createElement('label');
+        lbShow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:.83rem;margin-bottom:12px;cursor:pointer';
+        var chkShow = document.createElement('input');
+        chkShow.type = 'checkbox';
+        chkShow.onchange = function(){ inpPw.type = this.checked ? 'text' : 'password'; };
+        lbShow.appendChild(chkShow);
+        lbShow.appendChild(document.createTextNode('إظهار كلمة المرور'));
+        body.appendChild(lbShow);
+
+        // Role field
+        var lbRole = document.createElement('label');
+        lbRole.style.cssText = 'display:block;margin-bottom:6px;font-weight:700;font-size:.85rem';
+        lbRole.textContent = 'الدور';
+        var selRole = document.createElement('select');
+        selRole.className = 'fsel2';
+        selRole.style.cssText = 'width:100%;margin-bottom:16px';
+        if (isSelf) { selRole.disabled = true; selRole.title = 'لا يمكنك تغيير دورك الخاص'; }
+        ['admin','inspector','viewer'].forEach(function(r){
+          var opt = document.createElement('option');
+          opt.value = r; opt.textContent = ROLE_LABELS[r] || r;
+          if (r === user.role) opt.selected = true;
+          selRole.appendChild(opt);
+        });
+        body.appendChild(lbRole);
+        body.appendChild(selRole);
+
+        // Error message
+        var errEl = document.createElement('div');
+        errEl.style.cssText = 'color:#c62828;font-size:.82rem;min-height:18px;margin-bottom:10px';
+        body.appendChild(errEl);
+
+        // Buttons
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:8px';
+        var saveBtn = document.createElement('button');
+        saveBtn.className = 'btn b-dk';
+        saveBtn.style.flex = '1';
+        saveBtn.innerHTML = '&#128190; حفظ التعديلات';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn';
+        cancelBtn.style.cssText = 'background:#9e9e9e;color:#fff;flex:1';
+        cancelBtn.textContent = 'إلغاء';
+        btnRow.appendChild(saveBtn);
+        btnRow.appendChild(cancelBtn);
+        body.appendChild(btnRow);
+        box.appendChild(body);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        function closeModal() { document.body.removeChild(overlay); }
+        closeBtn.onclick = closeModal;
+        cancelBtn.onclick = closeModal;
+        overlay.onclick = function(ev){ if(ev.target === overlay) closeModal(); };
+
+        saveBtn.onclick = function() {
+          var newName = inpName.value.trim();
+          var newPw   = inpPw.value.trim();
+          var newRole = isSelf ? user.role : selRole.value;
+
+          if (!newName) { errEl.textContent = 'اسم المستخدم لا يمكن أن يكون فارغاً'; return; }
+          if (newName !== username && users.some(function(x){ return x.username === newName; })) {
+            errEl.textContent = 'اسم المستخدم "' + newName + '" موجود بالفعل'; return;
+          }
+
+          saveBtn.disabled = true;
+          saveBtn.textContent = '⏳ جارٍ الحفظ...';
+
+          var updated = users.map(function(x) {
+            if (x.username !== username) return x;
+            return { username: newName, password: newPw || x.password, role: newRole };
+          });
+
+          saveUsers(updated);
+
+          if (isSelf) {
+            localStorage.setItem(SESSION_KEY, JSON.stringify({ username: newName, role: newRole }));
+            renderUserBadge();
+          }
+
+          renderUsersTable();
+          closeModal();
+          toast('تم تحديث بيانات المستخدم بنجاح', 's');
+        };
+      });
     }
 
     // ── Startup ──
@@ -3883,6 +4241,7 @@
         }
         _origNav(name);
         if (name === 'users') renderUsersTable();
+        if (name === 'notifications') { ntFillSettings(); renderNotificationQueue(); }
         // إعادة تطبيق صلاحيات المفتش بعد التنقل
         if (user.role === 'inspector' || user.role === 'viewer') {
           setTimeout(function() {
@@ -3924,6 +4283,7 @@
     var vmId = null, wfStage = 1, wfEditId = null;
     var FU = { ov: [], td: [], tm: [], dn: 0 };
     var fualTab2 = 'ov';
+    var fuPageTab = 'follow';
     var sortDir = {};
     var recordsFilterState = null;
     var today = new Date(); today.setHours(0, 0, 0, 0);
@@ -4369,7 +4729,29 @@
         (r.follow21_status || r.follow21_action) &&
         (r.follow30_status || r.follow30_action));
     }
-    function getFUCases() { return DB.filter(function (r) { var sv = (document.getElementById('fu-sev') || {}).value || ''; return hasPendingFollowup(r) && (!sv || r.severity === sv); }); }
+    function hasDiagnosisValue(r) {
+      var d = String((r && r.diagnosis) || '').trim();
+      return !!d && d !== '-' && d !== '\u2014' && d !== '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f';
+    }
+    function hasTreatmentValue(r) {
+      return !!String((r && r.treatment_date) || '').trim();
+    }
+    function getUndiagnosedUntreatedCases() {
+      return DB.filter(function (r) { return !hasDiagnosisValue(r) && !hasTreatmentValue(r); });
+    }
+    function getDiagnosedUntreatedCases() {
+      return DB.filter(function (r) { return hasDiagnosisValue(r) && !hasTreatmentValue(r) && !isClosed(r); });
+    }
+    function getOpenFollowupCases() {
+      return getFUCases();
+    }
+    function getFollowupPageExportCases() {
+      return getFollowupPageFilteredCases();
+    }
+    function getFUCases() {
+      var sv = linahSelectValues('fu-sev');
+      return DB.filter(function (r) { return hasPendingFollowup(r) && linahMatchAny(sv, r.severity); });
+    }
     function getClosedCases() { return DB.filter(function (r) { return isClosed(r); }); }
 
     // ════════════════════════════════════════════════
@@ -4449,9 +4831,9 @@
 
     function renderFUList() {
       var q = ((document.getElementById('fual-srch') || {}).value || '').toLowerCase();
-      var sv = (document.getElementById('fual-sev') || {}).value || '';
+      var sv = linahSelectValues('fual-sev');
       var list = (FU[fualTab2] || []).filter(function (e) {
-        if (sv && e.r.severity !== sv) return false;
+        if (!linahMatchAny(sv, e.r.severity)) return false;
         if (q && !([e.r.code, e.r.inspector, e.r.diagnosis, e.r.sector].join(' ').toLowerCase().indexOf(q) >= 0)) return false;
         return true;
       });
@@ -4476,6 +4858,71 @@
           '<span class="al-days ' + dayCls + '">' + dayTxt + '</span>' +
           '</div>';
       }).join('');
+    }
+
+    function renderCareGapList(q, sv) {
+      var el = document.getElementById('fual-list');
+      if (!el) return;
+      function match(r) {
+        if (sv && r.severity !== sv) return false;
+        if (!q) return true;
+        return [r.code, r.inspector, r.diagnosis, r.pest_desc, r.sector, r.pen].join(' ').toLowerCase().indexOf(q) >= 0;
+      }
+      var undiag = getUndiagnosedUntreatedCases().filter(match);
+      var untreated = getDiagnosedUntreatedCases().filter(match);
+      if (!undiag.length && !untreated.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">&#9989;</div><div>\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u063a\u064a\u0631 \u0645\u0639\u0627\u0644\u062c\u0629</div></div>';
+        return;
+      }
+      function sec(title, count, rows, emptyText) {
+        return '<div style="margin-bottom:18px">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px">' +
+          '<div style="font-size:.92rem;font-weight:900;color:var(--dk)">' + title + '</div>' +
+          '<span class="bge b-gray">' + count + ' \u062d\u0627\u0644\u0629</span></div>' +
+          (rows.length ? rows.join('') : '<div class="empty" style="min-height:90px"><div class="empty-ico">&#9989;</div><div>' + emptyText + '</div></div>') +
+          '</div>';
+      }
+      var undiagRows = undiag.map(function (r) {
+        var days = r.inspection_date ? Math.max(0, Math.round((today - new Date(r.inspection_date)) / 864e5)) : 0;
+        return mkAlItem(r, 'al-ov', '&#9888;', '\u0645\u0633\u062c\u0644\u0629 \u0628\u062f\u0648\u0646 \u062a\u0634\u062e\u064a\u0635 \u0623\u0648 \u0639\u0644\u0627\u062c | \u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '\u2014') + ' | \u0642\u0637\u0627\u0639: ' + (r.sector || '\u2014'), days + ' \u064a\u0648\u0645', days > 2 ? 'd-ov' : 'd-tod');
+      });
+      var untreatedRows = untreated.map(function (r) {
+        var days = r.inspection_date ? Math.max(0, Math.round((today - new Date(r.inspection_date)) / 864e5)) : 0;
+        return mkAlItem(r, 'al-tod', '&#128138;', '\u062a\u0645 \u0627\u0644\u062a\u0634\u062e\u064a\u0635 \u0648\u0644\u0645 \u064a\u062a\u0645 \u062a\u0633\u062c\u064a\u0644 \u0639\u0644\u0627\u062c | \u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '\u2014') + ' | \u062f\u0631\u062c\u0629: ' + (r.severity || '\u2014'), days + ' \u064a\u0648\u0645', days > 2 ? 'd-ov' : 'd-tod');
+      });
+      el.innerHTML =
+        sec('\u062d\u0627\u0644\u0627\u062a \u0645\u0633\u062c\u0644\u0629 \u0644\u0645 \u064a\u062a\u0645 \u062a\u0634\u062e\u064a\u0635\u0647\u0627 \u0623\u0648 \u0639\u0644\u0627\u062c\u0647\u0627', undiag.length, undiagRows, '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u0628\u0644\u0627 \u062a\u0634\u062e\u064a\u0635') +
+        sec('\u062d\u0627\u0644\u0627\u062a \u062a\u0645 \u062a\u0634\u062e\u064a\u0635\u0647\u0627 \u0648\u0644\u0645 \u064a\u062a\u0645 \u0639\u0644\u0627\u062c\u0647\u0627', untreated.length, untreatedRows, '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u0645\u0634\u062e\u0635\u0629 \u0628\u0644\u0627 \u0639\u0644\u0627\u062c');
+    }
+
+    function renderCareGapListIn(el, q, sv) {
+      if (!el) return;
+      var cases = getFollowupPageFilteredCases();
+      var undiag = cases.filter(function (r) { return !hasDiagnosisValue(r); });
+      var untreated = cases.filter(function (r) { return hasDiagnosisValue(r); });
+      if (!undiag.length && !untreated.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">&#9989;</div><div>\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u063a\u064a\u0631 \u0645\u0639\u0627\u0644\u062c\u0629</div></div>';
+        return;
+      }
+      function sec(title, count, rows, emptyText) {
+        return '<div style="margin-bottom:18px">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px">' +
+          '<div style="font-size:.92rem;font-weight:900;color:var(--dk)">' + title + '</div>' +
+          '<span class="bge b-gray">' + count + ' \u062d\u0627\u0644\u0629</span></div>' +
+          (rows.length ? rows.join('') : '<div class="empty" style="min-height:90px"><div class="empty-ico">&#9989;</div><div>' + emptyText + '</div></div>') +
+          '</div>';
+      }
+      var undiagRows = undiag.map(function (r) {
+        var days = r.inspection_date ? Math.max(0, Math.round((today - new Date(r.inspection_date)) / 864e5)) : 0;
+        return mkAlItem(r, 'al-ov', '&#9888;', '\u0645\u0633\u062c\u0644\u0629 \u0628\u062f\u0648\u0646 \u062a\u0634\u062e\u064a\u0635 \u0623\u0648 \u0639\u0644\u0627\u062c | \u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '\u2014') + ' | \u0642\u0637\u0627\u0639: ' + (r.sector || '\u2014'), days + ' \u064a\u0648\u0645', days > 2 ? 'd-ov' : 'd-tod');
+      });
+      var untreatedRows = untreated.map(function (r) {
+        var days = r.inspection_date ? Math.max(0, Math.round((today - new Date(r.inspection_date)) / 864e5)) : 0;
+        return mkAlItem(r, 'al-tod', '&#128138;', '\u062a\u0645 \u0627\u0644\u062a\u0634\u062e\u064a\u0635 \u0648\u0644\u0645 \u064a\u062a\u0645 \u062a\u0633\u062c\u064a\u0644 \u0639\u0644\u0627\u062c | \u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '\u2014') + ' | \u062f\u0631\u062c\u0629: ' + (r.severity || '\u2014'), days + ' \u064a\u0648\u0645', days > 2 ? 'd-ov' : 'd-tod');
+      });
+      el.innerHTML =
+        sec('\u062d\u0627\u0644\u0627\u062a \u0645\u0633\u062c\u0644\u0629 \u0644\u0645 \u064a\u062a\u0645 \u062a\u0634\u062e\u064a\u0635\u0647\u0627 \u0623\u0648 \u0639\u0644\u0627\u062c\u0647\u0627', undiag.length, undiagRows, '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u0628\u0644\u0627 \u062a\u0634\u062e\u064a\u0635') +
+        sec('\u062d\u0627\u0644\u0627\u062a \u062a\u0645 \u062a\u0634\u062e\u064a\u0635\u0647\u0627 \u0648\u0644\u0645 \u064a\u062a\u0645 \u0639\u0644\u0627\u062c\u0647\u0627', untreated.length, untreatedRows, '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u0645\u0634\u062e\u0635\u0629 \u0628\u0644\u0627 \u0639\u0644\u0627\u062c');
     }
 
     function allStepBadges(r) {
@@ -4675,6 +5122,76 @@
       return String(a || '').localeCompare(String(b || ''), 'ar');
     }
 
+    function linahNormFilterText(v) {
+      return String(v == null ? '' : v).trim()
+        .replace(/[\u064B-\u065F\u0670]/g, '')
+        .replace(/[إأآا]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ؤ/g, 'و')
+        .replace(/ئ/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    }
+
+    function linahSelectValues(id) {
+      var el = document.getElementById(id);
+      if (!el) return [];
+      if (el.multiple) {
+        return Array.prototype.map.call(el.selectedOptions || [], function (o) { return o.value || ''; }).filter(Boolean);
+      }
+      return el.value ? [el.value] : [];
+    }
+
+    function linahMatchAny(vals, val, normalizer) {
+      if (!vals || !vals.length) return true;
+      normalizer = normalizer || function (x) { return x == null ? '' : String(x); };
+      var nv = normalizer(val);
+      return vals.some(function (v) { return normalizer(v) === nv; });
+    }
+
+    function linahEnableMultiFilters(ids) {
+      (ids || []).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || el.dataset.multiFilterReady === '1') return;
+        el.multiple = true;
+        el.size = Math.min(4, Math.max(2, el.options.length || 2));
+        Array.prototype.forEach.call(el.options || [], function (o) { if (!o.value) o.selected = false; });
+        el.dataset.multiFilterReady = '1';
+        el.title = '\u064a\u0645\u0643\u0646 \u0627\u062e\u062a\u064a\u0627\u0631 \u0623\u0643\u062b\u0631 \u0645\u0646 \u0639\u0646\u0635\u0631';
+        if (typeof el._ssSync === 'function') el._ssSync();
+        el.addEventListener('mousedown', function (ev) {
+          var opt = ev.target && ev.target.tagName === 'OPTION' ? ev.target : null;
+          if (!opt) return;
+          ev.preventDefault();
+          if (!opt.value) {
+            linahClearSelect(id);
+          } else {
+            opt.selected = !opt.selected;
+            Array.prototype.forEach.call(el.options || [], function (o) { if (!o.value) o.selected = false; });
+          }
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      });
+    }
+
+    function linahRestoreSelected(el, vals, normalizer) {
+      if (!el) return;
+      vals = vals || [];
+      normalizer = normalizer || function (x) { return x == null ? '' : String(x); };
+      var wanted = vals.map(normalizer);
+      Array.prototype.forEach.call(el.options || [], function (o) {
+        o.selected = o.value && wanted.indexOf(normalizer(o.value)) >= 0;
+      });
+    }
+
+    function linahClearSelect(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      Array.prototype.forEach.call(el.options || [], function (o) { o.selected = false; });
+      el.value = '';
+    }
+
     function cntBySector(arr) {
       return arr.reduce(function (o, r) {
         var v = linahNormalizeSector(r.sector) || '(فارغ)';
@@ -4690,16 +5207,16 @@
       var sev = document.getElementById('gf-severity');
       function fill(el, vals, prefix) {
         if (!el) return;
-        var cur = prefix ? linahNormalizeSector(el.value) : el.value;
+        var curVals = linahSelectValues(el.id);
         el.innerHTML = '<option value="">الكل</option>' + vals.map(function (v) { return '<option value="' + v.replace(/"/g, '&quot;') + '">' + (prefix || '') + v + '</option>'; }).join('');
-        if (vals.indexOf(cur) >= 0) el.value = cur;
+        linahRestoreSelected(el, curVals, prefix ? linahNormalizeSector : undefined);
       }
-      var curPest = pest ? pest.value : '';
-      var curDiag = diag ? diag.value : '';
+      var curPests = linahSelectValues('gf-pest');
+      var curDiags = linahSelectValues('gf-diag');
       // الآفات: تتفلتر حسب التشخيص المختار
       var pestVals = [];
       DB.forEach(function (r) {
-        if (curDiag && (r.diagnosis || '') !== curDiag) return;
+        if (curDiags.length && curDiags.indexOf(r.diagnosis || '') < 0) return;
         ['pest_desc', 'cause', 'pest_type'].forEach(function (k) { if (r[k] && String(r[k]).trim()) pestVals.push(r[k]); });
         if (r.diagnosis && String(r.diagnosis).trim()) pestVals.push(r.diagnosis);
       });
@@ -4707,70 +5224,45 @@
       // التشخيصات: تتفلتر حسب الآفة المختارة
       var diagVals = [];
       DB.forEach(function (r) {
-        if (curPest) {
+        if (curPests.length) {
           var pf = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function(v){ return (v||'').trim(); });
-          if (!pf.some(function(v){ return v === curPest || v.indexOf(curPest) >= 0 || curPest.indexOf(v) >= 0; })) return;
+          if (!curPests.some(function (curPest) { return pf.some(function(v){ return v === curPest || v.indexOf(curPest) >= 0 || curPest.indexOf(v) >= 0; }); })) return;
         }
         if (r.diagnosis && String(r.diagnosis).trim()) diagVals.push(r.diagnosis);
       });
       fill(diag, uniqueSorted(diagVals), '');
       fill(sector, uniqueSorted(DB.map(function (r) { return linahNormalizeSector(r.sector); })).sort(linahSectorSort), '\u0642\u0637\u0627\u0639 ');
       fill(sev, uniqueSorted(DB.map(function (r) { return r.severity; })), '');
+      linahEnableMultiFilters(['gf-pest', 'gf-diag', 'gf-sector', 'gf-severity']);
     }
 
     function onGfPestChange() {
-      var pest = (document.getElementById('gf-pest') || {}).value || '';
-      var diagEl = document.getElementById('gf-diag');
-      if (diagEl && pest) {
-        var relDiags = [];
-        DB.forEach(function(r) {
-          var pf = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function(v){ return (v||'').trim(); });
-          if (pf.some(function(v){ return v === pest || v.indexOf(pest) >= 0 || pest.indexOf(v) >= 0; })) {
-            if (r.diagnosis && String(r.diagnosis).trim()) relDiags.push(r.diagnosis);
-          }
-        });
-        var relSet = uniqueSorted(relDiags);
-        if (relSet.indexOf(diagEl.value) < 0) diagEl.value = '';
-        diagEl.innerHTML = '<option value="">الكل</option>' + relSet.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">' + v + '</option>'; }).join('');
-      } else if (diagEl && !pest) { fillGlobalFilters(); }
       updateDynamicDashboard();
     }
 
     function onGfDiagChange() {
-      var dg = (document.getElementById('gf-diag') || {}).value || '';
-      var pestEl = document.getElementById('gf-pest');
-      if (pestEl && dg) {
-        var relPests = [];
-        DB.forEach(function(r) {
-          if ((r.diagnosis || '') !== dg) return;
-          ['pest_desc', 'cause', 'pest_type'].forEach(function(k){ if (r[k] && String(r[k]).trim()) relPests.push(r[k]); });
-          if (r.diagnosis && String(r.diagnosis).trim()) relPests.push(r.diagnosis);
-        });
-        var relSet = uniqueSorted(relPests);
-        if (relSet.indexOf(pestEl.value) < 0) pestEl.value = '';
-        pestEl.innerHTML = '<option value="">الكل</option>' + relSet.map(function(v){ return '<option value="' + v.replace(/"/g,'&quot;') + '">' + v + '</option>'; }).join('');
-      } else if (pestEl && !dg) { fillGlobalFilters(); }
       updateDynamicDashboard();
     }
 
     function getDashboardFilteredData() {
       var from = (document.getElementById('gf-from') || {}).value || '';
       var to = (document.getElementById('gf-to') || {}).value || '';
-      var pest = (document.getElementById('gf-pest') || {}).value || '';
-      var dg = (document.getElementById('gf-diag') || {}).value || '';
-      var sector = (document.getElementById('gf-sector') || {}).value || '';
-      var severity = (document.getElementById('gf-severity') || {}).value || '';
+      var pests = linahSelectValues('gf-pest');
+      var dgs = linahSelectValues('gf-diag');
+      var sectors = linahSelectValues('gf-sector');
+      var severities = linahSelectValues('gf-severity');
       return DB.filter(function (r) {
         var d = parseDate((r.inspection_date || '').toString()) || r.inspection_date || '';
         var pestFields = [r.pest_desc, r.diagnosis, r.cause, r.pest_type].map(function (v) { return (v || '').toString().trim(); });
-        var pestOk = !pest || pestFields.some(function (v) { return v === pest || v.indexOf(pest) >= 0 || pest.indexOf(v) >= 0; });
-        var diagOk = !dg || (r.diagnosis || '') === dg;
-        return (!from || d >= from) && (!to || d <= to) && pestOk && diagOk && (!sector || linahNormalizeSector(r.sector) === linahNormalizeSector(sector)) && (!severity || r.severity === severity);
+        var pestOk = !pests.length || pests.some(function (pest) { return pestFields.some(function (v) { return v === pest || v.indexOf(pest) >= 0 || pest.indexOf(v) >= 0; }); });
+        var diagOk = linahMatchAny(dgs, r.diagnosis);
+        return (!from || d >= from) && (!to || d <= to) && pestOk && diagOk && linahMatchAny(sectors, r.sector, linahNormalizeSector) && linahMatchAny(severities, r.severity);
       });
     }
 
     function resetGlobalFilters() {
-      ['gf-from', 'gf-to', 'gf-pest', 'gf-diag', 'gf-sector', 'gf-severity'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+      ['gf-from', 'gf-to'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+      ['gf-pest', 'gf-diag', 'gf-sector', 'gf-severity'].forEach(linahClearSelect);
       updateDynamicDashboard();
     }
 
@@ -4966,8 +5458,8 @@
     function mkAlItem(r, cls, ico, meta, days, dayCls) {
       return '<div class="al-item ' + cls + '" onclick="viewRecord(' + r.id + ')">' +
         '<span class="al-ico">' + ico + '</span>' +
-        '<div class="al-body"><div class="al-code">' + r.code + '</div>' +
-        '<div class="al-title">' + r.diagnosis + '</div>' +
+        '<div class="al-body"><div class="al-code">' + (r.code || '\u2014') + '</div>' +
+        '<div class="al-title">' + (r.diagnosis || r.pest_desc || '\u2014') + '</div>' +
         '<div class="al-meta">' + meta + '</div></div>' +
         (days !== null ? '<span class="al-days ' + dayCls + '">' + days + '</span>' : '') +
         '</div>';
@@ -4983,15 +5475,65 @@
       }).join('');
     }
 
+    function getFollowupSearchQuery() {
+      return ((document.querySelector('#pg-followup input.finp') || {}).value || '').toLowerCase();
+    }
+
+    function fillFollowupPestFilter() {
+      var sel = document.getElementById('fu-pdesc'); if (!sel) return;
+      var curVals = linahSelectValues('fu-pdesc').map(linahNormFilterText);
+      var cases = getUndiagnosedUntreatedCases().concat(getDiagnosedUntreatedCases());
+      var seen = {};
+      cases.forEach(function (r) { var v = (r.pest_desc || '').trim(); if (v) seen[v] = true; });
+      var items = Object.keys(seen).sort();
+      sel.innerHTML = '<option value="">\u0643\u0644 \u0623\u0648\u0635\u0627\u0641 \u0627\u0644\u0622\u0641\u0629</option>' +
+        items.map(function (v) { return '<option value="' + v.replace(/"/g, '&quot;') + '">' + v + '</option>'; }).join('');
+      Array.prototype.forEach.call(sel.options, function (o) {
+        if (o.value && curVals.indexOf(linahNormFilterText(o.value)) >= 0) o.selected = true;
+      });
+      linahEnableMultiFilters(['fu-sev', 'fu-pdesc']);
+    }
+
+    function getFollowupPageFilteredCases() {
+      var q = getFollowupSearchQuery();
+      var sevVals = linahSelectValues('fu-sev');
+      var pdescVals = linahSelectValues('fu-pdesc');
+      var base = fuPageTab === 'care' ? getUndiagnosedUntreatedCases().concat(getDiagnosedUntreatedCases()) : getFUCases();
+      return base.filter(function (r) {
+        if (!linahMatchAny(sevVals, r.severity)) return false;
+        if (fuPageTab === 'care' && !linahMatchAny(pdescVals, r.pest_desc, linahNormFilterText)) return false;
+        if (q && [r.code, r.inspector, r.diagnosis, r.pest_desc, r.sector, r.pen, r.severity].join(' ').toLowerCase().indexOf(q) < 0) return false;
+        return true;
+      });
+    }
+
     function renderFUPage() {
       var el = document.getElementById('fu-al-list'); if (!el) return;
-      var cases = getFUCases();
+      var careTotal = getUndiagnosedUntreatedCases().length + getDiagnosedUntreatedCases().length;
+      setT('fu-page-cnt-follow', getFUCases().length ? '(' + getFUCases().length + ')' : '');
+      setT('fu-page-cnt-care', careTotal ? '(' + careTotal + ')' : '');
+      ['follow', 'care'].forEach(function (x) {
+        var b = document.getElementById('fu-page-t-' + x);
+        if (b) b.classList.toggle('on', x === fuPageTab);
+      });
+      var pdescSel = document.getElementById('fu-pdesc');
+      if (pdescSel) pdescSel.style.display = fuPageTab === 'care' ? '' : 'none';
+      if (fuPageTab === 'care') { fillFollowupPestFilter(); renderCareGapListIn(el); return; }
+      var cases = getFollowupPageFilteredCases();
       if (!cases.length) { el.innerHTML = '<div class="empty"><div class="empty-ico">&#128197;</div><div>\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0627\u0644\u0627\u062a \u0642\u064a\u062f \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629</div></div>'; return; }
-      el.innerHTML = cases.map(function (r) {
+      var followRows = cases.map(function (r) {
         var cls = { '\u062d\u0631\u062c\u0629': 'al-crit', '\u0645\u062a\u0648\u0633\u0637\u0629': 'al-tod', '\u0645\u0646\u062e\u0641\u0636\u0629': 'al-item' }[r.severity] || '';
         var ico = { '\u062d\u0631\u062c\u0629': '&#128308;', '\u0645\u062a\u0648\u0633\u0637\u0629': '&#128993;', '\u0645\u0646\u062e\u0641\u0636\u0629': '&#128309;' }[r.severity] || '&#9898;';
         return mkAlItem(r, cls, ico, '\u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '\u2014') + ' | \u062f\u0631\u062c\u0629: ' + (r.severity || '\u2014'), null, '');
-      }).join('');
+      });
+      el.innerHTML = followRows.join('');
+    }
+
+    function fuPageSwitch(t) {
+      fuPageTab = t;
+      var srch = document.querySelector('#pg-followup input.finp');
+      if (srch) srch.value = '';
+      renderFUPage();
     }
 
     function renderClosedPage() {
@@ -5016,13 +5558,17 @@
       var vals = {};
       ['srch', 'f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'f-sort'].forEach(function (id) {
         var el = document.getElementById(id);
-        vals[id] = el ? el.value || '' : '';
+        vals[id] = el && el.multiple ? linahSelectValues(id) : (el ? el.value || '' : '');
       });
       return vals;
     }
 
     function setSelectValueKeepOption(sel, val) {
       if (!sel) return;
+      if (Array.isArray(val)) {
+        linahRestoreSelected(sel, val, sel.id === 'f-sc' ? linahNormalizeSector : undefined);
+        return;
+      }
       if (val && Array.prototype.every.call(sel.options, function (o) { return o.value !== val && o.text !== val; })) {
         var opt = document.createElement('option');
         opt.value = val;
@@ -5074,22 +5620,22 @@
 
     function applyF(keepPage) {
       var q = ((document.getElementById('srch') || {}).value || '').toLowerCase();
-      var mo = (document.getElementById('f-month') || {}).value || '';
-      var sv = (document.getElementById('f-sv') || {}).value || '';
-      var dg = (document.getElementById('f-dg') || {}).value || '';
-      var sc = ((document.getElementById('f-sc') || {}).value || '').replace('\u0642\u0637\u0627\u0639 ', '');
-      var ins = (document.getElementById('f-insp') || {}).value || '';
-      var st = (document.getElementById('f-stage') || {}).value || '';
+      var mo = linahSelectValues('f-month');
+      var sv = linahSelectValues('f-sv');
+      var dg = linahSelectValues('f-dg');
+      var sc = linahSelectValues('f-sc').map(function (v) { return String(v || '').replace('\u0642\u0637\u0627\u0639 ', ''); });
+      var ins = linahSelectValues('f-insp');
+      var st = linahSelectValues('f-stage').map(function (v) { return parseInt(v, 10); });
       var srt = (document.getElementById('f-sort') || {}).value || 'date_desc';
 
       filteredD = DB.filter(function (r) {
         if (q) { var hay = [r.code, r.cycle, r.inspection_date, r.sector, r.pen, r.inspector, r.engineer, r.sup_general, r.sup_main, r.sup_asst, r.registrar, r.pest_desc, r.pest_type, r.diagnosis, r.cause, r.severity, r.recommendation, r.pesticide1, r.pesticide2, r.pesticide3, r.treatment_by, r.notes, r.follow7_action, r.follow14_action, r.follow21_action, r.follow30_action].join(' ').toLowerCase(); if (hay.indexOf(q) < 0) return false; }
-        if (mo && !(r.inspection_date || '').startsWith(mo)) return false;
-        if (sv && r.severity !== sv) return false;
-        if (dg && r.diagnosis !== dg) return false;
-        if (sc && linahNormalizeSector(r.sector) !== linahNormalizeSector(sc)) return false;
-        if (ins && r.inspector !== ins) return false;
-        if (st && getStage(r) !== parseInt(st)) return false;
+        if (mo.length && !mo.some(function (m) { return (r.inspection_date || '').startsWith(m); })) return false;
+        if (!linahMatchAny(sv, r.severity)) return false;
+        if (!linahMatchAny(dg, r.diagnosis)) return false;
+        if (!linahMatchAny(sc, r.sector, linahNormalizeSector)) return false;
+        if (!linahMatchAny(ins, r.inspector)) return false;
+        if (st.length && st.indexOf(getStage(r)) < 0) return false;
         return true;
       });
 
@@ -5121,7 +5667,8 @@
     }
 
     function clearF() {
-      ['srch', 'f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
+      var sr = document.getElementById('srch'); if (sr) sr.value = '';
+      ['f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage'].forEach(linahClearSelect);
       var s = document.getElementById('f-sort'); if (s) s.value = 'date_desc';
       recordsFilterState = null;
       refreshSearchableSelects();
@@ -5430,6 +5977,7 @@
       document.getElementById('wf-id').value = r.id;
       wfEditId = r.id;
       saveDB(); computeFU();
+      try { ntAfterRecordSave(r, wfStage); } catch (ntErr) { console.warn('Notification hook failed:', ntErr); }
       var keepRecordsState = recordsFilterState || captureRecordsState();
       initFilters();
       restoreRecordsState(keepRecordsState);
@@ -5546,7 +6094,8 @@
         var p = perf[nm]; p.total++;
         if (r.severity === '\u062d\u0631\u062c\u0629') p.crit++;
         if ((r.diagnosis || '').indexOf('\u0644\u0627 \u062a\u0648\u062c\u062f') >= 0) p.dev++;
-        if (r.sector) p.sects[r.sector] = 1;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) p.sects[sec] = 1;
         if (r.inspection_date && r.treatment_date) { try { var d = Math.round((new Date(r.treatment_date) - new Date(r.inspection_date)) / 864e5); if (d >= 0 && d <= 30) p.rts.push(d); } catch (e) { } }
       });
       var sorted = Object.keys(perf).map(function (k) { return [k, perf[k]]; }).sort(function (a, b) { return b[1].total - a[1].total; });
@@ -5576,9 +6125,17 @@
     // RESPONSE TIME
     // ════════════════════════════════════════════════
     function buildResp() {
-      var rts = getRTs(DB); if (!rts.length) return;
+      var rts = getRTs(DB);
+      if (!rts.length) {
+        setT('rt-av', 0); setT('rt-mx', 0); setT('rt-mn', 0);
+        var emptySlow = document.getElementById('slow-list');
+        if (emptySlow) emptySlow.innerHTML = '';
+        mkChart('ch-rt', 'bar', ['0\u064a', '1\u064a', '2\u064a', '3-5\u064a', '6-10\u064a', '11+\u064a'], [0,0,0,0,0,0], Array(6).fill('rgba(45,122,64,.7)'), false);
+        return;
+      }
       var avg = (rts.reduce(function (a, b) { return a + b; }, 0) / rts.length).toFixed(1);
-      setT('rt-av', avg); setT('rt-mx', Math.max.apply(null, rts)); setT('rt-mn', Math.min.apply(null, rts));
+      var positiveRts = rts.filter(function (d) { return d > 0; });
+      setT('rt-av', avg); setT('rt-mx', Math.max.apply(null, rts)); setT('rt-mn', positiveRts.length ? Math.min.apply(null, positiveRts) : 0);
       var bk = { '0\u064a': 0, '1\u064a': 0, '2\u064a': 0, '3-5\u064a': 0, '6-10\u064a': 0, '11+\u064a': 0 };
       rts.forEach(function (d) { if (d === 0) bk['0\u064a']++; else if (d === 1) bk['1\u064a']++; else if (d === 2) bk['2\u064a']++; else if (d <= 5) bk['3-5\u064a']++; else if (d <= 10) bk['6-10\u064a']++; else bk['11+\u064a']++; });
       mkChart('ch-rt', 'bar', Object.keys(bk), Object.values(bk), Array(6).fill('rgba(45,122,64,.7)'), false);
@@ -5600,30 +6157,31 @@
     // REPORTS
     // ════════════════════════════════════════════════
     function initReportFilters() {
-      var sectSet = Object.keys(cntBy(DB, 'sector')).sort(function (a, b) { return +a - +b; });
+      var sectSet = Object.keys(cntBySector(DB)).sort(linahSectorSort);
       var el = document.getElementById('rp-sc');
-      if (el) { el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; sectSet.forEach(function (s) { el.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; }); }
+      if (el) { var scCur = linahSelectValues('rp-sc'); el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; sectSet.forEach(function (s) { el.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; }); linahRestoreSelected(el, scCur, linahNormalizeSector); }
       var dg = document.getElementById('rp-dg');
-      if (dg) { var cur = dg.value; dg.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; Object.keys(cntBy(DB, 'diagnosis')).sort().forEach(function (d) { if (d && d !== '(\u0641\u0627\u0631\u063a)') dg.innerHTML += '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>'; }); if (cur) dg.value = cur; }
+      if (dg) { var cur = linahSelectValues('rp-dg'); dg.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; Object.keys(cntBy(DB, 'diagnosis')).sort().forEach(function (d) { if (d && d !== '(\u0641\u0627\u0631\u063a)') dg.innerHTML += '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>'; }); linahRestoreSelected(dg, cur); }
+      linahEnableMultiFilters(['rp-sc', 'rp-dg', 'rp-sv']);
     }
 
     function buildReport() {
-      var sc = (document.getElementById('rp-sc') || {}).value || '';
-      var dg = (document.getElementById('rp-dg') || {}).value || '';
-      var sv = (document.getElementById('rp-sv') || {}).value || '';
+      var sc = linahSelectValues('rp-sc');
+      var dg = linahSelectValues('rp-dg');
+      var sv = linahSelectValues('rp-sv');
       var fr = (document.getElementById('rp-fr') || {}).value || '';
       var to = (document.getElementById('rp-to') || {}).value || '';
       repD = DB.filter(function (r) {
-        if (sc && linahNormalizeSector(r.sector) !== linahNormalizeSector(sc)) return false;
-        if (dg && r.diagnosis !== dg) return false;
-        if (sv && r.severity !== sv) return false;
+        if (!linahMatchAny(sc, r.sector, linahNormalizeSector)) return false;
+        if (!linahMatchAny(dg, r.diagnosis)) return false;
+        if (!linahMatchAny(sv, r.severity)) return false;
         if (fr && r.inspection_date && r.inspection_date < fr) return false;
         if (to && r.inspection_date && r.inspection_date > to) return false;
         return true;
       });
       var sev = cntBy(repD, 'severity'), diag = cntBy(repD, 'diagnosis');
       var infectedRepD = repD.filter(isInfectionRecord);
-      var palmDenom = sc ? getPalmCount(sc) : getPalmTotal();
+      var palmDenom = sc.length ? sc.reduce(function (sum, s) { return sum + (getPalmCount(s) || 0); }, 0) : getPalmTotal();
       var incRate = palmDenom ? (infectedRepD.length / palmDenom * 100) : 0;
       var sl = ['\u062d\u0631\u062c\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0644\u0627 \u064a\u0648\u062c\u062f'];
       mkChart('rp-c1', 'pie', sl, sl.map(function (l) { return sev[l] || 0; }), ['rgba(198,40,40,.85)', 'rgba(230,81,0,.85)', 'rgba(21,101,192,.85)', 'rgba(120,130,120,.7)'], false);
@@ -5916,6 +6474,709 @@
     }
 
     // ════════════════════════════════════════════════
+    // Notification engine: isolated from saveDB/Firebase so alerts never block core saving.
+    var NT_SETTINGS_KEY = 'linah_notification_settings_v1';
+    var NT_QUEUE_KEY = 'linah_notification_queue_v1';
+    var NT_SENT_KEY = 'linah_notification_sent_v1';
+    var NT_FB_URL = 'https://linah-iis-default-rtdb.firebaseio.com/linah_farms/notification_settings.json';
+
+    function ntEl(id) { return document.getElementById(id); }
+    function ntVal(id) { var e = ntEl(id); return e ? (e.value || '').trim() : ''; }
+    function ntChecked(id) { var e = ntEl(id); return !!(e && e.checked); }
+    function ntSetChecked(id, v) { var e = ntEl(id); if (e) e.checked = !!v; }
+    function ntSetVal(id, v) { var e = ntEl(id); if (e) e.value = v || ''; }
+    function ntLines(v) { return String(v || '').split(/\r?\n|,/).map(function (x) { return x.trim(); }).filter(Boolean); }
+    function ntUniq(arr) {
+      var seen = {};
+      return (arr || []).filter(function (x) { var k = String(x || '').trim(); if (!k || seen[k]) return false; seen[k] = true; return true; });
+    }
+    function ntHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function ntDefaults() {
+      return {
+        enabled: false,
+        triggers: { critical: true, curative: true, untreated: true },
+        whatsapp: { enabled: true, mode: 'manual', url: '', token: '', field: [], supervisors: [] },
+        email: { enabled: false, useExisting: true, serviceId: '', templateId: '', publicKey: '', admins: [] }
+      };
+    }
+    function ntMergeSettings(s) {
+      var d = ntDefaults(); s = s || {};
+      d.enabled = !!s.enabled;
+      d.triggers.critical = s.triggers && s.triggers.critical !== undefined ? !!s.triggers.critical : d.triggers.critical;
+      d.triggers.curative = s.triggers && s.triggers.curative !== undefined ? !!s.triggers.curative : d.triggers.curative;
+      d.triggers.untreated = s.triggers && s.triggers.untreated !== undefined ? !!s.triggers.untreated : d.triggers.untreated;
+      if (s.whatsapp) {
+        d.whatsapp.enabled = !!s.whatsapp.enabled;
+        d.whatsapp.mode = s.whatsapp.mode || d.whatsapp.mode;
+        d.whatsapp.url = s.whatsapp.url || '';
+        d.whatsapp.token = s.whatsapp.token || '';
+        d.whatsapp.field = ntUniq(s.whatsapp.field || []);
+        d.whatsapp.supervisors = ntUniq(s.whatsapp.supervisors || []);
+      }
+      if (s.email) {
+        d.email.enabled = !!s.email.enabled;
+        d.email.useExisting = s.email.useExisting !== undefined ? !!s.email.useExisting : true;
+        d.email.serviceId = s.email.serviceId || '';
+        d.email.templateId = s.email.templateId || '';
+        d.email.publicKey = s.email.publicKey || '';
+        d.email.admins = ntUniq(s.email.admins || []);
+      }
+      return d;
+    }
+    function ntLoadSettings() {
+      try { return ntMergeSettings(JSON.parse(localStorage.getItem(NT_SETTINGS_KEY) || 'null')); }
+      catch (e) { return ntDefaults(); }
+    }
+    function ntSaveLocalSettings(s) {
+      try { localStorage.setItem(NT_SETTINGS_KEY, JSON.stringify(ntMergeSettings(s))); } catch (e) {}
+    }
+    function ntGetQueue() {
+      try { var q = JSON.parse(localStorage.getItem(NT_QUEUE_KEY) || '[]'); return Array.isArray(q) ? q : []; }
+      catch (e) { return []; }
+    }
+    function ntSaveQueue(q) {
+      try { localStorage.setItem(NT_QUEUE_KEY, JSON.stringify((q || []).slice(0, 150))); } catch (e) {}
+    }
+    function ntGetSent() {
+      try { return JSON.parse(localStorage.getItem(NT_SENT_KEY) || '{}') || {}; }
+      catch (e) { return {}; }
+    }
+    function ntSaveSent(sent) {
+      try { localStorage.setItem(NT_SENT_KEY, JSON.stringify(sent || {})); } catch (e) {}
+    }
+    function ntCollectSettingsFromForm() {
+      return ntMergeSettings({
+        enabled: ntChecked('nt-enabled'),
+        triggers: {
+          critical: ntChecked('nt-trig-critical'),
+          curative: ntChecked('nt-trig-curative'),
+          untreated: ntChecked('nt-trig-untreated')
+        },
+        whatsapp: {
+          enabled: ntChecked('nt-wa-enabled'),
+          mode: ntVal('nt-wa-mode') || 'manual',
+          url: ntVal('nt-wa-url'),
+          token: ntVal('nt-wa-token'),
+          field: ntLines(ntVal('nt-wa-field')),
+          supervisors: ntLines(ntVal('nt-wa-sup'))
+        },
+        email: {
+          enabled: ntChecked('nt-email-enabled'),
+          useExisting: ntChecked('nt-email-existing'),
+          serviceId: ntVal('nt-email-service'),
+          templateId: ntVal('nt-email-template'),
+          publicKey: ntVal('nt-email-public'),
+          admins: ntLines(ntVal('nt-email-admins'))
+        }
+      });
+    }
+    function ntFillSettings() {
+      var s = ntLoadSettings();
+      ntSetChecked('nt-enabled', s.enabled);
+      ntSetChecked('nt-trig-critical', s.triggers.critical);
+      ntSetChecked('nt-trig-curative', s.triggers.curative);
+      ntSetChecked('nt-trig-untreated', s.triggers.untreated);
+      ntSetChecked('nt-wa-enabled', s.whatsapp.enabled);
+      ntSetVal('nt-wa-mode', s.whatsapp.mode);
+      ntSetVal('nt-wa-url', s.whatsapp.url);
+      ntSetVal('nt-wa-token', s.whatsapp.token);
+      ntSetVal('nt-wa-field', s.whatsapp.field.join('\n'));
+      ntSetVal('nt-wa-sup', s.whatsapp.supervisors.join('\n'));
+      ntSetChecked('nt-email-enabled', s.email.enabled);
+      ntSetChecked('nt-email-existing', s.email.useExisting);
+      ntSetVal('nt-email-service', s.email.serviceId);
+      ntSetVal('nt-email-template', s.email.templateId);
+      ntSetVal('nt-email-public', s.email.publicKey);
+      ntSetVal('nt-email-admins', s.email.admins.join('\n'));
+    }
+    function saveNotificationSettings() {
+      var s = ntCollectSettingsFromForm();
+      ntSaveLocalSettings(s);
+      if (typeof fbPut === 'function') {
+        fbPut(NT_FB_URL, s).catch(function (e) { console.warn('Notification settings Firebase save failed:', e); });
+      }
+      toast('\u062a\u0645 \u062d\u0641\u0638 \u0625\u0639\u062f\u0627\u062f\u0627\u062a \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a', 's');
+      renderNotificationQueue();
+    }
+    function ntRecordLabel(r) {
+      return '\u0643\u0648\u062f ' + (r.code || '-') + ' | \u0642\u0637\u0627\u0639 ' + (r.sector || '-') + ' | ' + (r.diagnosis || '\u0628\u0644\u0627 \u062a\u0634\u062e\u064a\u0635');
+    }
+    function ntMessage(type, r) {
+      var title = type === 'critical' ? '\u062a\u0646\u0628\u064a\u0647 \u0625\u0635\u0627\u0628\u0629 \u062d\u0631\u062c\u0629' : type === 'curative' ? '\u062a\u0646\u0628\u064a\u0647 \u0625\u062c\u0631\u0627\u0621 \u0639\u0644\u0627\u062c\u064a' : '\u062a\u0646\u0628\u064a\u0647 \u062d\u0627\u0644\u0629 \u0628\u062f\u0648\u0646 \u0645\u0639\u0627\u0645\u0644\u0629';
+      return title + '\n' +
+        ntRecordLabel(r) + '\n' +
+        '\u0627\u0644\u062f\u0631\u062c\u0629: ' + (r.severity || '-') + '\n' +
+        '\u0627\u0644\u0641\u0627\u062d\u0635: ' + (r.inspector || '-') + '\n' +
+        '\u0627\u0644\u062a\u0648\u0635\u064a\u0629: ' + (r.recommendation || '-') + '\n' +
+        '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0641\u062d\u0635: ' + (r.inspection_date || '-');
+    }
+    function ntBuildEvents(r) {
+      var s = ntLoadSettings();
+      if (!s.enabled || !r) return [];
+      var events = [];
+      var sev = String(r.severity || '').trim();
+      var rec = String(r.recommendation || '');
+      if (hasTreatmentValue(r) || isClosed(r)) return [];
+      if (s.triggers.untreated) events.push('untreated');
+      else if (s.triggers.critical && sev === '\u062d\u0631\u062c\u0629') events.push('untreated');
+      else if (s.triggers.curative && /(\u0639\u0644\u0627\u062c|\u0645\u0639\u0627\u0645\u0644|\u0645\u0628\u064a\u062f)/.test(rec)) events.push('untreated');
+      return events;
+    }
+    function ntEventKey(type, r) {
+      return type + ':' + (r.id || r.code || '') + ':' + (r.inspection_date || '') + ':' + (r.treatment_date || '') + ':' + (r.severity || '') + ':' + (r.recommendation || '') + ':' + (r.diagnosis || '');
+    }
+    function ntRecipientsFor(type, settings) {
+      var wa = settings.whatsapp || {};
+      var list = (type === 'critical' || type === 'untreated') ? (wa.supervisors || []).concat(wa.field || []) : (wa.field || []);
+      return ntUniq(list);
+    }
+    function ntEmailRecipients(settings) {
+      var e = settings.email || {};
+      return ntUniq(e.admins || []);
+    }
+    function ntAddQueueItem(type, r, settings) {
+      var q = ntGetQueue();
+      var item = {
+        id: Date.now() + '_' + Math.random().toString(36).slice(2),
+        type: type,
+        recordId: r.id,
+        code: r.code || '',
+        sector: r.sector || '',
+        createdAt: new Date().toISOString(),
+        recipients: ntRecipientsFor(type, settings),
+        message: ntMessage(type, r),
+        status: 'pending'
+      };
+      q.unshift(item);
+      ntSaveQueue(q);
+      return item;
+    }
+    function ntAddAggregateQueueItem(type, title, message, settings, meta) {
+      var q = ntGetQueue();
+      var item = {
+        id: Date.now() + '_' + Math.random().toString(36).slice(2),
+        type: type,
+        recordId: '',
+        code: title,
+        sector: '',
+        createdAt: new Date().toISOString(),
+        recipients: ntRecipientsFor(type, settings),
+        message: message,
+        status: 'pending',
+        aggregate: true,
+        meta: meta || {}
+      };
+      q.unshift(item);
+      ntSaveQueue(q);
+      return item;
+    }
+    function ntSendWhatsAppApi(item, settings) {
+      var wa = settings.whatsapp || {};
+      if (!wa.enabled || wa.mode !== 'api' || !wa.url) return;
+      (item.recipients || []).forEach(function (to) {
+        fetch(wa.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': wa.token ? ('Bearer ' + wa.token) : '' },
+          body: JSON.stringify({ to: to, message: item.message, record_id: item.recordId, type: item.type })
+        }).catch(function (e) { console.warn('WhatsApp API notification failed:', e); });
+      });
+    }
+    function ntResolveEmailSettings(settings, cb) {
+      var e = settings.email || {};
+      if (!e.enabled) return cb(null);
+      if (!e.useExisting) return cb({ serviceId: e.serviceId, templateId: e.templateId, publicKey: e.publicKey });
+      if (typeof ejsGetSettings === 'function') return ejsGetSettings(function (s) { cb(s); });
+      try { cb(JSON.parse(localStorage.getItem('linah_ejs_settings') || 'null')); }
+      catch (err) { cb(null); }
+    }
+    function ntSendEmail(item, settings) {
+      var recipients = ntEmailRecipients(settings);
+      if (!recipients.length || !settings.email.enabled) return;
+      ntResolveEmailSettings(settings, function (ejs) {
+        if (!ejs || !ejs.serviceId || !ejs.templateId || !ejs.publicKey || typeof emailjs === 'undefined') return;
+        try { emailjs.init({ publicKey: ejs.publicKey }); } catch (err) {}
+        recipients.forEach(function (email) {
+          emailjs.send(ejs.serviceId, ejs.templateId, {
+            to_email: email,
+            to_name: email.split('@')[0],
+            report_name: '\u062a\u0646\u0628\u064a\u0647 Linah Farms',
+            send_date: new Date().toISOString().slice(0, 10),
+            summary_text: item.message,
+            details_html: '<div style="direction:rtl;font-family:Tahoma,Arial,sans-serif;line-height:1.8;white-space:pre-line">' + ntHtml(item.message) + '</div>',
+            message: item.message,
+            total_records: '1',
+            report_type: item.type
+          }).catch(function (err) { console.warn('Email notification failed:', err); });
+        });
+      });
+    }
+    function ntDateISO(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function ntAddDays(d, days) {
+      var x = new Date(d.getTime());
+      x.setDate(x.getDate() + days);
+      return x;
+    }
+    function ntParseISO(s) {
+      if (!s) return null;
+      var d = new Date(String(s).slice(0, 10) + 'T00:00:00');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function ntStageLabel(r) {
+      if (!hasDiagnosisValue(r)) return '\u062a\u0633\u062c\u064a\u0644';
+      return '\u062a\u0634\u062e\u064a\u0635';
+    }
+    function ntNeedsIntervention(r) {
+      var sev = String(r.severity || '').trim();
+      var rec = String(r.recommendation || '');
+      return sev === '\u062d\u0631\u062c\u0629' || /(\u0639\u0644\u0627\u062c|\u0645\u0639\u0627\u0645\u0644|\u0645\u0628\u064a\u062f)/.test(rec);
+    }
+    function ntUntreatedRows(rows) {
+      return (rows || []).filter(function (r) {
+        return r && !hasTreatmentValue(r) && !isClosed(r);
+      }).sort(function (a, b) {
+        return String(a.inspection_date || '').localeCompare(String(b.inspection_date || '')) ||
+          String(a.sector || '').localeCompare(String(b.sector || ''), 'ar');
+      });
+    }
+    function ntFollowupDueRows(rows, targetISO) {
+      var out = [];
+      (rows || []).forEach(function (r) {
+        if (!r || !r.treatment_date || isClosed(r)) return;
+        var td = ntParseISO(r.treatment_date);
+        if (!td) return;
+        [
+          { d: 7, st: r.follow7_status, ac: r.follow7_action },
+          { d: 14, st: r.follow14_status, ac: r.follow14_action },
+          { d: 21, st: r.follow21_status, ac: r.follow21_action },
+          { d: 30, st: r.follow30_status, ac: r.follow30_action }
+        ].forEach(function (step) {
+          if (step.st || step.ac) return;
+          var dueISO = ntDateISO(ntAddDays(td, step.d));
+          if (dueISO === targetISO) {
+            out.push({ r: r, days: step.d, due: dueISO });
+          }
+        });
+      });
+      return out.sort(function (a, b) {
+        return String(a.r.sector || '').localeCompare(String(b.r.sector || ''), 'ar') ||
+          String(a.r.code || '').localeCompare(String(b.r.code || ''), 'ar');
+      });
+    }
+    function ntCleanText(x) {
+      return String(x || '-').replace(/\s+/g, ' ').trim();
+    }
+    function ntLimitRows(list, mapper) {
+      return list.map(mapper);
+    }
+    function ntUntreatedSummaryMessage(list) {
+      var intervention = list.filter(ntNeedsIntervention).length;
+      var lines = [
+        '\u062a\u0646\u0628\u064a\u0647 \u0645\u062c\u0645\u0639: \u062d\u0627\u0644\u0627\u062a \u0628\u062f\u0648\u0646 \u0639\u0644\u0627\u062c / \u062a\u0633\u062a\u062f\u0639\u064a \u0627\u0644\u062a\u062f\u062e\u0644',
+        '\u0627\u0644\u062a\u0627\u0631\u064a\u062e: ' + ntDateISO(new Date()),
+        '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a: ' + list.length,
+        '\u062a\u0633\u062a\u062f\u0639\u064a \u0627\u0644\u062a\u062f\u062e\u0644: ' + intervention,
+        ''
+      ];
+      lines = lines.concat(ntLimitRows(list, function (r, i) {
+        return (i + 1) + '. \u0627\u0644\u0643\u0648\u062f: ' + ntCleanText(r.code) +
+          '\n   \u0627\u0644\u0645\u0648\u0642\u0639: \u0642\u0637\u0627\u0639 ' + ntCleanText(r.sector) + ' - \u0645\u062d\u0628\u0633 ' + ntCleanText(r.pen) +
+          '\n   \u0627\u0644\u062d\u0627\u0644\u0629: ' + ntCleanText(ntStageLabel(r)) + ' - ' + ntCleanText(r.severity || '-') +
+          '\n   \u0627\u0644\u0641\u0627\u062d\u0635: ' + ntCleanText(r.inspector || '-');
+      }));
+      return lines.join('\n');
+    }
+    function ntFollowupSummaryMessage(list, targetISO) {
+      var lines = [
+        '\u062a\u0646\u0628\u064a\u0647 \u0645\u062c\u0645\u0639: \u062d\u0627\u0644\u0627\u062a \u062a\u062d\u062a\u0627\u062c \u0645\u062a\u0627\u0628\u0639\u0629 \u063a\u062f\u0627\u064b',
+        '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629: ' + targetISO,
+        '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a: ' + list.length,
+        ''
+      ];
+      lines = lines.concat(ntLimitRows(list, function (x, i) {
+        return (i + 1) + '. \u0627\u0644\u0643\u0648\u062f: ' + ntCleanText(x.r.code) +
+          '\n   \u0627\u0644\u0645\u0648\u0642\u0639: \u0642\u0637\u0627\u0639 ' + ntCleanText(x.r.sector) + ' - \u0645\u062d\u0628\u0633 ' + ntCleanText(x.r.pen) +
+          '\n   \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629: ' + ntCleanText(x.days + ' \u064a\u0648\u0645') + ' - \u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0639\u0644\u0627\u062c: ' + ntCleanText(x.r.treatment_date || '-') +
+          '\n   \u0627\u0644\u0641\u0627\u062d\u0635: ' + ntCleanText(x.r.inspector || '-');
+      }));
+      return lines.join('\n');
+    }
+    function ntAggregateKey(type, list, extra) {
+      var ids = (list || []).map(function (x) { return x.r ? x.r.id + ':' + x.days : x.id; }).join(',');
+      return 'aggregate:' + type + ':' + (extra || '') + ':' + ids;
+    }
+    function ntQueueAggregate(type, title, list, message, settings, extra) {
+      if (!list.length) return 0;
+      var sent = ntGetSent();
+      var key = ntAggregateKey(type, list, extra);
+      if (sent[key]) return 0;
+      sent[key] = new Date().toISOString();
+      ntSaveSent(sent);
+      var item = ntAddAggregateQueueItem(type, title, message, settings, { count: list.length, key: key });
+      ntSendWhatsAppApi(item, settings);
+      ntSendEmail(item, settings);
+      return 1;
+    }
+    function ntAfterRecordSave(r, stage) {
+      var settings = ntLoadSettings();
+      if (!settings.enabled) return;
+      if (!ntBuildEvents(r).length) return;
+      scanExistingNotifications({ silent: true });
+    }
+    function ntOpenWhatsApp(itemId, recipient) {
+      var q = ntGetQueue();
+      var item = q.filter(function (x) { return x.id === itemId; })[0];
+      if (!item) return;
+      var phone = String(recipient || '').replace(/[^\d+]/g, '').replace(/^\+/, '');
+      window.open('https://wa.me/' + encodeURIComponent(phone) + '?text=' + encodeURIComponent(item.message), '_blank');
+      item.status = 'opened';
+      item.openedAt = new Date().toISOString();
+      ntSaveQueue(q);
+      renderNotificationQueue();
+    }
+    function renderNotificationQueue() {
+      var el = ntEl('nt-queue');
+      if (!el) return;
+      var q = ntGetQueue();
+      if (!q.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">&#9989;</div><div>\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0641\u064a \u0627\u0644\u0637\u0627\u0628\u0648\u0631</div></div>';
+        return;
+      }
+      el.innerHTML = q.map(function (item) {
+        var recips = (item.recipients || []).length ? (item.recipients || []).map(function (r) {
+          return '<button class="btn b-ol" style="padding:4px 9px;font-size:.75rem" onclick="ntOpenWhatsApp(\'' + item.id + '\',\'' + String(r).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">' + ntHtml(r) + '</button>';
+        }).join(' ') : '<span style="color:var(--tx3);font-size:.78rem">\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0633\u062a\u0644\u0645 WhatsApp</span>';
+        return '<div class="al-item ' + (item.type === 'critical' || item.type === 'untreated' ? 'al-ov' : item.type === 'followup' ? 'al-tom' : 'al-tod') + '" style="cursor:default">' +
+          '<span class="al-ico">' + (item.type === 'critical' || item.type === 'untreated' ? '&#128680;' : item.type === 'followup' ? '&#128198;' : '&#128138;') + '</span>' +
+          '<div class="al-body">' +
+          '<div class="al-code">' + ntHtml(item.code || '-') + ' | \u0642\u0637\u0627\u0639 ' + ntHtml(item.sector || '-') + '</div>' +
+          '<div class="al-title" style="white-space:pre-line">' + ntHtml(item.message) + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + recips + '</div>' +
+          '</div>' +
+          '<span class="al-days ' + (item.status === 'opened' ? 'd-tod' : 'd-ov') + '">' + (item.status === 'opened' ? '\u0641\u064f\u062a\u062d' : '\u062c\u0627\u0647\u0632') + '</span>' +
+          '</div>';
+      }).join('');
+    }
+    function clearNotificationQueue() {
+      if (!confirm('\u0645\u0633\u062d \u0637\u0627\u0628\u0648\u0631 WhatsApp\u061f')) return;
+      ntSaveQueue([]);
+      ntSaveSent({});
+      renderNotificationQueue();
+      toast('\u062a\u0645 \u0645\u0633\u062d \u0627\u0644\u0637\u0627\u0628\u0648\u0631', 'w');
+    }
+    function scanExistingNotifications(opts) {
+      opts = opts || {};
+      var settings = ntCollectSettingsFromForm();
+      ntSaveLocalSettings(settings);
+      if (!settings.enabled) { toast('\u0641\u0639\u0651\u0644 \u0646\u0638\u0627\u0645 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062a \u0623\u0648\u0644\u0627\u064b', 'w'); return; }
+      var rows = (typeof DB !== 'undefined' && Array.isArray(DB)) ? DB : [];
+      var added = 0;
+      var untreated = ntUntreatedRows(rows).filter(function (r) {
+        if (settings.triggers.untreated) return true;
+        if (settings.triggers.critical && String(r.severity || '').trim() === '\u062d\u0631\u062c\u0629') return true;
+        if (settings.triggers.curative && /(\u0639\u0644\u0627\u062c|\u0645\u0639\u0627\u0645\u0644|\u0645\u0628\u064a\u062f)/.test(String(r.recommendation || ''))) return true;
+        return false;
+      });
+      var tomorrowISO = ntDateISO(ntAddDays(new Date(), 1));
+      var followTomorrow = ntFollowupDueRows(rows, tomorrowISO);
+      added += ntQueueAggregate('untreated', '\u062d\u0627\u0644\u0627\u062a \u0628\u062f\u0648\u0646 \u0639\u0644\u0627\u062c', untreated, ntUntreatedSummaryMessage(untreated), settings, ntDateISO(new Date()));
+      added += ntQueueAggregate('followup', '\u0645\u062a\u0627\u0628\u0639\u0627\u062a \u063a\u062f\u0627\u064b', followTomorrow, ntFollowupSummaryMessage(followTomorrow, tomorrowISO), settings, tomorrowISO);
+      renderNotificationQueue();
+      if (!opts.silent) {
+        toast(added ? ('\u062a\u0645 \u062a\u062c\u0647\u064a\u0632 ' + added + ' \u062a\u0646\u0628\u064a\u0647 \u0645\u062c\u0645\u0639') : '\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0646\u0628\u064a\u0647\u0627\u062a \u0645\u062c\u0645\u0639\u0629 \u062c\u062f\u064a\u062f\u0629', added ? 's' : 'w');
+      }
+    }
+    function ntAutoScanOnOpen() {
+      var settings = ntLoadSettings();
+      if (!settings.enabled) return;
+      setTimeout(function () {
+        try { scanExistingNotifications({ silent: true }); }
+        catch (e) { console.warn('Notification auto scan failed:', e); }
+      }, 3500);
+    }
+    function testNotificationSettings() {
+      var s = ntCollectSettingsFromForm();
+      ntSaveLocalSettings(s);
+      var rec = {
+        id: 'test',
+        code: 'TEST-001',
+        sector: '1',
+        diagnosis: '\u062a\u0646\u0628\u064a\u0647 \u062a\u062c\u0631\u064a\u0628\u064a',
+        severity: '\u062d\u0631\u062c\u0629',
+        inspector: '\u0646\u0638\u0627\u0645 Linah',
+        recommendation: '\u0625\u062c\u0631\u0627\u0621 \u0639\u0644\u0627\u062c\u064a',
+        inspection_date: new Date().toISOString().slice(0, 10)
+      };
+      var item = ntAddQueueItem('critical', rec, s);
+      ntSendWhatsAppApi(item, s);
+      ntSendEmail(item, s);
+      renderNotificationQueue();
+      toast('\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u062a\u0646\u0628\u064a\u0647 \u062a\u062c\u0631\u064a\u0628\u064a', 's');
+    }
+    // ════════════════════════════════════════════════
+    // AUTO SCHEDULER ENGINE
+    // ════════════════════════════════════════════════
+    var NT_SCHED_KEY = 'linah_nt_scheduler_v1';
+    var NT_SCHED_LOG_KEY = 'linah_nt_sched_log_v1';
+    var _ntSchedTimer = null;
+
+    function ntSchedDefaults() {
+      return { enabled: false, time: '07:00', days: [1,2,3,4,5], lastSent: null };
+    }
+
+    function ntSchedLoad() {
+      try { return Object.assign(ntSchedDefaults(), JSON.parse(localStorage.getItem(NT_SCHED_KEY) || 'null') || {}); }
+      catch(e) { return ntSchedDefaults(); }
+    }
+
+    function ntSchedSave() {
+      var cfg = {
+        enabled: !!(ntEl('nt-sched-enabled') && ntEl('nt-sched-enabled').checked),
+        time: ntVal('nt-sched-time') || '07:00',
+        days: (function(){
+          var d = []; var boxes = document.querySelectorAll('#nt-sched-days input[type=checkbox]');
+          boxes.forEach(function(b){ if(b.checked) d.push(parseInt(b.dataset.day)); });
+          return d;
+        }()),
+        lastSent: ntSchedLoad().lastSent
+      };
+      try { localStorage.setItem(NT_SCHED_KEY, JSON.stringify(cfg)); } catch(e) {}
+      ntSchedUpdateUI();
+    }
+
+    function ntSchedFillUI() {
+      var cfg = ntSchedLoad();
+      var cb = ntEl('nt-sched-enabled');
+      if (cb) cb.checked = !!cfg.enabled;
+      ntSetVal('nt-sched-time', cfg.time || '07:00');
+      var boxes = document.querySelectorAll('#nt-sched-days input[type=checkbox]');
+      boxes.forEach(function(b){ b.checked = (cfg.days || []).indexOf(parseInt(b.dataset.day)) > -1; });
+      ntSchedUpdateUI();
+    }
+
+    function ntSchedUpdateUI() {
+      var cfg = ntSchedLoad();
+      var badge = ntEl('nt-sched-badge');
+      var statusTxt = ntEl('nt-sched-status-txt');
+      var lastEl = ntEl('nt-sched-last');
+      var nextEl = ntEl('nt-sched-next');
+      if (!badge) return;
+
+      if (cfg.enabled) {
+        badge.style.background = '#43a047';
+        badge.innerHTML = '&#9679; &#1605;&#1601;&#1593;&#1617;&#1604;';
+        if (statusTxt) statusTxt.textContent = 'الجدول نشط — يفحص كل 5 دقائق';
+      } else {
+        badge.style.background = '#e53935';
+        badge.innerHTML = '&#9679; &#1605;&#1608;&#1602;&#1608;&#1601;';
+        if (statusTxt) statusTxt.textContent = 'الجدول موقوف';
+      }
+
+      if (lastEl) {
+        if (cfg.lastSent) {
+          var d = new Date(cfg.lastSent);
+          lastEl.textContent = 'آخر إرسال: ' + d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'});
+        } else {
+          lastEl.textContent = 'لم يتم إرسال بعد';
+        }
+      }
+
+      if (nextEl) {
+        if (!cfg.enabled || !cfg.days || cfg.days.length === 0) {
+          nextEl.textContent = 'الجدول موقوف';
+        } else {
+          var parts = (cfg.time || '07:00').split(':');
+          var sendH = parseInt(parts[0]) || 7;
+          var sendM = parseInt(parts[1]) || 0;
+          var now = new Date();
+          var candidate = new Date(now);
+          candidate.setHours(sendH, sendM, 0, 0);
+          if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
+          var maxTry = 8;
+          while (maxTry-- > 0 && cfg.days.indexOf(candidate.getDay()) === -1) {
+            candidate.setDate(candidate.getDate() + 1);
+          }
+          nextEl.textContent = 'الإرسال القادم: ' + candidate.toLocaleDateString('ar-EG', {weekday:'short'}) + ' ' + candidate.toLocaleDateString('ar-EG') + ' ' + (cfg.time || '07:00');
+        }
+      }
+
+      ntSchedRenderLog();
+    }
+
+    function ntSchedToggle() {
+      ntSchedSave();
+      ntSchedUpdateUI();
+      ntSchedStart();
+    }
+
+    function ntSchedLogEntry(msg, type) {
+      try {
+        var log = JSON.parse(localStorage.getItem(NT_SCHED_LOG_KEY) || '[]');
+        log.unshift({ ts: new Date().toISOString(), msg: msg, type: type || 'info' });
+        log = log.slice(0, 50);
+        localStorage.setItem(NT_SCHED_LOG_KEY, JSON.stringify(log));
+      } catch(e) {}
+      ntSchedRenderLog();
+    }
+
+    function ntSchedRenderLog() {
+      var el = ntEl('nt-sched-log');
+      if (!el) return;
+      try {
+        var log = JSON.parse(localStorage.getItem(NT_SCHED_LOG_KEY) || '[]');
+        if (!log.length) { el.innerHTML = '<span style="color:var(--tx2)">لا توجد سجلات بعد</span>'; return; }
+        el.innerHTML = log.slice(0, 20).map(function(e) {
+          var color = e.type === 'error' ? '#e53935' : e.type === 'success' ? '#43a047' : e.type === 'warn' ? '#f57c00' : 'var(--tx2)';
+          var icon = e.type === 'error' ? '✕' : e.type === 'success' ? '✔' : e.type === 'warn' ? '⚠' : '·';
+          var d = new Date(e.ts);
+          var ts = d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'});
+          return '<div><span style="color:' + color + '">' + icon + '</span> <span style="color:var(--tx2)">[' + ts + ']</span> ' + ntHtml(e.msg) + '</div>';
+        }).join('');
+      } catch(e) { el.innerHTML = '<span style="color:var(--tx2)">خطأ في قراءة السجل</span>'; }
+    }
+
+    function ntSchedClearHistory() {
+      if (!confirm('هل تريد مسح سجل الإرسال التلقائي؟')) return;
+      try { localStorage.removeItem(NT_SCHED_LOG_KEY); } catch(e) {}
+      var cfg = ntSchedLoad(); cfg.lastSent = null;
+      try { localStorage.setItem(NT_SCHED_KEY, JSON.stringify(cfg)); } catch(e) {}
+      ntSchedUpdateUI();
+      toast('تم مسح السجل', 's');
+    }
+
+    function ntSchedShowSpinner(show) {
+      var sp = ntEl('nt-sched-spinner');
+      if (sp) sp.style.display = show ? 'flex' : 'none';
+    }
+
+    function ntSchedDoSend(isTest) {
+      var settings = ntLoadSettings();
+      if (!settings.enabled && !isTest) {
+        ntSchedLogEntry('تخطي: نظام الإشعارات غير مفعّل', 'warn');
+        return;
+      }
+      ntSchedShowSpinner(true);
+      ntSchedLogEntry(isTest ? 'بدء إرسال تجريبي...' : 'بدء فحص وإرسال تلقائي مجدول...', 'info');
+
+      try {
+        var rows = (typeof DB !== 'undefined' && Array.isArray(DB)) ? DB : [];
+        var untreated = ntUntreatedRows(rows).filter(function(r) {
+          if (settings.triggers && settings.triggers.untreated) return true;
+          if (settings.triggers && settings.triggers.critical && String(r.severity || '').trim() === 'حرجة') return true;
+          if (settings.triggers && settings.triggers.curative && /(علاج|معامل|مبيد)/.test(String(r.recommendation || ''))) return true;
+          return false;
+        });
+        var tomorrowISO = ntDateISO(ntAddDays(new Date(), 1));
+        var followTomorrow = ntFollowupDueRows(rows, tomorrowISO);
+        var added = 0;
+        if (isTest) {
+          // For test: send a single test notification
+          var testRec = { id:'sched-test', code:'SCHED-TEST', sector:'1', diagnosis:'اختبار جدول تلقائي', severity:'حرجة', inspector:'النظام', recommendation:'إجراء علاجي', inspection_date: new Date().toISOString().slice(0,10) };
+          var testItem = ntAddQueueItem('critical', testRec, settings);
+          ntSendWhatsAppApi(testItem, settings);
+          ntSendEmail(testItem, settings);
+          added = 1;
+          ntSchedLogEntry('تم إرسال تنبيه تجريبي بنجاح ✔', 'success');
+        } else {
+          added += ntQueueAggregate('untreated', 'حالات بدون علاج', untreated, ntUntreatedSummaryMessage(untreated), settings, ntDateISO(new Date()));
+          added += ntQueueAggregate('followup', 'متابعات غداً', followTomorrow, ntFollowupSummaryMessage(followTomorrow, tomorrowISO), settings, tomorrowISO);
+          if (added > 0) {
+            // Actually send the queued items
+            var q = ntGetQueue();
+            var pending = q.filter(function(x){ return x.status === 'pending'; });
+            pending.slice(0, 5).forEach(function(item) {
+              ntSendWhatsAppApi(item, settings);
+              ntSendEmail(item, settings);
+            });
+            ntSchedLogEntry('تم إرسال ' + added + ' تنبيه (مجدول) ✔ — حالات بدون علاج: ' + untreated.length + ' | متابعات: ' + followTomorrow.length, 'success');
+          } else {
+            ntSchedLogEntry('لا توجد تنبيهات جديدة لإرسالها', 'info');
+          }
+          // Save lastSent
+          var cfg2 = ntSchedLoad();
+          cfg2.lastSent = new Date().toISOString();
+          try { localStorage.setItem(NT_SCHED_KEY, JSON.stringify(cfg2)); } catch(e) {}
+        }
+        renderNotificationQueue();
+        ntSchedUpdateUI();
+      } catch(err) {
+        ntSchedLogEntry('خطأ: ' + (err.message || err), 'error');
+        console.error('[NT Sched] Error:', err);
+      }
+      setTimeout(function(){ ntSchedShowSpinner(false); }, 1500);
+    }
+
+    function ntSchedRunNow() {
+      ntSchedDoSend(false);
+      toast('تم تشغيل الإرسال التلقائي الآن', 's');
+    }
+
+    function ntSchedTest() {
+      ntSchedDoSend(true);
+      toast('تم إرسال تنبيه تجريبي', 's');
+    }
+
+    function ntSchedCheck() {
+      var cfg = ntSchedLoad();
+      if (!cfg.enabled) return;
+      if (!cfg.days || cfg.days.length === 0) return;
+      var now = new Date();
+      var dayOk = cfg.days.indexOf(now.getDay()) > -1;
+      if (!dayOk) return;
+      var parts = (cfg.time || '07:00').split(':');
+      var sendH = parseInt(parts[0]) || 7;
+      var sendM = parseInt(parts[1]) || 0;
+      var nowH = now.getHours(), nowM = now.getMinutes();
+      // Match within the current 5-minute window
+      if (nowH !== sendH) return;
+      if (Math.abs(nowM - sendM) > 4) return;
+      // Check not already sent today
+      var todayStr = now.toDateString();
+      var lastSentStr = cfg.lastSent ? new Date(cfg.lastSent).toDateString() : '';
+      if (todayStr === lastSentStr) return;
+      // All checks pass → send
+      ntSchedDoSend(false);
+    }
+
+    function ntSchedStart() {
+      if (_ntSchedTimer) clearInterval(_ntSchedTimer);
+      _ntSchedTimer = setInterval(function() {
+        ntSchedCheck();
+        ntSchedUpdateUI(); // keep next-send time fresh
+      }, 5 * 60 * 1000);
+      // Run once after 3s in case we're at the right time on load
+      setTimeout(ntSchedCheck, 3000);
+    }
+
+    window.ntSchedToggle = ntSchedToggle;
+    window.ntSchedSave = ntSchedSave;
+    window.ntSchedRunNow = ntSchedRunNow;
+    window.ntSchedTest = ntSchedTest;
+    window.ntSchedClearHistory = ntSchedClearHistory;
+
+    window.editUser = editUser;
+    window.deleteUser = deleteUser;
+    window.addUser = addUser;
+    window.renderUsersTable = renderUsersTable;
+    window.ntFillSettings = ntFillSettings;
+    window.saveNotificationSettings = saveNotificationSettings;
+    window.testNotificationSettings = testNotificationSettings;
+    window.scanExistingNotifications = scanExistingNotifications;
+    window.renderNotificationQueue = renderNotificationQueue;
+    window.clearNotificationQueue = clearNotificationQueue;
+    window.ntOpenWhatsApp = ntOpenWhatsApp;
+    window.ntAfterRecordSave = ntAfterRecordSave;
+    window.addEventListener('DOMContentLoaded', function () {
+      ntFillSettings();
+      renderNotificationQueue();
+      ntAutoScanOnOpen();
+      ntSchedFillUI();
+      ntSchedStart();
+    });
+
     // INIT FILTERS
     // ════════════════════════════════════════════════
     function initFilters() {
@@ -5934,6 +7195,7 @@
       var iSel = document.getElementById('f-insp');
       if (iSel) { iSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0641\u0627\u062d\u0635\u064a\u0646</option>'; inspSet.forEach(function (i2) { iSel.innerHTML += '<option>' + i2 + '</option>'; }); }
       initMonthFilters();
+      linahEnableMultiFilters(['f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'fual-sev', 'fu-sev']);
     }
 
     function initMonthFilters() {
@@ -5943,19 +7205,21 @@
       var months = Object.keys(seen).sort();
 
       function buildOpts(curVal) {
+        var curVals = Array.isArray(curVal) ? curVal : (curVal ? [curVal] : []);
         var h = '<option value="">\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631</option>';
         months.forEach(function (m) {
           var mo = parseInt(m.split('-')[1]);
           var lbl = MO[mo - 1] + ' ' + m.split('-')[0];
-          h += '<option value="' + m + '"' + (curVal === m ? ' selected' : '') + '>' + lbl + '</option>';
+          h += '<option value="' + m + '"' + (curVals.indexOf(m) >= 0 ? ' selected' : '') + '>' + lbl + '</option>';
         });
         return h;
       }
 
       var fm = document.getElementById('f-month');
-      if (fm) { var v1 = fm.value; fm.innerHTML = buildOpts(v1); }
+      if (fm) { var v1 = linahSelectValues('f-month'); fm.innerHTML = buildOpts(v1); }
       var pm = document.getElementById('perf-month');
-      if (pm) { var v2 = pm.value; pm.innerHTML = buildOpts(v2); }
+      if (pm) { var v2 = linahSelectValues('perf-month'); pm.innerHTML = buildOpts(v2); }
+      linahEnableMultiFilters(['f-month', 'perf-month']);
     }
 
     // ════════════════════════════════════════════════
@@ -6005,10 +7269,10 @@
         if (b) b.className = 'btn ' + (r === role ? 'b-dk on' : 'b-ol');
       });
 
-      var selMonth = (document.getElementById('perf-month') || {}).value || '';
+      var selMonth = linahSelectValues('perf-month');
       var perf = {};
       DB.forEach(function (r) {
-        if (selMonth && !(r.inspection_date || '').startsWith(selMonth)) return;
+        if (selMonth.length && !selMonth.some(function (m) { return (r.inspection_date || '').startsWith(m); })) return;
         var nm = r[role] || '';
         if (!nm || nm === '\u0644\u0627 \u064a\u0648\u062c\u062f') return;
 
@@ -6033,7 +7297,8 @@
 
         p.score += calcScore(r, role);
 
-        if (r.sector) p.sects[r.sector] = 1;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) p.sects[sec] = 1;
         if (r.diagnosis) p.diags[r.diagnosis] = (p.diags[r.diagnosis] || 0) + 1;
         if (r.inspection_date && r.treatment_date) {
           try {
@@ -6060,9 +7325,12 @@
       allSects.sort(function (a, b) { return +a - +b; });
       var sel = document.getElementById('perf-sect');
       if (sel) {
+        var curPerfSects = linahSelectValues('perf-sect');
         sel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a</option>';
         allSects.forEach(function (s) { sel.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; });
+        linahRestoreSelected(sel, curPerfSects, linahNormalizeSector);
       }
+      linahEnableMultiFilters(['perf-month', 'perf-sect']);
 
       // Team KPI summary row
       var teamTotal = perfData.reduce(function (a, p) { return a + p.total; }, 0);
@@ -6074,7 +7342,7 @@
 
       var kpiEl = document.getElementById('perf-kpi-row');
       var MONTHS_AR = ['\u064a\u0646\u0627\u064a\u0631', '\u0641\u0628\u0631\u0627\u064a\u0631', '\u0645\u0627\u0631\u0633', '\u0623\u0628\u0631\u064a\u0644', '\u0645\u0627\u064a\u0648', '\u064a\u0648\u0646\u064a\u0648', '\u064a\u0648\u0644\u064a\u0648', '\u0623\u063a\u0633\u0637\u0633', '\u0633\u0628\u062a\u0645\u0628\u0631', '\u0623\u0643\u062a\u0648\u0628\u0631', '\u0646\u0648\u0641\u0645\u0628\u0631', '\u062f\u064a\u0633\u0645\u0628\u0631'];
-      var periodLabel = selMonth ? (MONTHS_AR[parseInt(selMonth.slice(5)) - 1] || selMonth) + ' 2026' : '\u0643\u0644 \u0627\u0644\u0641\u062a\u0631\u0627\u062a';
+      var periodLabel = selMonth.length === 1 ? (MONTHS_AR[parseInt(selMonth[0].slice(5)) - 1] || selMonth[0]) + ' 2026' : (selMonth.length ? selMonth.length + ' \u0634\u0647\u0648\u0631' : '\u0643\u0644 \u0627\u0644\u0641\u062a\u0631\u0627\u062a');
       if (kpiEl) kpiEl.innerHTML =
         mkKpi('\u0639\u062f\u062f \u0627\u0644\u0623\u0634\u062e\u0627\u0635', perfData.length, 'k-g', periodLabel) +
         mkKpi('\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0646\u0642\u0627\u0637', teamScore, 'k-b', teamScore >= 0 ? '\u0623\u062f\u0627\u0621 \u062c\u064a\u062f' : '\u062a\u062d\u062a\u0627\u062c \u062a\u062d\u0633\u064a\u0646') +
@@ -6093,12 +7361,12 @@
 
     function filterPerfGrid() {
       var q = ((document.getElementById('perf-srch') || {}).value || '').toLowerCase();
-      var sect = (document.getElementById('perf-sect') || {}).value || '';
+      var sect = linahSelectValues('perf-sect');
       var sortBy = (document.getElementById('perf-sort') || {}).value || 'score';
 
       var filtered = perfData.filter(function (p) {
         if (q && p.name.toLowerCase().indexOf(q) < 0) return false;
-        if (sect && !p.sects[sect]) return false;
+        if (sect.length && !sect.some(function (s) { return p.sects[linahNormalizeSector(s)]; })) return false;
         return true;
       });
 
@@ -6856,9 +8124,8 @@
     function initSearchableSelects(root) {
       root = root || document;
       var selects = root.querySelectorAll ? root.querySelectorAll('select:not([data-ss-ready])') : [];
-      if (root.matches && root.matches('select:not([data-ss-ready])') && !root.multiple && root.size <= 1) enhanceSearchableSelect(root);
+      if (root.matches && root.matches('select:not([data-ss-ready])')) enhanceSearchableSelect(root);
       Array.prototype.forEach.call(selects, function (sel) {
-        if (sel.multiple || sel.size > 1) return;
         enhanceSearchableSelect(sel);
       });
     }
@@ -6909,6 +8176,15 @@
       }
 
       function currentText() {
+        if (sel.multiple) {
+          var picked = Array.prototype.filter.call(sel.options || [], function (o) { return o.selected && o.value; });
+          if (!picked.length) {
+            var allOpt = Array.prototype.filter.call(sel.options || [], function (o) { return !o.value; })[0];
+            return allOpt ? (allOpt.text || allOpt.value) : '\u0627\u062e\u062a\u0631...';
+          }
+          if (picked.length === 1) return picked[0].text || picked[0].value;
+          return picked.length + ' \u0645\u062d\u062f\u062f';
+        }
         var opt = sel.options[sel.selectedIndex];
         return opt ? (opt.text || opt.value || 'اختر...') : 'اختر...';
       }
@@ -6921,13 +8197,35 @@
           var txt = opt.text || opt.value || '';
           if (q && norm(txt).indexOf(q) === -1 && norm(opt.value).indexOf(q) === -1) return;
           var item = document.createElement('div');
-          item.className = 'ss-option' + (opt.selected ? ' selected' : '');
-          item.textContent = txt;
+          item.className = 'ss-option' + (sel.multiple ? ' ss-multi' : '') + (opt.selected ? ' selected' : '');
+          if (sel.multiple) {
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!opt.selected && !!opt.value;
+            cb.tabIndex = -1;
+            var label = document.createElement('span');
+            label.textContent = txt;
+            item.appendChild(cb);
+            item.appendChild(label);
+          } else {
+            item.textContent = txt;
+          }
           item.setAttribute('data-value', opt.value);
-          item.addEventListener('click', function () {
-            sel.value = opt.value;
-            sync();
-            closeAllSearchableSelects();
+          item.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (sel.multiple) {
+              if (!opt.value) {
+                Array.prototype.forEach.call(sel.options || [], function (o) { o.selected = false; });
+              } else {
+                opt.selected = !opt.selected;
+                Array.prototype.forEach.call(sel.options || [], function (o) { if (!o.value) o.selected = false; });
+              }
+              sync();
+            } else {
+              sel.value = opt.value;
+              sync();
+              closeAllSearchableSelects();
+            }
             sel.dispatchEvent(new Event('change', { bubbles: true }));
           });
           list.appendChild(item);
@@ -8116,63 +9414,65 @@
       var monthSel = document.getElementById('hof-month');
       var sectSel = document.getElementById('hof-sector');
       var diagSel = document.getElementById('hof-diagnosis');
-      var oldMonth = monthSel ? monthSel.value : '';
-      var oldSect = sectSel ? sectSel.value : '';
-      var oldDiag = diagSel ? diagSel.value : '';
+      var oldMonth = linahSelectValues('hof-month');
+      var oldSect = linahSelectValues('hof-sector');
+      var oldDiag = linahSelectValues('hof-diagnosis');
       var months = {}, sects = {}, diags = {};
       DB.forEach(function(r){
         var d = r.inspection_date || '';
         if (d.length >= 7) months[d.substring(0,7)] = 1;
-        if (r.sector) sects[r.sector] = 1;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) sects[sec] = 1;
         if (r.diagnosis) diags[r.diagnosis] = 1;
       });
       if (monthSel) {
         monthSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0634\u0647\u0648\u0631</option>' +
           Object.keys(months).sort().reverse().map(function(m){ return '<option value="'+m+'">'+hofMonthLabel(m)+'</option>'; }).join('');
-        monthSel.value = oldMonth;
+        linahRestoreSelected(monthSel, oldMonth);
       }
       if (sectSel) {
         sectSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a</option>' +
-          Object.keys(sects).sort(function(a,b){return (+a||0)-(+b||0);}).map(function(s){ return '<option value="'+s+'">\u0642\u0637\u0627\u0639 '+s+'</option>'; }).join('');
-        sectSel.value = oldSect;
+          Object.keys(sects).sort(linahSectorSort).map(function(s){ return '<option value="'+s+'">\u0642\u0637\u0627\u0639 '+s+'</option>'; }).join('');
+        linahRestoreSelected(sectSel, oldSect, linahNormalizeSector);
       }
       if (diagSel) {
         diagSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u062a\u0634\u062e\u064a\u0635\u0627\u062a</option>' +
           Object.keys(diags).sort().map(function(d){ return '<option>'+escH(d)+'</option>'; }).join('');
-        diagSel.value = oldDiag;
+        linahRestoreSelected(diagSel, oldDiag);
       }
+      linahEnableMultiFilters(['hof-month', 'hof-sector', 'hof-diagnosis', 'hof-gender']);
     }
 
     function hofClearFilters() {
-      ['hof-month','hof-sector','hof-diagnosis','hof-gender'].forEach(function(id){
-        var el = document.getElementById(id); if (el) el.value = '';
-      });
+      ['hof-month','hof-sector','hof-diagnosis','hof-gender'].forEach(linahClearSelect);
       var s = document.getElementById('hof-sort'); if (s) s.value = 'score';
       buildHOF();
     }
 
     function hofFilteredRows(monthKey) {
-      var selectedMonth = monthKey || ((document.getElementById('hof-month') || {}).value || '');
-      var sector = (document.getElementById('hof-sector') || {}).value || '';
-      var diag = (document.getElementById('hof-diagnosis') || {}).value || '';
+      var selectedMonth = monthKey ? [monthKey] : linahSelectValues('hof-month');
+      var sector = linahSelectValues('hof-sector');
+      var diag = linahSelectValues('hof-diagnosis');
       return DB.filter(function(r){
-        if (selectedMonth && !(r.inspection_date || '').startsWith(selectedMonth)) return false;
-        if (sector && r.sector !== sector) return false;
-        if (diag && r.diagnosis !== diag) return false;
+        if (selectedMonth.length && !selectedMonth.some(function (m) { return (r.inspection_date || '').startsWith(m); })) return false;
+        if (!linahMatchAny(sector, r.sector, linahNormalizeSector)) return false;
+        if (!linahMatchAny(diag, r.diagnosis)) return false;
         return true;
       });
     }
 
     function hofPeople(rows, role, genderFilter) {
+      var genderVals = Array.isArray(genderFilter) ? genderFilter : (genderFilter ? [genderFilter] : []);
       var perf = {};
       rows.forEach(function(r){
         var nm = r[role === 'inspector' ? 'inspector' : 'sup_main'] || '';
         if (!nm || nm === '\u0644\u0627 \u064a\u0648\u062c\u062f') return;
         var g = role === 'inspector' ? hofPersonGender(nm) : '';
-        if (role === 'inspector' && genderFilter && g !== genderFilter) return;
+        if (role === 'inspector' && genderVals.length && genderVals.indexOf(g) < 0) return;
         if (!perf[nm]) perf[nm] = { name:nm, role:role, gender:g, total:0, truePos:0, falsePos:0, early:0, ecrTrue:0, score:0, sectors:{} };
         var p = perf[nm]; p.total++;
-        if (r.sector) p.sectors[r.sector] = 1;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) p.sectors[sec] = 1;
         var isECR = (r.cycle || '') === 'E.C.R';
         var isFalse = (r.diagnosis||'') === '\u0644\u0627 \u062a\u0648\u062c\u062f \u0625\u0635\u0627\u0628\u0629';
         var isTrue  = !isFalse && !!(r.diagnosis||'').trim();
@@ -8197,22 +9497,24 @@
 
     function hofWinnersForRows(rows) {
       var sortBy = (document.getElementById('hof-sort') || {}).value || 'score';
+      var genders = linahSelectValues('hof-gender');
       return {
-        inspectorMale: hofSortPeople(hofPeople(rows, 'inspector', 'male'), sortBy)[0] || null,
-        inspectorFemale: hofSortPeople(hofPeople(rows, 'inspector', 'female'), sortBy)[0] || null,
+        inspectorMale: !genders.length || genders.indexOf('male') >= 0 ? (hofSortPeople(hofPeople(rows, 'inspector', 'male'), sortBy)[0] || null) : null,
+        inspectorFemale: !genders.length || genders.indexOf('female') >= 0 ? (hofSortPeople(hofPeople(rows, 'inspector', 'female'), sortBy)[0] || null) : null,
         supervisor: hofSortPeople(hofPeople(rows, 'supervisor'), sortBy)[0] || null
       };
     }
 
     function buildHOF() {
       hofFillFilters();
-      var selMonth = (document.getElementById('hof-month') || {}).value || '';
-      var selGender = (document.getElementById('hof-gender') || {}).value || '';
+      var selMonth = linahSelectValues('hof-month');
+      var selGender = linahSelectValues('hof-gender');
+      var hofPeriodLabel = selMonth.length === 1 ? hofMonthLabel(selMonth[0]) : (selMonth.length ? selMonth.length + ' \u0634\u0647\u0648\u0631' : hofMonthLabel(''));
       var rows = hofFilteredRows();
       var wins = hofWinnersForRows(rows);
       setT('hof-count', rows.length + ' \u0633\u062c\u0644');
       var title = document.getElementById('hof-winners-title');
-      if (title) title.textContent = '\ud83e\udd47 \u0627\u0644\u0641\u0627\u0626\u0632\u0648\u0646 - ' + hofMonthLabel(selMonth);
+      if (title) title.textContent = '\ud83e\udd47 \u0627\u0644\u0641\u0627\u0626\u0632\u0648\u0646 - ' + hofPeriodLabel;
 
       var nowGrid = document.getElementById('hof-winners-now');
       if (nowGrid) {
@@ -8237,7 +9539,7 @@
               genderBadge +
             '</div>' +
             '<div class="hof-card-body">' +
-              '<div class="hof-stat-row"><span class="hof-stat-lbl">\u0627\u0644\u0641\u062a\u0631\u0629</span><span class="hof-month-chip">'+hofMonthLabel(selMonth)+'</span></div>' +
+              '<div class="hof-stat-row"><span class="hof-stat-lbl">\u0627\u0644\u0641\u062a\u0631\u0629</span><span class="hof-month-chip">'+hofPeriodLabel+'</span></div>' +
               '<div class="hof-stat-row"><span class="hof-stat-lbl">\ud83d\udcca \u0623\u0628\u0631\u0632 \u0625\u0646\u062c\u0627\u0632</span><span class="hof-stat-val hof-gold">'+escH(statLine)+'</span></div>' +
               (hasWinner ? '<div class="hof-stat-row"><span class="hof-stat-lbl">\ud83c\udfc6 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a</span><span class="hof-stat-val">'+c.data.sectCount+'</span></div>' : '') +
             '</div>' +
@@ -8266,7 +9568,8 @@
         var monthsMap = {};
         hofFilteredRows('').forEach(function(r){ var d = r.inspection_date || ''; if (d.length >= 7) monthsMap[d.substring(0,7)] = 1; });
         var months = Object.keys(monthsMap).sort().reverse();
-        if (selMonth) months = [selMonth];
+        if (selMonth.length === 1) months = [selMonth[0]];
+        else if (selMonth.length > 1) months = months.filter(function (m) { return selMonth.indexOf(m) >= 0; });
         if (!months.length) {
           histEl.innerHTML = '<div style="color:var(--tx3);font-size:.84rem;padding:10px">\u0644\u0627 \u064a\u0648\u062c\u062f \u0633\u062c\u0644 \u0628\u0639\u062f</div>';
         } else {
