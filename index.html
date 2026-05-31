@@ -4569,6 +4569,15 @@
       });
     }
 
+    // POST: أضف سجلاً جديداً كـ Object منفصل → يُعيد Firebase Push ID تلقائياً
+    function fbPost(url, data) {
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+
     // Poll Firebase every 10 seconds for real-time-like sync
     function startFbPolling() {
       if (fbPollTimer) clearInterval(fbPollTimer);
@@ -4717,12 +4726,24 @@
       // Firebase دايماً — بغض النظر عن fbConnected
       clearTimeout(fbSaveTimer);
       fbSaveTimer = setTimeout(function () {
-        fbPut(FB_DB_URL, DB)
-          .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
-          .catch(function (err) {
-            fbSetStatus(false);
-            toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
-          });
+        // ✅ إضافة جديدة: استخدم POST لإرسال السجل منفرداً والحصول على Push ID
+        // بدلاً من PUT للمصفوفة كاملها (يتجنب Race Conditions ومسح البيانات)
+        if (opts.newRecord) {
+          fbPost(FB_DB_URL, opts.newRecord)
+            .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
+            .catch(function (err) {
+              fbSetStatus(false);
+              toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
+            });
+        } else {
+          // تعديل أو حذف: PUT للمصفوفة كاملها كما هو
+          fbPut(FB_DB_URL, DB)
+            .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
+            .catch(function (err) {
+              fbSetStatus(false);
+              toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
+            });
+        }
       }, 400);
     }
 
@@ -6107,7 +6128,8 @@
       else { DB.unshift(r); }
       document.getElementById('wf-id').value = r.id;
       wfEditId = r.id;
-      saveDB(); computeFU();
+      // ✅ إضافة جديدة: مرّر السجل عبر opts.newRecord لاستخدام POST بدلاً من PUT
+      saveDB(id ? {} : { newRecord: r }); computeFU();
       try { ntAfterRecordSave(r, wfStage); } catch (ntErr) { console.warn('Notification hook failed:', ntErr); }
       var keepRecordsState = recordsFilterState || captureRecordsState();
       initFilters();
@@ -8446,23 +8468,39 @@
         });
     }
 
-    function saveTrackingRecords(arr) {
+    function saveTrackingRecords(arr, opts) {
+      opts = opts || {};
       // localStorage كـ cache فوري
       try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch (e) { }
       // Firebase دايماً
       clearTimeout(_trSaveTimer);
       _trSaveTimer = setTimeout(function () {
-        fbPut(FB_TRACKING_URL, arr)
-          .then(function(r){
-            if (!r.ok) throw new Error(r.status);
-            fbSetStatus(true);
-            toast('☁️ تم الحفظ على Firebase', 's');
-          })
-          .catch(function (e) {
-            fbSetStatus(false);
-            console.warn('Tracking Firebase save error:', e);
-            toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
-          });
+        // ✅ إضافة جديدة: استخدم POST لإرسال السجل منفرداً والحصول على Push ID
+        if (opts.newRecord) {
+          fbPost(FB_TRACKING_URL, opts.newRecord)
+            .then(function(r){
+              if (!r.ok) throw new Error(r.status);
+              fbSetStatus(true);
+              toast('☁️ تم الحفظ على Firebase', 's');
+            })
+            .catch(function (e) {
+              fbSetStatus(false);
+              console.warn('Tracking Firebase save error:', e);
+              toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
+            });
+        } else {
+          fbPut(FB_TRACKING_URL, arr)
+            .then(function(r){
+              if (!r.ok) throw new Error(r.status);
+              fbSetStatus(true);
+              toast('☁️ تم الحفظ على Firebase', 's');
+            })
+            .catch(function (e) {
+              fbSetStatus(false);
+              console.warn('Tracking Firebase save error:', e);
+              toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
+            });
+        }
       }, 400);
     }
 
@@ -8780,7 +8818,8 @@
 
       var arr = getTrackingRecords();
       arr.push(rec);
-      saveTrackingRecords(arr);
+      // ✅ مرّر السجل الجديد عبر opts.newRecord لاستخدام POST بدلاً من PUT
+      saveTrackingRecords(arr, { newRecord: rec });
       toast('✅ تم حفظ التتبع بنجاح', 's');
       showLastSavedRecord(rec);
       // ✅ لا نمسح الواجهة — تبقى كما هي لتسهيل تغيير أرقام الخطوط
