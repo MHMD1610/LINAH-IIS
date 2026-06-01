@@ -4577,6 +4577,16 @@
         fbGet(FB_DB_URL, function (err, val) {
           if (!err && val && Array.isArray(val) && val.length) {
             if (fbImporting) return;
+
+            // 🛡\ufe0f الحماية الجذرية: لا تقبل Firebase بيانات أقل من الحالية بأكثر من 5%
+            if (DB && Array.isArray(DB) && DB.length > 0) {
+              if (val.length < DB.length * 0.95) {
+                console.warn('[Polling حماية] Firebase: ' + val.length + ' سجل < DB: ' + DB.length + ' — تم الرفض. جارٍ رفع الحالي لـ Firebase للتصحيح.');
+                fbPut(FB_DB_URL, DB).catch(function(e){ console.warn('[Polling]', e); });
+                return;
+              }
+            }
+
             // ── فقط لو البيانات اتغيّرت فعلاً ──
             var newSnapshot = JSON.stringify(val);
             var oldSnapshot = JSON.stringify(DB);
@@ -11071,31 +11081,72 @@
   /* ── النسخ الاحتياطي ── */
   var Backup = {
     create: function(type){
-      var db=gl(KEYS.DB), dd=gl(KEYS.DD);
-      if(!db){ console.warn('[Backup] لا يوجد بيانات'); return false; }
-      // لا تنسخ SEED! تحقق أن البيانات حقيقية
-      try{
-        var arr=JSON.parse(db);
-        if(!Array.isArray(arr)||arr.length===0){ console.warn('[Backup] البيانات فارغة — لن يتم النسخ'); return false; }
-      }catch(e){ return false; }
-      var snap={db:db,dd:dd||'{}',ts:new Date().toISOString(),type:type,chk:chk(db+(dd||''))};
+      var db=gl(KEYS.DB);
+
+      // ── تحقق أن البيانات موجودة وحقيقية ──
+      if(!db){ console.warn('[Backup] localStorage فارغة — انتظر تحميل البيانات'); return false; }
+      var arr;
+      try{ arr=JSON.parse(db); }catch(e){ console.warn('[Backup] بيانات تالفة'); return false; }
+      if(!Array.isArray(arr)||arr.length<5){
+        console.warn('[Backup] البيانات افتراضية أو فارغة ('+arr.length+' سجل) — لن يتم النسخ');
+        return false;
+      }
+
       var k=type==='daily'?KEYS.BK_D:type==='weekly'?KEYS.BK_W:KEYS.BK_H;
-      if(!sl(k,JSON.stringify(snap))){ console.error('[Backup] فشل الحفظ'); return false; }
-      sl(KEYS.LAST, snap.ts);
-      var hist=pl(KEYS.HIST)||[];
-      hist.unshift({ts:snap.ts,type:type,chk:snap.chk,size:db.length});
-      sl(KEYS.HIST,JSON.stringify(hist.slice(0,60)));
-      console.log('[Backup ✅] '+type+' — '+snap.ts+' — '+Math.round(db.length/1024)+'KB');
-      Backup._updateStatus();
-      return true;
+      var ts=new Date().toISOString();
+      // ملاحظة: DD لا تُحفظ في النسخة لتوفير مساحة localStorage — يمكن استعادتها من Firebase
+      var snap={db:db,ts:ts,type:type,records:arr.length,chk:chk(db)};
+
+      // ── احذف النسخة القديمة أولاً لتحرير المساحة ──
+      try{ localStorage.removeItem(k); }catch(e){}
+
+      // ── محاولة الحفظ بالحجم الكامل ──
+      if(sl(k,JSON.stringify(snap))){
+        sl(KEYS.LAST, ts);
+        var hist=pl(KEYS.HIST)||[];
+        hist.unshift({ts:ts,type:type,records:arr.length,size:Math.round(db.length/1024)+'KB'});
+        sl(KEYS.HIST,JSON.stringify(hist.slice(0,40)));
+        console.log('[Backup ✅] '+type+' — '+arr.length+' سجل — '+Math.round(db.length/1024)+'KB');
+        Backup._updateStatus();
+        return true;
+      }
+
+      // ── localStorage ممتلئة: احذف نسخ قديمة وأعد المحاولة ──
+      console.warn('[Backup] localStorage ممتلئة — تحرير مساحة…');
+      ['lf_v5_bk_h','lf_v5_bk_d','lf_v5_bk_w','lf_v5_bk_history',
+       'lf_v5_db_backups','lf_v5_audit_log'].forEach(function(ok2){
+        if(ok2!==k){ try{localStorage.removeItem(ok2);}catch(e){} }
+      });
+
+      if(sl(k,JSON.stringify(snap))){
+        sl(KEYS.LAST, ts);
+        console.log('[Backup ✅] '+type+' — '+arr.length+' سجل (بعد تحرير مساحة)');
+        Backup._updateStatus();
+        return true;
+      }
+
+      // ── الملاذ الأخير: احفظ آخر 150 سجل فقط ──
+      console.warn('[Backup] مساحة محدودة — حفظ آخر 150 سجل…');
+      var mini=JSON.stringify(arr.slice(-150));
+      if(sl(k,JSON.stringify({db:mini,ts:ts,type:type,records:150,partial:true,chk:chk(mini)}))){
+        sl(KEYS.LAST, ts);
+        console.log('[Backup ⚠️] '+type+' — محفوظ جزئياً (150 سجل آخر)');
+        Backup._updateStatus();
+        return true;
+      }
+
+      console.error('[Backup ❌] فشل نهائي — localStorage ممتلئة تماماً');
+      return false;
     },
     restore: function(type){
       var k=type==='daily'?KEYS.BK_D:type==='weekly'?KEYS.BK_W:KEYS.BK_H;
       var snap=pl(k);
       if(!snap){ bkToast('❌ لا توجد نسخة '+type,'#c0392b'); return false; }
-      if(snap.chk && snap.chk!==chk(snap.db+snap.dd)) bkToast('⚠️ النسخة قد تكون تالفة — جارٍ الاستعادة','#e67e22');
-      sl(KEYS.DB,snap.db); sl(KEYS.DD,snap.dd);
-      bkToast('✅ تمت الاستعادة من نسخة '+type+' — جارٍ إعادة التحميل…');
+      // تحقق من السلامة
+      if(snap.chk && snap.chk!==chk(snap.db)) bkToast('⚠️ النسخة قد تكون تالفة — جارٍ الاستعادة على أي حال','#e67e22');
+      sl(KEYS.DB, snap.db);
+      if(snap.partial) bkToast('⚠️ تم استعادة '+snap.records+' سجل (نسخة جزئية)','#e67e22');
+      else bkToast('✅ تمت الاستعادة من نسخة '+type+' ('+snap.records+' سجل) — جارٍ إعادة التحميل…');
       setTimeout(function(){location.reload();},1800);
       return true;
     },
@@ -11162,6 +11213,238 @@
   }
 
   /* ── بناء القائمة ── */
+  /* ════════════════════════════════════════════════════════════
+     📥 النسخ المحلي (JSON تلقائي على الجهاز)
+     ════════════════════════════════════════════════════════════ */
+  var LocalExport = {
+    LAST_KEY: 'lf_v5_local_export_ts',
+
+    download: function(label){
+      var db=gl(KEYS.DB);
+      if(!db){ bkToast('❌ لا توجد بيانات للتصدير','#c0392b'); return; }
+      var arr; try{ arr=JSON.parse(db); }catch(e){ return; }
+      if(!arr.length){ bkToast('❌ البيانات فارغة','#c0392b'); return; }
+
+      var payload=JSON.stringify({
+        source:'LINAH IIS v33',
+        exportedAt: new Date().toISOString(),
+        label: label||'manual',
+        records: arr.length,
+        data: arr
+      }, null, 2);
+
+      var blob=new Blob([payload],{type:'application/json'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='LINAH_backup_'+new Date().toISOString().slice(0,10)+(label?'_'+label:'')+'.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      sl(LocalExport.LAST_KEY, new Date().toISOString());
+      console.log('[LocalExport ✅] تم تحميل '+arr.length+' سجل محلياً');
+      bkToast('📥 تم تحميل النسخة على جهازك ✅');
+    },
+
+    // جدول تحميل يومي تلقائي الساعة 8 صباحاً
+    scheduleDaily: function(){
+      (function next(){
+        var now=new Date(), t=new Date(now);
+        t.setHours(8,0,0,0);
+        if(t<=now) t.setDate(t.getDate()+1);
+        setTimeout(function(){
+          LocalExport.download('daily_auto');
+          next();
+        }, t-now);
+      })();
+      console.log('[LocalExport ✅] التحميل اليومي مجدوَل الساعة 8 صباحاً');
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+     ☁️ Google Drive Backup
+     ════════════════════════════════════════════════════════════
+     ⚙️ الإعداد مرة واحدة فقط:
+     1. اذهب إلى: https://console.cloud.google.com/
+     2. أنشئ مشروعاً جديداً
+     3. فعّل "Google Drive API"
+     4. APIs & Services → Credentials → Create OAuth 2.0 Client ID
+        - Application type: Web application
+        - Authorized JavaScript origins: أضف عنوان ملفك (مثل file:// أو http://localhost)
+     5. انسخ Client ID وضعه في GDRIVE_CLIENT_ID أدناه
+     ════════════════════════════════════════════════════════════ */
+  var GDrive = {
+    CLIENT_ID:  '982453338437-smu0hq5jma8kbiss63u5jg7kcsa17du7.apps.googleusercontent.com',
+    SCOPE:      'https://www.googleapis.com/auth/drive.file',
+    TOKEN_KEY:  'lf_v5_gdrive_token',
+    FILE_ID_KEY:'lf_v5_gdrive_file_id',
+    LAST_KEY:   'lf_v5_gdrive_last_ts',
+    _tokenClient: null,
+    _token: null,
+
+    isConfigured: function(){ return !!GDrive.CLIENT_ID && GDrive.CLIENT_ID.length > 10; },
+
+    // تحميل مكتبة Google Identity Services
+    loadGIS: function(cb){
+      if(window.google && window.google.accounts){ cb(); return; }
+      var s=document.createElement('script');
+      s.src='https://accounts.google.com/gsi/client';
+      s.onload=cb;
+      s.onerror=function(){ bkToast('❌ تعذّر تحميل Google Identity Services','#c0392b'); };
+      document.head.appendChild(s);
+    },
+
+    // تهيئة OAuth client
+    initClient: function(cb){
+      if(!GDrive.isConfigured()){
+        bkToast('⚙️ أدخل Google Client ID أولاً — اضغط زر الإعداد','#e67e22');
+        return;
+      }
+      GDrive.loadGIS(function(){
+        GDrive._tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GDrive.CLIENT_ID,
+          scope: GDrive.SCOPE,
+          callback: function(resp){
+            if(resp.error){ bkToast('❌ فشل تسجيل الدخول: '+resp.error,'#c0392b'); return; }
+            GDrive._token = resp.access_token;
+            sl(GDrive.TOKEN_KEY, resp.access_token);
+            bkToast('✅ تم ربط Google Drive بنجاح!');
+            GDrive._updateBtn();
+            if(cb) cb();
+          }
+        });
+        // جرّب التوكن المحفوظ أولاً
+        var saved=gl(GDrive.TOKEN_KEY);
+        if(saved){ GDrive._token=saved; GDrive._updateBtn(); if(cb) cb(); }
+        else { GDrive._tokenClient.requestAccessToken(); }
+      });
+    },
+
+    // رفع / تحديث ملف في Drive
+    upload: function(){
+      if(!GDrive._token){ GDrive.initClient(function(){ GDrive._doUpload(); }); return; }
+      GDrive._doUpload();
+    },
+
+    _doUpload: function(){
+      var db=gl(KEYS.DB);
+      if(!db){ bkToast('❌ لا توجد بيانات','#c0392b'); return; }
+      var arr; try{ arr=JSON.parse(db); }catch(e){ return; }
+
+      var payload=JSON.stringify({
+        source:'LINAH IIS v33', uploadedAt:new Date().toISOString(),
+        records:arr.length, data:arr
+      });
+      var fileId=gl(GDrive.FILE_ID_KEY);
+      var fileName='LINAH_IIS_Backup.json';
+
+      bkToast('☁️ جارٍ الرفع إلى Google Drive…','#2980b9');
+
+      if(fileId){
+        // تحديث الملف الموجود
+        fetch('https://www.googleapis.com/upload/drive/v3/files/'+fileId+'?uploadType=media',{
+          method:'PATCH',
+          headers:{'Authorization':'Bearer '+GDrive._token,'Content-Type':'application/json'},
+          body:payload
+        })
+        .then(function(r){
+          if(r.status===401){ GDrive._token=null; sl(GDrive.TOKEN_KEY,''); GDrive.upload(); return; }
+          if(!r.ok) throw new Error(r.status);
+          return r.json();
+        })
+        .then(function(f){ if(!f) return;
+          sl(GDrive.LAST_KEY,new Date().toISOString());
+          GDrive._updateBtn();
+          bkToast('☁️ Drive: تم تحديث النسخة ✅ ('+arr.length+' سجل)');
+          console.log('[GDrive ✅] تحديث — '+arr.length+' سجل');
+        })
+        .catch(function(e){ bkToast('❌ Drive: فشل التحديث — '+e.message,'#c0392b'); });
+      } else {
+        // إنشاء ملف جديد
+        var meta=JSON.stringify({name:fileName,mimeType:'application/json'});
+        var boundary='linah_bk_boundary';
+        var CRLF='\r\n';
+        var body='--'+boundary+CRLF+
+                 'Content-Type: application/json'+CRLF+CRLF+
+                 meta+CRLF+
+                 '--'+boundary+CRLF+
+                 'Content-Type: application/json'+CRLF+CRLF+
+                 payload+CRLF+
+                 '--'+boundary+'--';
+        fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+GDrive._token,
+                   'Content-Type':'multipart/related; boundary='+boundary},
+          body:body
+        })
+        .then(function(r){
+          if(r.status===401){ GDrive._token=null; sl(GDrive.TOKEN_KEY,''); GDrive.upload(); return; }
+          if(!r.ok) throw new Error(r.status);
+          return r.json();
+        })
+        .then(function(f){ if(!f) return;
+          sl(GDrive.FILE_ID_KEY, f.id);
+          sl(GDrive.LAST_KEY, new Date().toISOString());
+          GDrive._updateBtn();
+          bkToast('☁️ Drive: تم إنشاء ملف النسخة ✅ ('+arr.length+' سجل)');
+          console.log('[GDrive ✅] إنشاء ملف جديد — id:'+f.id);
+        })
+        .catch(function(e){ bkToast('❌ Drive: فشل الإنشاء — '+e.message,'#c0392b'); });
+      }
+    },
+
+    // جدول رفع يومي تلقائي الساعة 8:30 صباحاً
+    scheduleDaily: function(){
+      if(!GDrive.isConfigured()) return;
+      (function next(){
+        var now=new Date(), t=new Date(now);
+        t.setHours(8,30,0,0);
+        if(t<=now) t.setDate(t.getDate()+1);
+        setTimeout(function(){
+          if(GDrive._token) GDrive._doUpload();
+          next();
+        }, t-now);
+      })();
+      console.log('[GDrive ✅] الرفع التلقائي مجدوَل الساعة 8:30 صباحاً');
+    },
+
+    // فتح نافذة إعداد Client ID
+    showSetup: function(){
+      var cur=GDrive.CLIENT_ID||'';
+      var id=prompt(
+        '⚙️ إعداد Google Drive' +
+        '\n\nأدخل OAuth 2.0 Client ID من Google Cloud Console:' +
+        '\n(سيُحفظ في localStorage)',
+        cur
+      );
+      if(id && id.trim()){
+        GDrive.CLIENT_ID=id.trim();
+        sl('lf_v5_gdrive_client_id', id.trim());
+        bkToast('✅ تم حفظ Client ID — اضغط "ربط Drive" الآن','#27ae60');
+        GDrive._updateBtn();
+      }
+    },
+
+    _updateBtn: function(){
+      var btn=document.getElementById('_bk_drive_btn');
+      var info=document.getElementById('_bk_drive_info');
+      if(!btn) return;
+      var ts=gl(GDrive.LAST_KEY);
+      var linked=!!GDrive._token;
+      var configured=GDrive.isConfigured();
+      btn.textContent = !configured ? '⚙️ إعداد Drive' : linked ? '☁️ رفع Drive الآن' : '🔗 ربط Google Drive';
+      btn.style.background = !configured ? '#95a5a6' : linked ? '#27ae60' : '#2980b9';
+      if(info) info.textContent = ts ? 'Drive: '+new Date(ts).toLocaleString('ar-EG') : configured ? (linked?'جاهز للرفع':'اضغط لتسجيل الدخول') : 'غير مُعدّ بعد';
+    }
+  };
+
+  // استرجاع Client ID المحفوظ من localStorage (لو المستخدم دخله من قبل)
+  (function(){ var saved=gl('lf_v5_gdrive_client_id'); if(saved) GDrive.CLIENT_ID=saved; })();
+
+  /* ════════════════════════════════════════════════════════════
+     🎛️ لوحة التحكم
+     ════════════════════════════════════════════════════════════ */
   function buildPanel(){
     var hidden = gl(KEYS.PANEL_HIDDEN)==='1';
 
@@ -11169,7 +11452,6 @@
     wrap.id='_bk_wrap';
     wrap.style.cssText='position:fixed;bottom:18px;left:18px;z-index:99998;font-family:Tajawal,sans-serif;direction:rtl';
 
-    // زر صغير دائم الظهور لفتح القائمة حتى لو مخفية
     var toggleBtn=document.createElement('button');
     toggleBtn.id='_bk_toggle';
     toggleBtn.title='إظهار/إخفاء لوحة الحماية';
@@ -11179,43 +11461,64 @@
     var panel=document.createElement('div');
     panel.id='_bk_panel';
     panel.innerHTML=[
+      /* ── الرأس ── */
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">',
         '<span style="font-weight:700;font-size:13px">🛡️ حماية البيانات</span>',
         '<button id="_bk_close" title="إخفاء" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px">✕</button>',
       '</div>',
-      btn('_bk_now',   '💾 نسخ احتياطي الآن',        '#27ae60'),
-      btn('_bk_res_h', '🔄 استعادة (ساعية)',          '#2980b9'),
-      btn('_bk_res_d', '🔄 استعادة (يومية)',          '#8e44ad'),
-      btn('_bk_res_w', '🔄 استعادة (أسبوعية)',        '#c0392b'),
-      btn('_bk_vfy',   '✔️ فحص سلامة البيانات',       '#7f8c8d'),
-      btn('_bk_log',   '📋 سجل النسخ (Console)',      '#34495e'),
-      '<div style="border-top:1px solid rgba(255,255,255,.2);margin-top:8px;padding-top:6px;font-size:11px">',
-        '<div>آخر نسخة: <span id="_bk_last" style="color:#2ecc71">—</span></div>',
-        '<div>مكان الحفظ: <span style="color:#f39c12">localStorage</span></div>',
+
+      /* ── قسم localStorage ── */
+      '<div style="font-size:10px;color:rgba(255,255,255,.5);margin:2px 0 4px">💾 نسخ محلي (localStorage)</div>',
+      btn('_bk_now',   '💾 نسخ احتياطي الآن',   '#27ae60'),
+      btn('_bk_res_h', '🔄 استعادة (ساعية)',     '#2980b9'),
+      btn('_bk_res_d', '🔄 استعادة (يومية)',     '#8e44ad'),
+      btn('_bk_res_w', '🔄 استعادة (أسبوعية)',   '#c0392b'),
+
+      /* ── قسم التحميل المحلي ── */
+      '<div style="font-size:10px;color:rgba(255,255,255,.5);margin:6px 0 4px">📥 تحميل على الجهاز</div>',
+      btn('_bk_dl',    '📥 تحميل JSON الآن',     '#16a085'),
+
+      /* ── قسم Google Drive ── */
+      '<div style="font-size:10px;color:rgba(255,255,255,.5);margin:6px 0 4px">☁️ Google Drive</div>',
+      btn('_bk_drive_btn', '⚙️ إعداد Drive',     '#95a5a6'),
+
+      /* ── قسم الأدوات ── */
+      '<div style="font-size:10px;color:rgba(255,255,255,.5);margin:6px 0 4px">🔧 أدوات</div>',
+      btn('_bk_vfy',   '✔️ فحص سلامة البيانات', '#7f8c8d'),
+      btn('_bk_log',   '📋 سجل النسخ (Console)', '#34495e'),
+
+      /* ── معلومات ── */
+      '<div style="border-top:1px solid rgba(255,255,255,.2);margin-top:8px;padding-top:6px;font-size:10px;line-height:1.7">',
+        '<div>آخر نسخة محلية: <span id="_bk_last" style="color:#2ecc71">—</span></div>',
+        '<div id="_bk_drive_info" style="color:#3498db">Drive: غير مُعدّ بعد</div>',
       '</div>'
     ].join('');
-    panel.style.cssText='background:#1a5f2f;color:#fff;padding:13px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);width:195px;'+(hidden?'display:none':'display:block');
+    panel.style.cssText='background:#1a5f2f;color:#fff;padding:13px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);width:200px;'+(hidden?'display:none':'display:block');
 
     wrap.appendChild(toggleBtn);
     wrap.appendChild(panel);
     document.body.appendChild(wrap);
 
-    // أحداث
-    document.getElementById('_bk_now')  .onclick=function(){ Backup.create('hourly'); bkToast('💾 تم حفظ نسخة احتياطية ✅'); };
+    /* ── ربط الأحداث ── */
+    document.getElementById('_bk_now')  .onclick=function(){ Backup.create('hourly'); bkToast('💾 تم حفظ نسخة محلية ✅'); };
     document.getElementById('_bk_res_h').onclick=function(){ if(confirm('استعادة من النسخة الساعية؟'))  Backup.restore('hourly'); };
     document.getElementById('_bk_res_d').onclick=function(){ if(confirm('استعادة من النسخة اليومية؟'))  Backup.restore('daily'); };
     document.getElementById('_bk_res_w').onclick=function(){ if(confirm('استعادة من النسخة الأسبوعية؟')) Backup.restore('weekly'); };
+    document.getElementById('_bk_dl')   .onclick=function(){ LocalExport.download('manual'); };
+    document.getElementById('_bk_drive_btn').onclick=function(){
+      if(!GDrive.isConfigured()){ GDrive.showSetup(); }
+      else if(!GDrive._token){ GDrive.initClient(function(){ GDrive._doUpload(); }); }
+      else { GDrive.upload(); }
+    };
     document.getElementById('_bk_vfy') .onclick=function(){
       var ok=Backup.verify();
       bkToast(ok?'✅ البيانات سليمة':'❌ البيانات قد تكون تالفة!', ok?'#27ae60':'#c0392b');
     };
     document.getElementById('_bk_log') .onclick=function(){ Backup.history(); bkToast('📋 افتح Console (F12) للسجل','#34495e'); };
 
-    // زر الإخفاء داخل اللوحة
     document.getElementById('_bk_close').onclick=function(){
       panel.style.display='none'; sl(KEYS.PANEL_HIDDEN,'1');
     };
-    // زر الإظهار الدائم
     toggleBtn.onclick=function(){
       var vis=panel.style.display==='none';
       panel.style.display=vis?'block':'none';
@@ -11223,27 +11526,40 @@
     };
 
     Backup._updateStatus();
-    console.log('[Panel ✅] القائمة جاهزة — 🛡️ زر الإخفاء متاح');
+    GDrive._updateBtn();
+    console.log('[Panel ✅] القائمة جاهزة — localStorage + تحميل محلي + Google Drive');
   }
   function btn(id,label,bg){
-    return '<button id="'+id+'" style="display:block;width:100%;margin:4px 0;padding:7px 6px;background:'+bg+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:12px;text-align:right">'+label+'</button>';
+    return '<button id="'+id+'" style="display:block;width:100%;margin:3px 0;padding:7px 6px;background:'+bg+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:12px;text-align:right">'+label+'</button>';
   }
 
   /* ── التشغيل ── */
   function init(){
     console.log('%c🛡️ نظام الحماية LINAH IIS v2.0', 'color:#27ae60;font-weight:bold;font-size:14px');
-    // نسخة فورية عند الفتح (إن مرّ أكثر من 10 دقائق على آخر نسخة)
-    var lastTs=gl(KEYS.LAST);
-    if(!lastTs || Date.now()-new Date(lastTs).getTime() > 10*60*1000) Backup.create('hourly');
+
+    // انتظر اكتمال Firebase قبل أول نسخة (4 ثوانٍ)
+    setTimeout(function(){
+      var lastTs=gl(KEYS.LAST);
+      var needBk=!lastTs || Date.now()-new Date(lastTs).getTime() > 10*60*1000;
+      if(needBk){
+        var r=Backup.create('hourly');
+        if(!r) console.warn('[Backup] لم تتم — ستتم في الدورة القادمة');
+      }
+    }, 4000);
+
     schedule();
     watch();
-    setInterval(fbSync, 12*60*1000);
+    setInterval(fbSync, 15*60*1000);
+    LocalExport.scheduleDaily();   // تحميل محلي يومي 8:00 صباحاً
+    GDrive.scheduleDaily();        // رفع Drive يومي 8:30 صباحاً
     buildPanel();
-    console.log('%c✅ نظام الحماية جاهز!', 'color:#27ae60;font-weight:bold');
+    console.log('%c✅ نظام الحماية جاهز! (localStorage + تحميل محلي + Google Drive)', 'color:#27ae60;font-weight:bold');
   }
 
-  window.BackupSystem = Backup;
-  window.syncFirebase = fbSync;
+  window.BackupSystem  = Backup;
+  window.LocalExport   = LocalExport;
+  window.GDrive        = GDrive;
+  window.syncFirebase  = fbSync;
 
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init);
