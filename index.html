@@ -4569,15 +4569,6 @@
       });
     }
 
-    // POST: أضف سجلاً جديداً كـ Object منفصل → يُعيد Firebase Push ID تلقائياً
-    function fbPost(url, data) {
-      return fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    }
-
     // Poll Firebase every 10 seconds for real-time-like sync
     function startFbPolling() {
       if (fbPollTimer) clearInterval(fbPollTimer);
@@ -4652,8 +4643,22 @@
         fbSetStatus(true);
         // Load DB from Firebase if it has data
         if (val && Array.isArray(val) && val.length) {
-          DB = val;
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
+          // 🛡️ تحقق أن Firebase لا تحتوي على SEED فقط (بيانات افتراضية)
+          var isOnlySeed = SEED && val.length <= SEED.length;
+          var localRaw = localStorage.getItem(STORAGE_KEY);
+          var localData = null;
+          try { localData = localRaw ? JSON.parse(localRaw) : null; } catch(e){}
+
+          // إذا Firebase فيها SEED فقط والـ localStorage فيها بيانات حقيقية أكثر → استخدم الـ localStorage
+          if (isOnlySeed && localData && Array.isArray(localData) && localData.length > val.length) {
+            console.warn('🛡️ [Firebase] Firebase تحتوي على بيانات افتراضية فقط — تم استخدام localStorage (' + localData.length + ' سجل)');
+            DB = localData;
+            // ارفع البيانات الحقيقية لـ Firebase
+            fbPut(FB_DB_URL, DB).catch(function(e){ console.warn('FB restore from local:', e); });
+          } else {
+            DB = val;
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) { }
+          }
           computeFU(); initFilters(); applyF(); fillGlobalFilters(); buildDash();
           var counts = {};
           DB.forEach(function (r) { counts[r.code] = (counts[r.code] || 0) + 1; });
@@ -4661,8 +4666,48 @@
           setT('nb-rep', repCnt);
           setT('db-cnt', DB.length + ' سجل');
         } else {
-          // First run — push local data to Firebase
-          fbPut(FB_DB_URL, DB).catch(function (e) { console.warn('FB push DB:', e); });
+          // 🛡️ Firebase فارغة/ممسوحة — لا ترفع SEED! ارفع البيانات الحقيقية من localStorage أو النسخ الاحتياطية
+          var realData = null;
+
+          // جرّب localStorage أولاً
+          try {
+            var lsRaw = localStorage.getItem(STORAGE_KEY);
+            if (lsRaw) {
+              var lsParsed = JSON.parse(lsRaw);
+              if (Array.isArray(lsParsed) && lsParsed.length > 0) realData = lsParsed;
+            }
+          } catch(e){}
+
+          // جرّب النسخ الاحتياطية إذا localStorage فارغة
+          if (!realData) {
+            var bkKeys = ['lf_v5_bk_d', 'lf_v5_bk_h', 'lf_v5_bk_w'];
+            for (var bi2 = 0; bi2 < bkKeys.length; bi2++) {
+              try {
+                var bk = JSON.parse(localStorage.getItem(bkKeys[bi2]) || 'null');
+                if (bk && bk.db) {
+                  var bkArr = JSON.parse(bk.db);
+                  if (Array.isArray(bkArr) && bkArr.length > 0) { realData = bkArr; break; }
+                }
+              } catch(e){}
+            }
+          }
+
+          if (realData && realData.length > 0) {
+            // ارفع البيانات الحقيقية لـ Firebase
+            DB = realData;
+            fbPut(FB_DB_URL, DB).catch(function (e) { console.warn('FB restore DB:', e); });
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch(e){}
+            console.log('🛡️ [Firebase] تم استعادة ' + DB.length + ' سجل من المخزن المحلي إلى Firebase');
+            computeFU(); initFilters(); applyF(); fillGlobalFilters(); buildDash();
+          } else {
+            // لا يوجد أي بيانات حقيقية — SEED كملاذ أخير فقط
+            console.warn('🛡️ [Firebase] لا توجد بيانات حقيقية. يُعرض تحذير للمستخدم.');
+            setTimeout(function(){
+              if (typeof toast === 'function') {
+                toast('⚠️ Firebase فارغة ولا توجد نسخة احتياطية. تأكد من استعادة بياناتك.', 'e');
+              }
+            }, 2000);
+          }
         }
         // Load DD
         fbGet(FB_DD_URL, function (err2, ddVal) {
@@ -4683,20 +4728,73 @@
     }
 
     function initDB() {
-      // Try Firebase first
-      var ok = initFirebase();
+      // ═══════════════════════════════════════════════════════════
+      // 🛡️ إصلاح جذري: ترتيب أولويات تحميل البيانات
+      // الأولوية: localStorage الرئيسية → النسخ الاحتياطية → Firebase → SEED فقط كملاذ أخير
+      // ═══════════════════════════════════════════════════════════
 
-      // Also load from localStorage as immediate seed (before Firebase responds)
+      // محاولة تحميل من localStorage الرئيسية
       var s = localStorage.getItem(STORAGE_KEY);
+      var loaded = false;
       if (s) {
-        try { DB = JSON.parse(s); }
-        catch (e) { DB = SEED.slice(); }
-      } else {
-        DB = SEED.slice();
-        // Push SEED to Firebase on first run
-        if (ok) { fbPut(FB_DB_URL, DB).catch(function (e) { console.warn('FB seed DB:', e); }); }
+        try {
+          var parsed = JSON.parse(s);
+          // 🛡️ تحقق أن البيانات حقيقية (أكثر من SEED)
+          if (Array.isArray(parsed) && parsed.length > (SEED ? SEED.length : 0)) {
+            DB = parsed;
+            loaded = true;
+            console.log('✅ [initDB] بيانات محملة من localStorage (' + DB.length + ' سجل)');
+          } else if (Array.isArray(parsed) && parsed.length > 0) {
+            DB = parsed;
+            loaded = true;
+            console.log('✅ [initDB] بيانات محملة من localStorage (' + DB.length + ' سجل)');
+          }
+        } catch (e) { console.warn('[initDB] localStorage تالفة:', e); }
       }
 
+      // 🛡️ إذا فشل التحميل من localStorage → جرّب النسخ الاحتياطية
+      if (!loaded) {
+        var backupKeys = ['lf_v5_bk_d', 'lf_v5_bk_h', 'lf_v5_bk_w', 'lf_v5_db_backups'];
+        for (var bi = 0; bi < backupKeys.length; bi++) {
+          try {
+            var bkRaw = localStorage.getItem(backupKeys[bi]);
+            if (!bkRaw) continue;
+            var bkParsed = JSON.parse(bkRaw);
+            // النسخة اليومية/الساعية/الأسبوعية من نظام الحماية
+            if (bkParsed && bkParsed.db) {
+              var bkData = JSON.parse(bkParsed.db);
+              if (Array.isArray(bkData) && bkData.length > 0) {
+                DB = bkData;
+                // استعد البيانات فوراً في localStorage الرئيسية
+                try { localStorage.setItem(STORAGE_KEY, bkParsed.db); } catch(e){}
+                loaded = true;
+                console.warn('⚠️ [initDB] تم الاسترداد التلقائي من نسخة احتياطية (' + backupKeys[bi] + ') — ' + DB.length + ' سجل');
+                break;
+              }
+            }
+            // النسخ الاحتياطية القديمة (lf_v5_db_backups)
+            if (Array.isArray(bkParsed) && bkParsed.length > 0 && bkParsed[0].db) {
+              var latestBk = JSON.parse(bkParsed[0].db || '[]');
+              if (Array.isArray(latestBk) && latestBk.length > 0) {
+                DB = latestBk;
+                try { localStorage.setItem(STORAGE_KEY, bkParsed[0].db); } catch(e){}
+                loaded = true;
+                console.warn('⚠️ [initDB] تم الاسترداد من snapshot قديم — ' + DB.length + ' سجل');
+                break;
+              }
+            }
+          } catch(e) {}
+        }
+      }
+
+      // 🛡️ إذا لا يوجد أي نسخة → SEED كملاذ أخير فقط (ولا يُرفع لـ Firebase تلقائياً)
+      if (!loaded) {
+        DB = SEED.slice();
+        console.warn('⚠️ [initDB] لا توجد بيانات محلية — تم تحميل البيانات الافتراضية فقط. لا يتم الرفع التلقائي لـ Firebase.');
+        // 🛡️ لا ترفع SEED تلقائياً لـ Firebase — انتظر حتى يتحقق المستخدم
+      }
+
+      // تحميل DD
       var ds = localStorage.getItem(DD_KEY);
       if (ds) {
         try {
@@ -4705,6 +4803,9 @@
         } catch (e) { }
       }
       ensurePalmCounts();
+
+      // تشغيل Firebase بعد تحميل البيانات المحلية
+      initFirebase();
     }
 
     function saveDB(opts) {
@@ -4726,24 +4827,12 @@
       // Firebase دايماً — بغض النظر عن fbConnected
       clearTimeout(fbSaveTimer);
       fbSaveTimer = setTimeout(function () {
-        // ✅ إضافة جديدة: استخدم POST لإرسال السجل منفرداً والحصول على Push ID
-        // بدلاً من PUT للمصفوفة كاملها (يتجنب Race Conditions ومسح البيانات)
-        if (opts.newRecord) {
-          fbPost(FB_DB_URL, opts.newRecord)
-            .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
-            .catch(function (err) {
-              fbSetStatus(false);
-              toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
-            });
-        } else {
-          // تعديل أو حذف: PUT للمصفوفة كاملها كما هو
-          fbPut(FB_DB_URL, DB)
-            .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
-            .catch(function (err) {
-              fbSetStatus(false);
-              toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
-            });
-        }
+        fbPut(FB_DB_URL, DB)
+          .then(function(r){ if(!r.ok) throw new Error(r.status); fbSetStatus(true); })
+          .catch(function (err) {
+            fbSetStatus(false);
+            toast('⚠️ تعذّر الحفظ في Firebase — محفوظ محلياً مؤقتاً', 'w');
+          });
       }, 400);
     }
 
@@ -6128,8 +6217,7 @@
       else { DB.unshift(r); }
       document.getElementById('wf-id').value = r.id;
       wfEditId = r.id;
-      // ✅ إضافة جديدة: مرّر السجل عبر opts.newRecord لاستخدام POST بدلاً من PUT
-      saveDB(id ? {} : { newRecord: r }); computeFU();
+      saveDB(); computeFU();
       try { ntAfterRecordSave(r, wfStage); } catch (ntErr) { console.warn('Notification hook failed:', ntErr); }
       var keepRecordsState = recordsFilterState || captureRecordsState();
       initFilters();
@@ -8468,39 +8556,23 @@
         });
     }
 
-    function saveTrackingRecords(arr, opts) {
-      opts = opts || {};
+    function saveTrackingRecords(arr) {
       // localStorage كـ cache فوري
       try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch (e) { }
       // Firebase دايماً
       clearTimeout(_trSaveTimer);
       _trSaveTimer = setTimeout(function () {
-        // ✅ إضافة جديدة: استخدم POST لإرسال السجل منفرداً والحصول على Push ID
-        if (opts.newRecord) {
-          fbPost(FB_TRACKING_URL, opts.newRecord)
-            .then(function(r){
-              if (!r.ok) throw new Error(r.status);
-              fbSetStatus(true);
-              toast('☁️ تم الحفظ على Firebase', 's');
-            })
-            .catch(function (e) {
-              fbSetStatus(false);
-              console.warn('Tracking Firebase save error:', e);
-              toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
-            });
-        } else {
-          fbPut(FB_TRACKING_URL, arr)
-            .then(function(r){
-              if (!r.ok) throw new Error(r.status);
-              fbSetStatus(true);
-              toast('☁️ تم الحفظ على Firebase', 's');
-            })
-            .catch(function (e) {
-              fbSetStatus(false);
-              console.warn('Tracking Firebase save error:', e);
-              toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
-            });
-        }
+        fbPut(FB_TRACKING_URL, arr)
+          .then(function(r){
+            if (!r.ok) throw new Error(r.status);
+            fbSetStatus(true);
+            toast('☁️ تم الحفظ على Firebase', 's');
+          })
+          .catch(function (e) {
+            fbSetStatus(false);
+            console.warn('Tracking Firebase save error:', e);
+            toast('⚠️ تعذّر حفظ التتبع في Firebase — محفوظ محلياً مؤقتاً', 'w');
+          });
       }, 400);
     }
 
@@ -8818,8 +8890,7 @@
 
       var arr = getTrackingRecords();
       arr.push(rec);
-      // ✅ مرّر السجل الجديد عبر opts.newRecord لاستخدام POST بدلاً من PUT
-      saveTrackingRecords(arr, { newRecord: rec });
+      saveTrackingRecords(arr);
       toast('✅ تم حفظ التتبع بنجاح', 's');
       showLastSavedRecord(rec);
       // ✅ لا نمسح الواجهة — تبقى كما هي لتسهيل تغيير أرقام الخطوط
@@ -10962,6 +11033,223 @@
     rcInitDiagList();
   });
 
+})();
+</script>
+
+<!-- ============================================================
+     🛡️ نظام الحماية الجذري - LINAH IIS v2.0
+     النسخ الاحتياطية تُحفظ في localStorage بالمفاتيح:
+       lf_v5_bk_h  → نسخة كل 10 دقائق
+       lf_v5_bk_d  → نسخة يومية
+       lf_v5_bk_w  → نسخة أسبوعية
+       lf_v5_bk_history → سجل النسخ
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  var KEYS = {
+    DB: 'lf_v5_db', DD: 'lf_v5_dd',
+    BK_H: 'lf_v5_bk_h', BK_D: 'lf_v5_bk_d', BK_W: 'lf_v5_bk_w',
+    HIST: 'lf_v5_bk_history', LAST: 'lf_v5_bk_last_ts',
+    PANEL_HIDDEN: 'lf_v5_panel_hidden'   // 🛡️ يحفظ حالة الإخفاء
+  };
+
+  /* ── أدوات ── */
+  function gl(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+  function sl(k,v){ try{localStorage.setItem(k,v);return true;}catch(e){return false;} }
+  function pl(k){ try{var v=gl(k);return v?JSON.parse(v):null;}catch(e){return null;} }
+  function chk(s){ var h=0; for(var i=0;i<s.length;i++) h=Math.imul(31,h)+s.charCodeAt(i)|0; return Math.abs(h).toString(16); }
+  function bkToast(msg,col){
+    var d=document.createElement('div');
+    d.textContent=msg;
+    d.style.cssText='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:'+(col||'#1a5f2f')+';color:#fff;padding:10px 22px;border-radius:6px;font-family:Tajawal,sans-serif;font-size:14px;z-index:99999;box-shadow:0 3px 10px rgba(0,0,0,.35);transition:opacity .4s';
+    document.body.appendChild(d);
+    setTimeout(function(){d.style.opacity='0';setTimeout(function(){d.remove();},400);},2800);
+  }
+
+  /* ── النسخ الاحتياطي ── */
+  var Backup = {
+    create: function(type){
+      var db=gl(KEYS.DB), dd=gl(KEYS.DD);
+      if(!db){ console.warn('[Backup] لا يوجد بيانات'); return false; }
+      // لا تنسخ SEED! تحقق أن البيانات حقيقية
+      try{
+        var arr=JSON.parse(db);
+        if(!Array.isArray(arr)||arr.length===0){ console.warn('[Backup] البيانات فارغة — لن يتم النسخ'); return false; }
+      }catch(e){ return false; }
+      var snap={db:db,dd:dd||'{}',ts:new Date().toISOString(),type:type,chk:chk(db+(dd||''))};
+      var k=type==='daily'?KEYS.BK_D:type==='weekly'?KEYS.BK_W:KEYS.BK_H;
+      if(!sl(k,JSON.stringify(snap))){ console.error('[Backup] فشل الحفظ'); return false; }
+      sl(KEYS.LAST, snap.ts);
+      var hist=pl(KEYS.HIST)||[];
+      hist.unshift({ts:snap.ts,type:type,chk:snap.chk,size:db.length});
+      sl(KEYS.HIST,JSON.stringify(hist.slice(0,60)));
+      console.log('[Backup ✅] '+type+' — '+snap.ts+' — '+Math.round(db.length/1024)+'KB');
+      Backup._updateStatus();
+      return true;
+    },
+    restore: function(type){
+      var k=type==='daily'?KEYS.BK_D:type==='weekly'?KEYS.BK_W:KEYS.BK_H;
+      var snap=pl(k);
+      if(!snap){ bkToast('❌ لا توجد نسخة '+type,'#c0392b'); return false; }
+      if(snap.chk && snap.chk!==chk(snap.db+snap.dd)) bkToast('⚠️ النسخة قد تكون تالفة — جارٍ الاستعادة','#e67e22');
+      sl(KEYS.DB,snap.db); sl(KEYS.DD,snap.dd);
+      bkToast('✅ تمت الاستعادة من نسخة '+type+' — جارٍ إعادة التحميل…');
+      setTimeout(function(){location.reload();},1800);
+      return true;
+    },
+    verify: function(){
+      var db=gl(KEYS.DB);
+      if(!db) return false;
+      try{JSON.parse(db); return true;}catch(e){return false;}
+    },
+    history: function(){ var h=pl(KEYS.HIST)||[]; console.table(h); return h; },
+    _updateStatus: function(){
+      var el=document.getElementById('_bk_last');
+      if(!el) return;
+      var ts=gl(KEYS.LAST);
+      el.textContent=ts?new Date(ts).toLocaleString('ar-EG'):'—';
+    }
+  };
+
+  /* ── الجدولة التلقائية ── */
+  function schedule(){
+    // كل 10 دقائق
+    setInterval(function(){ Backup.create('hourly'); }, 10*60*1000);
+    // يومي
+    (function nd(){ var n=new Date(),t=new Date(n); t.setDate(t.getDate()+1); t.setHours(0,1,0,0);
+      setTimeout(function(){ Backup.create('daily'); nd(); }, t-n); })();
+    // أسبوعي (جمعة)
+    (function nw(){ var n=new Date(),diff=((5-n.getDay()+7)%7)||7,f=new Date(n);
+      f.setDate(f.getDate()+diff); f.setHours(0,5,0,0);
+      setTimeout(function(){ Backup.create('weekly'); nw(); }, f-n); })();
+    // عند إغلاق التبويب
+    window.addEventListener('beforeunload', function(){ Backup.create('hourly'); });
+    console.log('[Backup ✅] الجدولة مفعّلة — كل 10 دق / يومي / أسبوعي');
+  }
+
+  /* ── المراقبة ── */
+  var _last=null;
+  function watch(){
+    _last=gl(KEYS.DB);
+    setInterval(function(){
+      var cur=gl(KEYS.DB);
+      if(cur && cur!==_last){ Backup.create('hourly'); _last=cur; }
+      // كشف حذف واسع
+      var daily=pl(KEYS.BK_D);
+      if(daily && cur){
+        try{
+          var ca=JSON.parse(cur), da=JSON.parse(daily.db);
+          if(Array.isArray(ca)&&Array.isArray(da)&&da.length>10&&ca.length<da.length*0.6){
+            if(confirm('⚠️ تحذير: تم كشف حذف كبير في البيانات!\nهل تريد استعادة من النسخة اليومية؟'))
+              Backup.restore('daily');
+          }
+        }catch(e){}
+      }
+    }, 5*60*1000);
+    console.log('[Watcher ✅] المراقبة مفعّلة');
+  }
+
+  /* ── مزامنة Firebase ── */
+  var FB_BASE='https://linah-iis-default-rtdb.firebaseio.com/linah_farms';
+  function fbSync(){
+    var db=gl(KEYS.DB);
+    if(!db) return;
+    fetch(FB_BASE+'/db.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:db})
+      .then(function(r){if(r.ok)console.log('[Firebase ✅] مزامنة ناجحة');})
+      .catch(function(e){console.warn('[Firebase ⚠️]',e.message);});
+  }
+
+  /* ── بناء القائمة ── */
+  function buildPanel(){
+    var hidden = gl(KEYS.PANEL_HIDDEN)==='1';
+
+    var wrap=document.createElement('div');
+    wrap.id='_bk_wrap';
+    wrap.style.cssText='position:fixed;bottom:18px;left:18px;z-index:99998;font-family:Tajawal,sans-serif;direction:rtl';
+
+    // زر صغير دائم الظهور لفتح القائمة حتى لو مخفية
+    var toggleBtn=document.createElement('button');
+    toggleBtn.id='_bk_toggle';
+    toggleBtn.title='إظهار/إخفاء لوحة الحماية';
+    toggleBtn.style.cssText='width:38px;height:38px;border-radius:50%;background:#1a5f2f;color:#fff;border:2px solid #2ecc71;font-size:18px;cursor:pointer;display:block;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+    toggleBtn.textContent='🛡️';
+
+    var panel=document.createElement('div');
+    panel.id='_bk_panel';
+    panel.innerHTML=[
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">',
+        '<span style="font-weight:700;font-size:13px">🛡️ حماية البيانات</span>',
+        '<button id="_bk_close" title="إخفاء" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;padding:0 4px">✕</button>',
+      '</div>',
+      btn('_bk_now',   '💾 نسخ احتياطي الآن',        '#27ae60'),
+      btn('_bk_res_h', '🔄 استعادة (ساعية)',          '#2980b9'),
+      btn('_bk_res_d', '🔄 استعادة (يومية)',          '#8e44ad'),
+      btn('_bk_res_w', '🔄 استعادة (أسبوعية)',        '#c0392b'),
+      btn('_bk_vfy',   '✔️ فحص سلامة البيانات',       '#7f8c8d'),
+      btn('_bk_log',   '📋 سجل النسخ (Console)',      '#34495e'),
+      '<div style="border-top:1px solid rgba(255,255,255,.2);margin-top:8px;padding-top:6px;font-size:11px">',
+        '<div>آخر نسخة: <span id="_bk_last" style="color:#2ecc71">—</span></div>',
+        '<div>مكان الحفظ: <span style="color:#f39c12">localStorage</span></div>',
+      '</div>'
+    ].join('');
+    panel.style.cssText='background:#1a5f2f;color:#fff;padding:13px 12px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.4);width:195px;'+(hidden?'display:none':'display:block');
+
+    wrap.appendChild(toggleBtn);
+    wrap.appendChild(panel);
+    document.body.appendChild(wrap);
+
+    // أحداث
+    document.getElementById('_bk_now')  .onclick=function(){ Backup.create('hourly'); bkToast('💾 تم حفظ نسخة احتياطية ✅'); };
+    document.getElementById('_bk_res_h').onclick=function(){ if(confirm('استعادة من النسخة الساعية؟'))  Backup.restore('hourly'); };
+    document.getElementById('_bk_res_d').onclick=function(){ if(confirm('استعادة من النسخة اليومية؟'))  Backup.restore('daily'); };
+    document.getElementById('_bk_res_w').onclick=function(){ if(confirm('استعادة من النسخة الأسبوعية؟')) Backup.restore('weekly'); };
+    document.getElementById('_bk_vfy') .onclick=function(){
+      var ok=Backup.verify();
+      bkToast(ok?'✅ البيانات سليمة':'❌ البيانات قد تكون تالفة!', ok?'#27ae60':'#c0392b');
+    };
+    document.getElementById('_bk_log') .onclick=function(){ Backup.history(); bkToast('📋 افتح Console (F12) للسجل','#34495e'); };
+
+    // زر الإخفاء داخل اللوحة
+    document.getElementById('_bk_close').onclick=function(){
+      panel.style.display='none'; sl(KEYS.PANEL_HIDDEN,'1');
+    };
+    // زر الإظهار الدائم
+    toggleBtn.onclick=function(){
+      var vis=panel.style.display==='none';
+      panel.style.display=vis?'block':'none';
+      sl(KEYS.PANEL_HIDDEN, vis?'0':'1');
+    };
+
+    Backup._updateStatus();
+    console.log('[Panel ✅] القائمة جاهزة — 🛡️ زر الإخفاء متاح');
+  }
+  function btn(id,label,bg){
+    return '<button id="'+id+'" style="display:block;width:100%;margin:4px 0;padding:7px 6px;background:'+bg+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Tajawal,sans-serif;font-size:12px;text-align:right">'+label+'</button>';
+  }
+
+  /* ── التشغيل ── */
+  function init(){
+    console.log('%c🛡️ نظام الحماية LINAH IIS v2.0', 'color:#27ae60;font-weight:bold;font-size:14px');
+    // نسخة فورية عند الفتح (إن مرّ أكثر من 10 دقائق على آخر نسخة)
+    var lastTs=gl(KEYS.LAST);
+    if(!lastTs || Date.now()-new Date(lastTs).getTime() > 10*60*1000) Backup.create('hourly');
+    schedule();
+    watch();
+    setInterval(fbSync, 12*60*1000);
+    buildPanel();
+    console.log('%c✅ نظام الحماية جاهز!', 'color:#27ae60;font-weight:bold');
+  }
+
+  window.BackupSystem = Backup;
+  window.syncFirebase = fbSync;
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 600);
+  }
 })();
 </script>
 
