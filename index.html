@@ -2470,6 +2470,22 @@
     .rc-form-scroll::-webkit-scrollbar,.rc-tab-content::-webkit-scrollbar{width:4px}
     .rc-form-scroll::-webkit-scrollbar-thumb,.rc-tab-content::-webkit-scrollbar-thumb{background:#b8d9bf;border-radius:4px}
     @media(max-width:600px){.rc-modal{max-height:95vh;border-radius:14px}.rc-field-row{flex-direction:column}.rc-flex-1{min-width:100%}.rc-form-actions{flex-direction:column-reverse}.rc-btn{justify-content:center}}
+
+    /* ── Wind Arrow ── */
+    .wind-arrow-wrap {
+      background: rgba(0,0,0,.65);
+      border: 2px solid rgba(255,255,255,.25);
+      border-radius: 50%;
+      width: 64px; height: 64px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: default;
+      backdrop-filter: blur(4px);
+    }
+    .wind-arrow-svg { transition: transform .6s ease; }
+    .wind-arrow-spd { color:#fff; font-size:.6rem; margin-top:2px; font-weight:600; text-align:center; }
+    .wind-arrow-dir { color:#8ecaff; font-size:.55rem; font-weight:600; }
+
   </style>
 </head>
 
@@ -3256,6 +3272,10 @@
               <div id="rp-crit" style="max-height:260px;overflow-y:auto"></div>
             </div>
           </div>
+          <div class="sc" style="margin-top:14px">
+            <div class="sc-hd">📍 إنجاز التتبع حسب المحابس</div>
+            <div id="rp-track-progress"></div>
+          </div>
         </div>
       </div>
 
@@ -3424,10 +3444,14 @@
                   <select class="fsel2" id="tr-supervisor"><option value="">-- اختر المشرف --</option></select>
                 </div>
               </div>
-              <div class="fgr fgr-2" style="margin-top:10px">
+              <div class="fgr fgr-3" style="margin-top:10px">
                 <div class="ff">
                   <label class="fl">تاريخ التتبع</label>
                   <input type="date" class="finp" id="tr-date">
+                </div>
+                <div class="ff">
+                  <label class="fl rq">دورة الفحص</label>
+                  <select class="fsel2" id="tr-cycle"><option value="">-- اختر الدورة --</option></select>
                 </div>
                 <div class="ff">
                   <label class="fl">ملاحظات</label>
@@ -3799,6 +3823,10 @@
         <div class="fgr fgr-2" style="margin-top:10px">
           <div class="ff"><label class="fl">التاريخ</label>
             <input type="date" class="finp" id="tre-date"></div>
+          <div class="ff"><label class="fl rq">دورة الفحص</label>
+            <select class="fsel2" id="tre-cycle"><option value="">-- اختر الدورة --</option></select></div>
+        </div>
+        <div class="fgr fgr-1" style="margin-top:10px">
           <div class="ff"><label class="fl">ملاحظات</label>
             <input class="finp" id="tre-notes" placeholder="ملاحظات..."></div>
         </div>
@@ -5137,6 +5165,7 @@
     // NAVIGATION
     // ════════════════════════════════════════════════
     var linahDashReady = false, linahMap = null, linahHeat = null, linahMarkers = null, linahSatelliteLayer = null;
+    var linahWindMarker = null, linahWindDate = null;
     var linahSectorEditMode = false, LINAH_SECTOR_COORDS_KEY = 'linah_iis_sector_coords_v1';
     var FB_SECTOR_COORDS_URL = FB_BASE + '/sector_coords.json';
     var LINAH_SECTOR_COORDS = {
@@ -5246,8 +5275,14 @@
       return Array.from(new Set(arr.filter(function (v) { return v !== undefined && v !== null && String(v).trim() !== ''; }).map(function (v) { return String(v).trim(); }))).sort(function (a, b) { return a.localeCompare(b, 'ar'); });
     }
 
+    function linahToLatinDigits(value) {
+      return String(value == null ? '' : value)
+        .replace(/[٠-٩]/g, function (d) { return String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)); })
+        .replace(/[۰-۹]/g, function (d) { return String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); });
+    }
+
     function linahNormalizeSector(value) {
-      var raw = String(value || '').replace(/قطاع|فطاع|sector/gi, '').trim();
+      var raw = linahToLatinDigits(value).replace(/قطاع|فطاع|sector/gi, '').trim();
       var digits = raw.match(/\d+/);
       if (digits) return String(parseInt(digits[0], 10));
       return raw || '';
@@ -5592,6 +5627,96 @@
       setTimeout(function () { try { linahMap.invalidateSize(); } catch (e) {} }, 150);
     }
 
+
+    // ── Wind Direction Widget ─────────────────────────────────────────
+    var WAHAT_LAT = 28.36, WAHAT_LNG = 28.88;
+
+    function fetchWindForDate(dateStr, callback) {
+      // dateStr = 'YYYY-MM-DD' or '' for current
+      var today = new Date().toISOString().slice(0,10);
+      var isHistorical = dateStr && dateStr < today;
+      var url;
+      if (isHistorical) {
+        url = 'https://archive-api.open-meteo.com/v1/archive?latitude=' + WAHAT_LAT +
+          '&longitude=' + WAHAT_LNG +
+          '&start_date=' + dateStr + '&end_date=' + dateStr +
+          '&hourly=wind_speed_10m,wind_direction_10m&timezone=Africa%2FCairo';
+      } else {
+        url = 'https://api.open-meteo.com/v1/forecast?latitude=' + WAHAT_LAT +
+          '&longitude=' + WAHAT_LNG +
+          '&current=wind_speed_10m,wind_direction_10m&timezone=Africa%2FCairo';
+      }
+      fetch(url)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var speed, dir;
+          if (isHistorical) {
+            // midday index (12:00)
+            var idx = 12;
+            speed = (data.hourly && data.hourly.wind_speed_10m) ? data.hourly.wind_speed_10m[idx] : null;
+            dir   = (data.hourly && data.hourly.wind_direction_10m) ? data.hourly.wind_direction_10m[idx] : null;
+          } else {
+            speed = data.current ? data.current.wind_speed_10m : null;
+            dir   = data.current ? data.current.wind_direction_10m : null;
+          }
+          callback({ speed: speed, dir: dir, date: dateStr || today, historical: !!isHistorical });
+        })
+        .catch(function(){ callback(null); });
+    }
+
+    function degToCompass(deg) {
+      if (deg == null) return '—';
+      var dirs = ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    function renderWindArrow(wind) {
+      if (!linahMap) return;
+      // استخدم Leaflet Control بدل Marker عشان يكون ثابت في الكورنر
+      if (linahWindMarker) {
+        linahMap.removeControl(linahWindMarker);
+        linahWindMarker = null;
+      }
+      if (!wind) return;
+
+      var deg = wind.dir != null ? wind.dir : 0;
+      var spd = wind.speed != null ? wind.speed.toFixed(1) + ' km/h' : '—';
+      var compass = degToCompass(wind.dir);
+
+      var WindControl = L.Control.extend({
+        options: { position: 'topleft' },
+        onAdd: function() {
+          var div = L.DomUtil.create('div', '');
+          div.style.marginTop = '80px'; // تحت أزرار الزووم
+          div.innerHTML =
+            '<div class="wind-arrow-wrap" title="اتجاه الرياح\n' + compass + '\n' + spd + '">' +
+              '<svg class="wind-arrow-svg" width="28" height="28" viewBox="0 0 28 28"' +
+                  ' style="transform:rotate(' + deg + 'deg)">' +
+                '<polygon points="14,2 19,22 14,18 9,22" fill="#60a5fa" stroke="#fff" stroke-width="1.5"/>' +
+                '<circle cx="14" cy="14" r="2.5" fill="#fff" opacity=".6"/>' +
+              '</svg>' +
+              '<div class="wind-arrow-spd">' + spd + '</div>' +
+              '<div class="wind-arrow-dir">' + compass + '</div>' +
+            '</div>';
+          L.DomEvent.disableClickPropagation(div);
+          return div;
+        }
+      });
+      linahWindMarker = new WindControl();
+      linahWindMarker.addTo(linahMap);
+    }
+
+    function updateMapWind(dateStr) {
+      // Avoid duplicate fetches for same date
+      var key = dateStr || '__now__';
+      if (linahWindDate === key) return;
+      linahWindDate = key;
+      fetchWindForDate(dateStr, function(wind) {
+        renderWindArrow(wind);
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────
+
     function renderLinahMap(data) {
       initLinahMap();
       if (!linahMap || !window.L) return;
@@ -5630,6 +5755,12 @@
       });
       setT('linah-map-count', data.length + ' \u0633\u062c\u0644');
       setTimeout(function () { try { linahMap.invalidateSize(); } catch (e) {} }, 120);
+      // ── Wind: اجيب تاريخ من فلتر الداشبورد ──
+      var _wDate = '';
+      var _fd = document.getElementById('gf-from'); var _td = document.getElementById('gf-to');
+      if (_fd && _fd.value) _wDate = _fd.value;
+      else if (_td && _td.value) _wDate = _td.value;
+      updateMapWind(_wDate);
     }
 
     function renderLinahTasks(data) {
@@ -6455,7 +6586,212 @@
           '<div class="al-body"><div class="al-code">' + r.code + '</div><div class="al-title">' + r.diagnosis + '</div>' +
           '<div class="al-meta">' + r.inspector + ' | ' + fmtD(r.inspection_date) + ' &#8594; ' + fmtD(r.treatment_date) + '</div></div>' +
           '<span class="al-days ' + (d > 7 ? 'd-ov' : 'd-tod') + '">' + d + ' \u064a\u0648\u0645</span></div>';
-      }).join('');
+        }).join('');
+    }
+
+    function linahNormValve(value) {
+      var raw = linahToLatinDigits(value).replace(/محبس|valve|pen/gi, '').trim();
+      var digits = raw.match(/\d+/);
+      if (digits) return String(parseInt(digits[0], 10));
+      return raw;
+    }
+
+    function linahDateAny(value) {
+      if (!value) return '';
+      if (Object.prototype.toString.call(value) === '[object Date]') {
+        if (isNaN(value.getTime())) return '';
+        return value.toISOString().slice(0, 10);
+      }
+      var s = linahToLatinDigits(value).trim();
+      if (!s) return '';
+      if (/^\d+(\.\d+)?$/.test(s)) {
+        var num = parseFloat(s);
+        if (num > 40000 && num < 70000) {
+          var exd = new Date(Math.round((num - 25569) * 864e5));
+          if (!isNaN(exd.getTime())) return exd.toISOString().slice(0, 10);
+        }
+      }
+      var ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      if (ymd) return ymd[1] + '-' + String(ymd[2]).padStart(2, '0') + '-' + String(ymd[3]).padStart(2, '0');
+      var dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (dmy) return dmy[3] + '-' + String(dmy[2]).padStart(2, '0') + '-' + String(dmy[1]).padStart(2, '0');
+      var compact = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+      if (compact) return compact[1] + '-' + compact[2] + '-' + compact[3];
+      return '';
+    }
+
+    function linahCycleDateRange(cycles, fr, to) {
+      var dates = [];
+      DB.forEach(function (r) {
+        if (cycles && cycles.length && cycles.indexOf(r.cycle || '') < 0) return;
+        var d = linahDateAny(r.inspection_date || r.date);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d)) dates.push(d);
+      });
+      dates.sort();
+      var from = dates[0] || fr || '';
+      var until = dates.length ? dates[dates.length - 1] : (to || '');
+      from = linahDateAny(from) || from;
+      until = linahDateAny(until) || until;
+      fr = linahDateAny(fr) || fr;
+      to = linahDateAny(to) || to;
+      if (fr && (!from || from < fr)) from = fr;
+      if (to && (!until || until > to)) until = to;
+      if (from && until && from > until) { var tmp = from; from = until; until = tmp; }
+      return { from: from, to: until };
+    }
+
+    function linahTrackingRowsForRange(range, sectors) {
+      var wantedSectors = (sectors || []).map(linahNormalizeSector).filter(Boolean);
+      var rows = (typeof getTrackingRecords === 'function' ? getTrackingRecords() : []);
+      return rows.filter(function (r) {
+        var sec = linahNormalizeSector(r.sector || r['القطاع'] || r.Sector);
+        if (wantedSectors.length && wantedSectors.indexOf(sec) < 0) return false;
+        var d = linahDateAny(r.date || r['التاريخ'] || r.Date || r.inspection_date || r.tracking_date || r.date_text);
+        if (range.from && d && d < range.from) return false;
+        if (range.to && d && d > range.to) return false;
+        return true;
+      });
+    }
+
+    function linahCycleOrderInfo(cycles) {
+      var byCycle = {};
+      DB.forEach(function (r) {
+        var cycle = String(r.cycle || '').trim();
+        if (!cycle) return;
+        var d = linahDateAny(r.inspection_date || r.date) || '9999-12-31';
+        if (!byCycle[cycle] || d < byCycle[cycle].from) byCycle[cycle] = { cycle: cycle, from: d };
+      });
+      var ordered = Object.keys(byCycle).map(function (k) { return byCycle[k]; }).sort(function (a, b) {
+        var cd = a.from.localeCompare(b.from);
+        return cd || a.cycle.localeCompare(b.cycle, 'ar');
+      });
+      var selected = (cycles || []).filter(Boolean);
+      var selectedIndexes = [];
+      if (selected.length) {
+        ordered.forEach(function (c, idx) {
+          if (selected.indexOf(c.cycle) >= 0) selectedIndexes.push(idx);
+        });
+      }
+      return {
+        ordered: ordered,
+        selectedIndexes: selected.length ? selectedIndexes : null,
+        label: selected.length && selectedIndexes.length
+          ? selected.map(function (c) {
+              var idx = -1;
+              ordered.forEach(function (x, i) { if (x.cycle === c) idx = i; });
+              return c + ' = التتبع رقم ' + (idx + 1);
+            }).join('، ')
+          : 'كل مرات التتبع'
+      };
+    }
+
+    function linahTrackingProgressByOrder(cycles, sectors) {
+      var wantedSectors = (sectors || []).map(linahNormalizeSector).filter(Boolean);
+      var selectedCycles = (cycles || []).filter(Boolean);
+      var rows = (typeof getTrackingRecords === 'function' ? getTrackingRecords() : []);
+
+      // ── فلترة سجلات التتبع حسب الدورة (لو محددة) والقطاع ──
+      var filtered = rows.filter(function(r) {
+        var sec = linahNormalizeSector(r.sector || r['القطاع'] || r.Sector);
+        if (wantedSectors.length && wantedSectors.indexOf(sec) < 0) return false;
+        if (selectedCycles.length) {
+          // لو السجل عنده cycle استخدمه مباشرة
+          if (r.cycle && selectedCycles.indexOf(r.cycle) >= 0) return true;
+          // لو مفيش cycle، استخدم الفحص القريب fallback (للبيانات القديمة مش المتحولة)
+          if (!r.cycle) {
+            var secNorm = linahNormalizeSector(r.sector);
+            var valveNorm = linahNormValve(r.valve);
+            var trDate = r.date || '';
+            var found = DB.some(function(dbRec) {
+              if (linahNormalizeSector(dbRec.sector) !== secNorm) return false;
+              if (linahNormValve(dbRec.pen) !== valveNorm) return false;
+              if (selectedCycles.indexOf(dbRec.cycle) < 0) return false;
+              var d = dbRec.inspection_date || '';
+              return d && (!trDate || d <= trDate);
+            });
+            return found;
+          }
+          return false;
+        }
+        return true;
+      });
+
+      // ── تجميع المحابس المفحوصة بالقطاع ──
+      var bySector = {};
+      var matched = 0;
+      filtered.forEach(function(r) {
+        var sec = linahNormalizeSector(r.sector || r['القطاع'] || r.Sector);
+        if (!sec) return;
+        var valve = linahNormValve(r.valve || r.pen || r['المحبس']);
+        if (!valve) return;
+        if (!bySector[sec]) bySector[sec] = {};
+        if (!bySector[sec][valve]) {
+          bySector[sec][valve] = r.date || '1';
+          matched++;
+        }
+      });
+
+      var orderInfo = linahCycleOrderInfo(cycles);
+      return { bySector: bySector, matched: matched, considered: filtered.length, orderInfo: orderInfo };
+    }
+
+    function linahBuildTrackingProgress(cycles, sectors, fr, to, cycleRows) {
+      var reportSectors = (sectors && sectors.length) ? sectors.map(linahNormalizeSector) : [];
+      if (!reportSectors.length) {
+        (cycleRows || []).forEach(function (r) {
+          var sec = linahNormalizeSector(r.sector);
+          if (sec && reportSectors.indexOf(sec) < 0) reportSectors.push(sec);
+        });
+      }
+      if (!reportSectors.length) reportSectors = linahAllKnownSectors();
+      reportSectors.sort(linahSectorSort);
+
+      var trackingOrder = linahTrackingProgressByOrder(cycles, reportSectors);
+      var bySector = trackingOrder.bySector;
+
+      var totalValves = 0, inspectedValves = 0;
+      var cards = reportSectors.map(function (sec) {
+        var valves = getValvesForSector(sec).slice();
+        if (!valves.length) {
+          var fromCycle = {};
+          (cycleRows || []).forEach(function (r) {
+            if (linahNormalizeSector(r.sector) !== linahNormalizeSector(sec)) return;
+            var v = linahNormValve(r.pen);
+            if (v) fromCycle[v] = 1;
+          });
+          valves = Object.keys(fromCycle).sort(function (a, b) { return (+a || 0) - (+b || 0); });
+        }
+        var valveNorms = valves.map(linahNormValve);
+        var inspected = valveNorms.filter(function (v) { return bySector[linahNormalizeSector(sec)] && bySector[linahNormalizeSector(sec)][v]; });
+        var remaining = valves.filter(function (v, idx) { return inspected.indexOf(valveNorms[idx]) < 0; });
+        var total = valves.length;
+        var done = inspected.length;
+        totalValves += total;
+        inspectedValves += done;
+        var rate = total ? done / total * 100 : 0;
+        var remTxt = remaining.length ? remaining.slice(0, 14).map(function (v) { return 'محبس ' + v; }).join('، ') + (remaining.length > 14 ? ' ...' : '') : 'لا يوجد متبقي';
+        return '<div style="border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;background:#fff;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px">' +
+          '<b style="color:var(--dk)">قطاع ' + sec + '</b>' +
+          '<span style="font-weight:800;color:' + (rate >= 100 ? 'var(--grn)' : rate >= 60 ? 'var(--ora)' : 'var(--red)') + '">' + fmtPct(rate) + '</span></div>' +
+          '<div style="height:7px;background:var(--bd);border-radius:4px;overflow:hidden;margin-bottom:7px"><div style="height:100%;width:' + Math.min(100, rate).toFixed(1) + '%;background:' + (rate >= 100 ? 'var(--grn)' : rate >= 60 ? 'var(--ora)' : 'var(--red)') + '"></div></div>' +
+          '<div style="font-size:.78rem;color:var(--tx2);line-height:1.8">تم فحص <b>' + done + '</b> من <b>' + total + '</b> محبس<br>المتبقي: ' + remTxt + '</div>' +
+          '</div>';
+      });
+
+      var overallRate = totalValves ? inspectedValves / totalValves * 100 : 0;
+      var period = trackingOrder.orderInfo.label;
+      var note = cycles && cycles.length ? '' : '<div style="background:var(--obg);border:1px solid var(--obd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;color:#7a4b00;font-size:.8rem">اختر دورة فحص لعرض إنجاز دورة محددة بدقة.</div>';
+      if (cycles && cycles.length && trackingOrder.orderInfo.selectedIndexes && !trackingOrder.orderInfo.selectedIndexes.length) {
+        note += '<div style="background:var(--obg);border:1px solid var(--obd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;color:#7a4b00;font-size:.8rem">الدورة المختارة غير موجودة في ترتيب دورات الفحص الحالية.</div>';
+      }
+      var html = note +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:.8rem;color:var(--tx2)">' +
+        '<span class="bge b-safe">مصدر الإنجاز: سجلات التتبع</span>' +
+        '<span class="bge b-gray">نسبة الدورة: ' + period + '</span>' +
+        '<span class="bge b-follow">مرات تتبع مطابقة: ' + trackingOrder.matched + '</span>' +
+        '</div>' + (cards.length ? cards.join('') : '<div class="empty"><div class="empty-ico">📍</div><div>لا توجد قطاعات لعرضها</div></div>');
+      return { inspected: inspectedValves, total: totalValves, rate: overallRate, html: html, trackingRows: trackingOrder.matched };
     }
 
     // ════════════════════════════════════════════════
@@ -6513,20 +6849,41 @@
         if (to && r.inspection_date && r.inspection_date > to) return false;
         return true;
       });
-      var cycleDone = linahCycleCompletion(cy, cycleBaseRows);
+      var trackingDone = linahBuildTrackingProgress(cy, sc, fr, to, cycleBaseRows);
       var sl = ['\u062d\u0631\u062c\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0644\u0627 \u064a\u0648\u062c\u062f'];
       mkChart('rp-c1', 'pie', sl, sl.map(function (l) { return sev[l] || 0; }), ['rgba(198,40,40,.85)', 'rgba(230,81,0,.85)', 'rgba(21,101,192,.85)', 'rgba(120,130,120,.7)'], false);
       var td5 = objSort(diag).slice(0, 7);
       mkChart('rp-c2', 'bar', td5.map(function (x) { return x[0]; }), td5.map(function (x) { return x[1]; }), Array(td5.length).fill('rgba(21,101,192,.7)'), true);
       var inspSet = {}; repD.forEach(function (r) { if (r.inspector) inspSet[r.inspector] = 1; });
       var sum = document.getElementById('rp-sum');
-      if (sum) sum.innerHTML = '<div class="sl-row"><span class="sl-name">\u0625\u062c\u0645\u0627\u0644\u064a</span><span class="sl-num">' + repD.length + '</span></div>' +
-        '<div class="sl-row"><span class="sl-name">\u0646\u0633\u0628\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629</span><span class="sl-num" style="color:var(--grn)">' + fmtPct(incRate) + '</span><span class="sl-pct">' + infectedRepD.length + ' / ' + (palmDenom ? palmDenom.toLocaleString('ar-EG') : '\u0628\u0644\u0627 \u062d\u0635\u0631') + '</span></div>' +
-        '<div class="sl-row"><span class="sl-name">معدل إنجاز الدورة</span><span class="sl-num" style="color:var(--blu)">' + fmtPct(cycleDone.rate) + '</span><span class="sl-pct">' + cycleDone.inspected + ' / ' + cycleDone.total + ' قطاع</span></div>' +
-        '<div class="sl-row"><span class="sl-name">\u062d\u0631\u062c\u0629</span><span class="sl-num" style="color:var(--red)">' + (sev['\u062d\u0631\u062c\u0629'] || 0) + '</span></div>' +
-        '<div class="sl-row"><span class="sl-name">\u0645\u062a\u0648\u0633\u0637\u0629</span><span class="sl-num" style="color:var(--ora)">' + (sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0) + '</span></div>' +
-        '<div class="sl-row"><span class="sl-name">\u0645\u0646\u062e\u0641\u0636\u0629</span><span class="sl-num" style="color:var(--blu)">' + (sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0) + '</span></div>' +
-        '<div class="sl-row"><span class="sl-name">\u0641\u0627\u062d\u0635\u0648\u0646</span><span class="sl-num">' + Object.keys(inspSet).length + '</span></div>';
+      if (sum) {
+        var unlinkedCount = (typeof getTrackingRecords === 'function' ? getTrackingRecords() : [])
+          .filter(function(r){ return !r.cycle; }).length;
+        var unlinkedWarn = unlinkedCount
+          ? '<div class="sl-row" style="background:#fff3cd;border-radius:6px;padding:4px 8px;margin-top:4px">' +
+            '<span class="sl-name" style="color:#856404">⚠️ سجلات بدون دورة</span>' +
+            '<span class="sl-num" style="color:#856404">' + unlinkedCount + '</span>' +
+            '<span class="sl-pct" style="color:#856404;font-size:.72rem">افتح تتبع الخطوط لإصلاحها</span></div>'
+          : '';
+        sum.innerHTML = '<div class="sl-row"><span class="sl-name">\u0625\u062c\u0645\u0627\u0644\u064a</span><span class="sl-num">' + repD.length + '</span></div>' +
+          '<div class="sl-row"><span class="sl-name">\u0646\u0633\u0628\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629</span><span class="sl-num" style="color:var(--grn)">' + fmtPct(incRate) + '</span><span class="sl-pct">' + infectedRepD.length + ' / ' + (palmDenom ? palmDenom.toLocaleString('ar-EG') : '\u0628\u0644\u0627 \u062d\u0635\u0631') + '</span></div>' +
+          '<div class="sl-row"><span class="sl-name">معدل إنجاز التتبع</span><span class="sl-num" style="color:var(--blu)">' + fmtPct(trackingDone.rate) + '</span><span class="sl-pct">' + trackingDone.inspected + ' / ' + trackingDone.total + ' محبس</span></div>' +
+          '<div class="sl-row"><span class="sl-name">\u062d\u0631\u062c\u0629</span><span class="sl-num" style="color:var(--red)">' + (sev['\u062d\u0631\u062c\u0629'] || 0) + '</span></div>' +
+          '<div class="sl-row"><span class="sl-name">\u0645\u062a\u0648\u0633\u0637\u0629</span><span class="sl-num" style="color:var(--ora)">' + (sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0) + '</span></div>' +
+          '<div class="sl-row"><span class="sl-name">\u0645\u0646\u062e\u0641\u0636\u0629</span><span class="sl-num" style="color:var(--blu)">' + (sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0) + '</span></div>' +
+          '<div class="sl-row"><span class="sl-name">\u0641\u0627\u062d\u0635\u0648\u0646</span><span class="sl-num">' + Object.keys(inspSet).length + '</span></div>' +
+          unlinkedWarn;
+      }
+      var trProg = document.getElementById('rp-track-progress');
+      if (trProg) trProg.innerHTML = trackingDone.html;
+      if (!trackingDone.trackingRows && typeof loadTrackingFromFirebase === 'function' && !window._rpTrackingReportLoaded && !window._rpTrackingReportLoading) {
+        window._rpTrackingReportLoading = true;
+        loadTrackingFromFirebase(function () {
+          window._rpTrackingReportLoaded = true;
+          window._rpTrackingReportLoading = false;
+          buildReport();
+        });
+      }
       var crit = repD.filter(function (r) { return r.severity === '\u062d\u0631\u062c\u0629'; });
       var crEl = document.getElementById('rp-crit');
       if (crEl) crEl.innerHTML = crit.length ? crit.map(function (r) {
@@ -8657,7 +9014,32 @@
     var _trSaveTimer = null;
 
     function getTrackingRecords() {
-      try { return JSON.parse(localStorage.getItem(TRACKING_KEY) || '[]'); } catch (e) { return []; }
+      try {
+        var primary = JSON.parse(localStorage.getItem(TRACKING_KEY) || '[]');
+        if (Array.isArray(primary) && primary.length) return primary;
+      } catch (e) {}
+      try {
+        var found = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (!k || k === TRACKING_KEY) continue;
+          var raw = localStorage.getItem(k) || '';
+          if (raw.charAt(0) !== '[' && raw.charAt(0) !== '{') continue;
+          var parsed = JSON.parse(raw);
+          var arr = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === 'object' ? Object.values(parsed) : []);
+          if (!arr.length) continue;
+          var looksTracking = arr.some(function (r) {
+            if (!r || typeof r !== 'object') return false;
+            return (r.sector || r['القطاع'] || r.Sector) && (r.valve || r.pen || r['المحبس'] || r.Valve || r.Pen || r.trackers);
+          });
+          if (looksTracking) found = found.concat(arr);
+        }
+        if (found.length) {
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(found)); } catch (e2) {}
+          return found;
+        }
+      } catch (e3) {}
+      return [];
     }
 
     // تحميل سجلات التتبع من Firebase
@@ -8842,6 +9224,9 @@
         if (supSel._ssSync) supSel._ssSync();
       }
 
+      // ── ملء قائمة دورات الفحص ──
+      fillTrackingCycleSelect('tr-cycle');
+
       var dateEl = document.getElementById('tr-date');
       if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
       if (!document.querySelector('#tr-rows tr')) addTrackerRow();
@@ -8852,8 +9237,64 @@
       if (lkSec) fillSectorSelect(lkSec);
       if (lkVal) fillValveSelect(lkVal, '');
 
+      // ── Migration: ربط سجلات التتبع القديمة بدوراتها ──
+      migrateTrackingCycles();
+
       // ابدأ دايماً بتبويب التسجيل
       switchTrackingTab('new');
+    }
+
+    // ── ملء dropdown دورات الفحص في نموذج التتبع ──
+    function fillTrackingCycleSelect(elId) {
+      var el = document.getElementById(elId);
+      if (!el) return;
+      var prev = el.value;
+      var cycles = linahCycleValues(); // دورات مرتبة من DB
+      el.innerHTML = '<option value="">-- اختر الدورة --</option>' +
+        cycles.map(function(c){ return '<option value="' + c.replace(/"/g,'&quot;') + '">' + c + '</option>'; }).join('');
+      if (prev) el.value = prev;
+    }
+
+    // ── Migration: ربط سجلات التتبع القديمة (بدون cycle) بالدورة المناسبة من DB ──
+    function migrateTrackingCycles() {
+      var records = getTrackingRecords();
+      var needsMigration = records.filter(function(r){ return !r.cycle; });
+      if (!needsMigration.length) return;
+
+      var migrated = 0;
+      records.forEach(function(r) {
+        if (r.cycle) return; // معنده دورة بالفعل
+        var secNorm = linahNormalizeSector(r.sector);
+        var valveNorm = linahNormValve(r.valve);
+        var trDate = r.date || '';
+
+        // ابحث في DB عن أقرب سجل فحص لنفس القطاع+المحبس في نفس التاريخ أو قبله
+        var best = null;
+        var bestDate = '';
+        DB.forEach(function(dbRec) {
+          if (linahNormalizeSector(dbRec.sector) !== secNorm) return;
+          if (linahNormValve(dbRec.pen) !== valveNorm) return;
+          if (!dbRec.cycle) return;
+          var d = dbRec.inspection_date || '';
+          if (!d) return;
+          // أقرب تاريخ فحص قبل أو مساوي لتاريخ التتبع
+          if (trDate && d > trDate) return;
+          if (!bestDate || d > bestDate) {
+            bestDate = d;
+            best = dbRec.cycle;
+          }
+        });
+
+        if (best) {
+          r.cycle = best;
+          migrated++;
+        }
+      });
+
+      if (migrated) {
+        saveTrackingRecords(records);
+        toast('🔄 تم ربط ' + migrated + ' سجل تتبع بدوراتها تلقائياً', 's');
+      }
     }
 
     // ── Add / Remove Tracker Rows ─────────────────────
@@ -8978,10 +9419,14 @@
       var valve = (document.getElementById('tr-valve') || {}).value || '';
       var sup = (document.getElementById('tr-supervisor') || {}).value || '';
       var date = (document.getElementById('tr-date') || {}).value || new Date().toISOString().slice(0, 10);
+      var cycle = (document.getElementById('tr-cycle') || {}).value || '';
       var notes = (document.getElementById('tr-notes') || {}).value || '';
 
       if (!sector || !valve || !sup) {
         toast('⚠️ يرجى اختيار القطاع والمحبس وإدخال اسم المشرف', 'w'); return;
+      }
+      if (!cycle) {
+        toast('⚠️ يرجى اختيار دورة الفحص', 'w'); return;
       }
 
       var trackers = [];
@@ -9000,6 +9445,7 @@
       var rec = {
         id: Date.now(),
         date: date,
+        cycle: cycle,
         sector: sector,
         valve: valve,
         supervisor: sup,
@@ -9060,9 +9506,12 @@
           return '<span style="display:inline-block;background:var(--bbg);border:1px solid var(--bbd);border-radius:20px;padding:2px 8px;font-size:.72rem;margin:2px">' +
             (t.inspector || '-') + ' — فردي: <b>' + (t.odd || '-') + '</b> زوجي: <b>' + (t.even || '-') + '</b></span>';
         }).join('');
+        var cycleBadge = r.cycle
+          ? '<span style="background:var(--bbg);border:1px solid var(--bbd);border-radius:20px;padding:1px 8px;font-size:.72rem;color:var(--blu);margin-right:6px">🔄 ' + r.cycle + '</span>'
+          : '<span style="background:#fff3cd;border:1px solid #ffc107;border-radius:20px;padding:1px 8px;font-size:.72rem;color:#856404;margin-right:6px">⚠️ بدون دورة</span>';
         return '<div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh)">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-          '<div><b>📍 قطاع ' + r.sector + ' — محبس ' + r.valve + '</b> <span style="color:var(--tx2);font-size:.78rem;margin-right:8px">' + r.date + '</span></div>' +
+          '<div><b>📍 قطاع ' + r.sector + ' — محبس ' + r.valve + '</b> <span style="color:var(--tx2);font-size:.78rem;margin-right:8px">' + r.date + '</span>' + cycleBadge + '</div>' +
           '<div style="display:flex;gap:6px">' +
           '<span style="font-size:.78rem;color:var(--tx2)">مشرف: ' + (r.supervisor||'-') + '</span>' +
           '<button class="btn b-ol" style="padding:2px 8px;font-size:.72rem" onclick="openTrEdit(' + r.id + ')">✏️</button>' +
@@ -9146,6 +9595,11 @@
       document.getElementById('tre-date').value  = rec.date  || '';
       document.getElementById('tre-notes').value = rec.notes || '';
 
+      // ── دورة الفحص ──
+      fillTrackingCycleSelect('tre-cycle');
+      var cycleEl = document.getElementById('tre-cycle');
+      if (cycleEl && rec.cycle) cycleEl.value = rec.cycle;
+
       // ── wiring القطاع → المحبس ──
       secEl.onchange = function(){ fillValveSelect(valEl, this.value); valEl.disabled = false; };
 
@@ -9187,8 +9641,10 @@
       var valve  = document.getElementById('tre-valve').value;
       var sup    = document.getElementById('tre-supervisor').value;
       var date   = document.getElementById('tre-date').value;
+      var cycle  = document.getElementById('tre-cycle').value;
       var notes  = document.getElementById('tre-notes').value;
       if (!sector || !valve || !sup) { toast('يرجى اختيار القطاع والمحبس والمشرف', 'w'); return; }
+      if (!cycle) { toast('يرجى اختيار دورة الفحص', 'w'); return; }
 
       var trackers = [];
       document.querySelectorAll('#tre-rows tr').forEach(function(row){
@@ -9207,7 +9663,7 @@
           var idx = arr.findIndex ? arr.findIndex(function(r){ return r.id === _trEditId; })
                                   : (function(){ for(var i=0;i<arr.length;i++) if(arr[i].id===_trEditId) return i; return -1; })();
           if (idx < 0) { toast('السجل غير موجود في Firebase', 'e'); return; }
-          arr[idx] = { id:_trEditId, date:date, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
+          arr[idx] = { id:_trEditId, date:date, cycle:cycle, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
           saveTrackingRecords(arr);
           closeTrEdit();
           toast('✅ تم حفظ التعديلات', 's');
@@ -9220,7 +9676,7 @@
           var arr = getTrackingRecords();
           for(var i=0;i<arr.length;i++){
             if(arr[i].id===_trEditId){
-              arr[i]={ id:_trEditId, date:date, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
+              arr[i]={ id:_trEditId, date:date, cycle:cycle, sector:sector, valve:valve, supervisor:sup, notes:notes, trackers:trackers };
               break;
             }
           }
@@ -9376,6 +9832,7 @@
           '<td style="padding:7px 10px;font-weight:' + (idx===0&&line?'700':'400') + '">' + m.r.date + '</td>' +
           '<td style="padding:7px 10px">' + (m.r.sector||'-') + '</td>' +
           '<td style="padding:7px 10px">' + (m.r.valve||'-') + '</td>' +
+          '<td style="padding:7px 10px">' + (m.r.cycle ? '<span style="background:var(--bbg);border:1px solid var(--bbd);border-radius:20px;padding:1px 7px;font-size:.72rem">'+m.r.cycle+'</span>' : '<span style="color:#856404;font-size:.72rem">—</span>') + '</td>' +
           '<td style="padding:7px 10px">' + inspList + '</td>' +
           '<td style="padding:7px 10px">' + (m.r.supervisor||'-') + '</td>' +
           (line ? '<td style="padding:7px 10px;font-weight:600;color:var(--grn)">' + (m.tk.odd||'-') + '</td>' +
@@ -9398,6 +9855,7 @@
         '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">التاريخ</th>' +
         '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">القطاع</th>' +
         '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">المحبس</th>' +
+        '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">الدورة</th>' +
         '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">الفاحص</th>' +
         '<th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--bd)">المشرف</th>' +
         extraCols +
@@ -9410,7 +9868,20 @@
     // ════════════════════════════════════════════════
 
     function exportTrackingExcel() {
-      var arr = getTrackingRecords();
+      toast('⏳ جاري تحميل البيانات من Firebase...', 'i');
+      fetch(FB_TRACKING_URL)
+        .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data){
+          var arr = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+          try { localStorage.setItem(TRACKING_KEY, JSON.stringify(arr)); } catch(e){}
+          _doExportTrackingExcel(arr);
+        })
+        .catch(function(){
+          _doExportTrackingExcel(getTrackingRecords());
+        });
+    }
+
+    function _doExportTrackingExcel(arr) {
       if (!arr.length) { toast('لا توجد سجلات للتصدير', 'w'); return; }
 
       // Build flat rows — one row per tracker (inspector/odd/even)
@@ -9420,6 +9891,7 @@
         if (!trackers.length) {
           rows.push({
             'التاريخ': r.date || '',
+            'الدورة': r.cycle || '',
             'القطاع': r.sector || '',
             'المحبس': r.valve || '',
             'المشرف': r.supervisor || '',
@@ -9432,6 +9904,7 @@
           trackers.forEach(function (tk) {
             rows.push({
               'التاريخ': r.date || '',
+              'الدورة': r.cycle || '',
               'القطاع': r.sector || '',
               'المحبس': r.valve || '',
               'المشرف': r.supervisor || '',
