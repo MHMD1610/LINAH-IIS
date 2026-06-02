@@ -2941,6 +2941,9 @@
           <select class="fsel" id="f-month" onchange="applyF()">
             <option value="">كل الشهور</option>
           </select>
+          <select class="fsel" id="f-cycle" onchange="onRecordsCycleChange()">
+            <option value="">كل دورات الفحص</option>
+          </select>
           <select class="fsel" id="f-sv" onchange="applyF()">
             <option value="">كل درجات الاصابة</option>
             <option>حرجة</option>
@@ -2951,7 +2954,7 @@
           <select class="fsel" id="f-dg" onchange="applyF()">
             <option value="">كل التشخيصات</option>
           </select>
-          <select class="fsel" id="f-sc" onchange="applyF()">
+          <select class="fsel" id="f-sc" onchange="onRecordsSectorChange()">
             <option value="">كل القطاعات</option>
           </select>
           <select class="fsel" id="f-insp" onchange="applyF()">
@@ -3204,8 +3207,12 @@
             <div class="fsec-body">
               <div class="fgr">
                 <div class="ff"><label class="fl">&#1575;&#1604;&#1602;&#1591;&#1575;&#1593;</label><select
-                    class="fsel2" id="rp-sc" onchange="buildReport()">
+                    class="fsel2" id="rp-sc" onchange="onReportSectorChange()">
                     <option value="">&#1575;&#1604;&#1603;&#1604;</option>
+                  </select></div>
+                <div class="ff"><label class="fl">دورة الفحص</label><select class="fsel2" id="rp-cycle"
+                    onchange="buildReport()">
+                    <option value="">الكل</option>
                   </select></div>
                 <div class="ff"><label class="fl">&#1575;&#1604;&#1578;&#1588;&#1582;&#1610;&#1589;</label><select
                     class="fsel2" id="rp-dg" onchange="buildReport()">
@@ -5442,6 +5449,51 @@
       }, {});
     }
 
+    function linahAllKnownSectors() {
+      var sectFromMap = (typeof getSectors === 'function' ? getSectors() : []).map(function (s) { return linahNormalizeSector(s); });
+      var sectFromDB = Object.keys(cntBySector(DB)).filter(function (s) { return s && s !== '(\u0641\u0627\u0631\u063a)'; });
+      var allSects = sectFromMap.slice();
+      sectFromDB.forEach(function (s) { if (allSects.indexOf(s) < 0) allSects.push(s); });
+      return allSects.filter(Boolean).sort(linahSectorSort);
+    }
+
+    function linahCycleValues() {
+      return uniqueSorted(DB.map(function (r) { return r.cycle; }));
+    }
+
+    function linahSectorsForCycles(cycles) {
+      var seen = {};
+      DB.forEach(function (r) {
+        if (cycles && cycles.length && cycles.indexOf(r.cycle || '') < 0) return;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) seen[sec] = 1;
+      });
+      return Object.keys(seen).sort(linahSectorSort);
+    }
+
+    function linahCyclesForSectors(sectors) {
+      var wanted = (sectors || []).map(linahNormalizeSector).filter(Boolean);
+      var seen = {};
+      DB.forEach(function (r) {
+        if (wanted.length && wanted.indexOf(linahNormalizeSector(r.sector)) < 0) return;
+        var cycle = String(r.cycle || '').trim();
+        if (cycle) seen[cycle] = 1;
+      });
+      return Object.keys(seen).sort(function (a, b) { return a.localeCompare(b, 'ar'); });
+    }
+
+    function linahCycleCompletion(cycles, baseRows) {
+      var sectors = {};
+      (baseRows || DB).forEach(function (r) {
+        if (cycles && cycles.length && cycles.indexOf(r.cycle || '') < 0) return;
+        var sec = linahNormalizeSector(r.sector);
+        if (sec) sectors[sec] = 1;
+      });
+      var inspected = Object.keys(sectors).length;
+      var total = linahAllKnownSectors().length || inspected;
+      return { inspected: inspected, total: total, rate: total ? inspected / total * 100 : 0 };
+    }
+
     function fillGlobalFilters() {
       fillYearMonthFilters('gf-year', 'gf-month');
       var pest = document.getElementById('gf-pest');
@@ -5804,7 +5856,7 @@
     // ════════════════════════════════════════════════
     function getRecordsFilterValues() {
       var vals = {};
-      ['srch', 'f-year', 'f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'f-sort'].forEach(function (id) {
+      ['srch', 'f-year', 'f-month', 'f-cycle', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'f-sort'].forEach(function (id) {
         var el = document.getElementById(id);
         vals[id] = el && el.multiple ? linahSelectValues(id) : (el ? el.value || '' : '');
       });
@@ -5830,7 +5882,7 @@
       vals = vals || {};
       var srch = document.getElementById('srch');
       if (srch) srch.value = vals.srch || '';
-      ['f-year', 'f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'f-sort'].forEach(function (id) {
+      ['f-year', 'f-month', 'f-cycle', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'f-sort'].forEach(function (id) {
         setSelectValueKeepOption(document.getElementById(id), vals[id] || '');
       });
       refreshSearchableSelects();
@@ -5870,6 +5922,7 @@
       var q = ((document.getElementById('srch') || {}).value || '').toLowerCase();
       var yr = linahSelectValues('f-year');
       var mo = linahSelectValues('f-month');
+      var cy = linahSelectValues('f-cycle');
       var sv = linahSelectValues('f-sv');
       var dg = linahSelectValues('f-dg');
       var sc = linahSelectValues('f-sc').map(function (v) { return String(v || '').replace('\u0642\u0637\u0627\u0639 ', ''); });
@@ -5881,6 +5934,7 @@
         if (q) { var hay = [r.code, r.cycle, r.inspection_date, r.sector, r.pen, r.inspector, r.engineer, r.sup_general, r.sup_main, r.sup_asst, r.registrar, r.pest_desc, r.pest_type, r.diagnosis, r.cause, r.severity, r.recommendation, r.pesticide1, r.pesticide2, r.pesticide3, r.treatment_by, r.notes, r.follow7_action, r.follow14_action, r.follow21_action, r.follow30_action].join(' ').toLowerCase(); if (hay.indexOf(q) < 0) return false; }
         if (yr.length && yr.indexOf(linahRecordYear(r)) < 0) return false;
         if (mo.length && !mo.some(function (m) { return (r.inspection_date || '').startsWith(m); })) return false;
+        if (!linahMatchAny(cy, r.cycle)) return false;
         if (!linahMatchAny(sv, r.severity)) return false;
         if (!linahMatchAny(dg, r.diagnosis)) return false;
         if (!linahMatchAny(sc, r.sector, linahNormalizeSector)) return false;
@@ -5918,7 +5972,7 @@
 
     function clearF() {
       var sr = document.getElementById('srch'); if (sr) sr.value = '';
-      ['f-year', 'f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage'].forEach(linahClearSelect);
+      ['f-year', 'f-month', 'f-cycle', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage'].forEach(linahClearSelect);
       var s = document.getElementById('f-sort'); if (s) s.value = 'date_desc';
       recordsFilterState = null;
       refreshSearchableSelects();
@@ -6411,19 +6465,38 @@
       var sectSet = Object.keys(cntBySector(DB)).sort(linahSectorSort);
       var el = document.getElementById('rp-sc');
       if (el) { var scCur = linahSelectValues('rp-sc'); el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; sectSet.forEach(function (s) { el.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; }); linahRestoreSelected(el, scCur, linahNormalizeSector); }
+      var cy = document.getElementById('rp-cycle');
+      if (cy) { var cyCur = linahSelectValues('rp-cycle'); cy.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; linahCycleValues().forEach(function (c) { cy.innerHTML += '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>'; }); linahRestoreSelected(cy, cyCur); }
       var dg = document.getElementById('rp-dg');
       if (dg) { var cur = linahSelectValues('rp-dg'); dg.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>'; Object.keys(cntBy(DB, 'diagnosis')).sort().forEach(function (d) { if (d && d !== '(\u0641\u0627\u0631\u063a)') dg.innerHTML += '<option value="' + d.replace(/"/g, '&quot;') + '">' + d + '</option>'; }); linahRestoreSelected(dg, cur); }
-      linahEnableMultiFilters(['rp-sc', 'rp-dg', 'rp-sv']);
+      linahEnableMultiFilters(['rp-sc', 'rp-cycle', 'rp-dg', 'rp-sv']);
+    }
+
+    function onReportSectorChange() {
+      var sectors = linahSelectValues('rp-sc');
+      var cycles = sectors.length ? linahCyclesForSectors(sectors) : [];
+      var cy = document.getElementById('rp-cycle');
+      if (cy) {
+        var allCycles = sectors.length ? cycles : linahCycleValues();
+        cy.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>';
+        allCycles.forEach(function (c) { cy.innerHTML += '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>'; });
+        if (sectors.length) linahRestoreSelected(cy, cycles);
+        else linahClearSelect('rp-cycle');
+        if (typeof cy._ssSync === 'function') cy._ssSync();
+      }
+      buildReport();
     }
 
     function buildReport() {
       var sc = linahSelectValues('rp-sc');
+      var cy = linahSelectValues('rp-cycle');
       var dg = linahSelectValues('rp-dg');
       var sv = linahSelectValues('rp-sv');
       var fr = (document.getElementById('rp-fr') || {}).value || '';
       var to = (document.getElementById('rp-to') || {}).value || '';
       repD = DB.filter(function (r) {
         if (!linahMatchAny(sc, r.sector, linahNormalizeSector)) return false;
+        if (!linahMatchAny(cy, r.cycle)) return false;
         if (!linahMatchAny(dg, r.diagnosis)) return false;
         if (!linahMatchAny(sv, r.severity)) return false;
         if (fr && r.inspection_date && r.inspection_date < fr) return false;
@@ -6434,6 +6507,13 @@
       var infectedRepD = repD.filter(isInfectionRecord);
       var palmDenom = sc.length ? sc.reduce(function (sum, s) { return sum + (getPalmCount(s) || 0); }, 0) : getPalmTotal();
       var incRate = palmDenom ? (infectedRepD.length / palmDenom * 100) : 0;
+      var cycleBaseRows = DB.filter(function (r) {
+        if (!linahMatchAny(cy, r.cycle)) return false;
+        if (fr && r.inspection_date && r.inspection_date < fr) return false;
+        if (to && r.inspection_date && r.inspection_date > to) return false;
+        return true;
+      });
+      var cycleDone = linahCycleCompletion(cy, cycleBaseRows);
       var sl = ['\u062d\u0631\u062c\u0629', '\u0645\u062a\u0648\u0633\u0637\u0629', '\u0645\u0646\u062e\u0641\u0636\u0629', '\u0644\u0627 \u064a\u0648\u062c\u062f'];
       mkChart('rp-c1', 'pie', sl, sl.map(function (l) { return sev[l] || 0; }), ['rgba(198,40,40,.85)', 'rgba(230,81,0,.85)', 'rgba(21,101,192,.85)', 'rgba(120,130,120,.7)'], false);
       var td5 = objSort(diag).slice(0, 7);
@@ -6442,6 +6522,7 @@
       var sum = document.getElementById('rp-sum');
       if (sum) sum.innerHTML = '<div class="sl-row"><span class="sl-name">\u0625\u062c\u0645\u0627\u0644\u064a</span><span class="sl-num">' + repD.length + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u0646\u0633\u0628\u0629 \u0627\u0644\u0625\u0635\u0627\u0628\u0629</span><span class="sl-num" style="color:var(--grn)">' + fmtPct(incRate) + '</span><span class="sl-pct">' + infectedRepD.length + ' / ' + (palmDenom ? palmDenom.toLocaleString('ar-EG') : '\u0628\u0644\u0627 \u062d\u0635\u0631') + '</span></div>' +
+        '<div class="sl-row"><span class="sl-name">معدل إنجاز الدورة</span><span class="sl-num" style="color:var(--blu)">' + fmtPct(cycleDone.rate) + '</span><span class="sl-pct">' + cycleDone.inspected + ' / ' + cycleDone.total + ' قطاع</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u062d\u0631\u062c\u0629</span><span class="sl-num" style="color:var(--red)">' + (sev['\u062d\u0631\u062c\u0629'] || 0) + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u0645\u062a\u0648\u0633\u0637\u0629</span><span class="sl-num" style="color:var(--ora)">' + (sev['\u0645\u062a\u0648\u0633\u0637\u0629'] || 0) + '</span></div>' +
         '<div class="sl-row"><span class="sl-name">\u0645\u0646\u062e\u0641\u0636\u0629</span><span class="sl-num" style="color:var(--blu)">' + (sev['\u0645\u0646\u062e\u0641\u0636\u0629'] || 0) + '</span></div>' +
@@ -7432,21 +7513,49 @@
     // ════════════════════════════════════════════════
     function initFilters() {
       var diagSet = Object.keys(cntBy(DB, 'diagnosis')).sort();
-      // Use SECTOR_VALVE_MAP for authoritative sector list, merged with any in DB
-      var sectFromDB = Object.keys(cntBySector(DB));
-      var sectFromMap = getSectors().map(function (s) { return linahNormalizeSector(s); });
-      var allSects = sectFromMap.slice();
-      sectFromDB.forEach(function (s) { if (allSects.indexOf(s) < 0) allSects.push(s); });
-      allSects.sort(linahSectorSort);
+      var selectedCycles = linahSelectValues('f-cycle');
+      var allSects = selectedCycles.length ? linahSectorsForCycles(selectedCycles) : linahAllKnownSectors();
       var inspSet = Object.keys(cntBy(DB, 'inspector')).sort();
       var dSel = document.getElementById('f-dg');
       if (dSel) { dSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u062a\u0634\u062e\u064a\u0635\u0627\u062a</option>'; diagSet.forEach(function (d) { dSel.innerHTML += '<option>' + d + '</option>'; }); }
+      var cSel = document.getElementById('f-cycle');
+      if (cSel) { var oldCycles = selectedCycles; cSel.innerHTML = '<option value="">كل دورات الفحص</option>'; linahCycleValues().forEach(function (c) { cSel.innerHTML += '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>'; }); linahRestoreSelected(cSel, oldCycles); }
       var sSel = document.getElementById('f-sc');
       if (sSel) { sSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0642\u0637\u0627\u0639\u0627\u062a</option>'; allSects.forEach(function (s) { sSel.innerHTML += '<option value="' + s + '">\u0642\u0637\u0627\u0639 ' + s + '</option>'; }); }
       var iSel = document.getElementById('f-insp');
       if (iSel) { iSel.innerHTML = '<option value="">\u0643\u0644 \u0627\u0644\u0641\u0627\u062d\u0635\u064a\u0646</option>'; inspSet.forEach(function (i2) { iSel.innerHTML += '<option>' + i2 + '</option>'; }); }
       initMonthFilters();
-      linahEnableMultiFilters(['f-month', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'fual-sev', 'fu-sev']);
+      linahEnableMultiFilters(['f-month', 'f-cycle', 'f-sv', 'f-dg', 'f-sc', 'f-insp', 'f-stage', 'fual-sev', 'fu-sev']);
+    }
+
+    function onRecordsCycleChange() {
+      var cycles = linahSelectValues('f-cycle');
+      var sectors = cycles.length ? linahSectorsForCycles(cycles) : [];
+      var sSel = document.getElementById('f-sc');
+      if (sSel) {
+        var allSects = cycles.length ? sectors : linahAllKnownSectors();
+        sSel.innerHTML = '<option value="">كل القطاعات</option>';
+        allSects.forEach(function (s) { sSel.innerHTML += '<option value="' + s + '">قطاع ' + s + '</option>'; });
+        if (cycles.length) linahRestoreSelected(sSel, sectors, linahNormalizeSector);
+        else linahClearSelect('f-sc');
+        if (typeof sSel._ssSync === 'function') sSel._ssSync();
+      }
+      applyF();
+    }
+
+    function onRecordsSectorChange() {
+      var sectors = linahSelectValues('f-sc');
+      var cycles = sectors.length ? linahCyclesForSectors(sectors) : [];
+      var cSel = document.getElementById('f-cycle');
+      if (cSel) {
+        var allCycles = sectors.length ? cycles : linahCycleValues();
+        cSel.innerHTML = '<option value="">كل دورات الفحص</option>';
+        allCycles.forEach(function (c) { cSel.innerHTML += '<option value="' + c.replace(/"/g, '&quot;') + '">' + c + '</option>'; });
+        if (sectors.length) linahRestoreSelected(cSel, cycles);
+        else linahClearSelect('f-cycle');
+        if (typeof cSel._ssSync === 'function') cSel._ssSync();
+      }
+      applyF();
     }
 
     function initMonthFilters() {
@@ -11571,5 +11680,3 @@
 
 </body>
 </html>
-
-
