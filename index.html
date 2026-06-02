@@ -6749,6 +6749,31 @@
       var trackingOrder = linahTrackingProgressByOrder(cycles, reportSectors);
       var bySector = trackingOrder.bySector;
 
+      // ── إحصاءات الدورات من سجلات التتبع (مرتبطة بالفلاتر) ──
+      var allTrackingRecs = getTrackingRecords();
+      var filteredTrackingRecs = allTrackingRecs.filter(function(r) {
+        var sec = linahNormalizeSector(r.sector);
+        if (reportSectors.length && reportSectors.indexOf(sec) < 0) return false;
+        if (cycles && cycles.length && r.cycle && cycles.indexOf(r.cycle) < 0) return false;
+        if (fr && r.date && r.date < fr) return false;
+        if (to && r.date && r.date > to) return false;
+        return true;
+      });
+
+      // بيانات الدورات لكل قطاع: {sec: {cycle: {dates: Set, workers: Set}}}
+      var sectorCycleStats = {};
+      filteredTrackingRecs.forEach(function(r) {
+        var sec = linahNormalizeSector(r.sector);
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!sectorCycleStats[sec]) sectorCycleStats[sec] = {};
+        if (!sectorCycleStats[sec][cyc]) sectorCycleStats[sec][cyc] = { dates: {}, workers: {} };
+        if (r.date) sectorCycleStats[sec][cyc].dates[r.date] = 1;
+        (r.trackers || []).forEach(function(t) {
+          if (t.inspector) sectorCycleStats[sec][cyc].workers[t.inspector] = 1;
+        });
+        if (r.supervisor) sectorCycleStats[sec][cyc].workers['م: ' + r.supervisor] = 1;
+      });
+
       var totalValves = 0, inspectedValves = 0;
       var cards = reportSectors.map(function (sec) {
         var valves = getValvesForSector(sec).slice();
@@ -6769,15 +6794,109 @@
         totalValves += total;
         inspectedValves += done;
         var rate = total ? done / total * 100 : 0;
-        var remTxt = remaining.length ? remaining.slice(0, 14).map(function (v) { return 'محبس ' + v; }).join('، ') + (remaining.length > 14 ? ' ...' : '') : 'لا يوجد متبقي';
+        var pctColor = rate >= 100 ? 'var(--grn)' : rate >= 60 ? 'var(--ora)' : 'var(--red)';
+        var remTxt = remaining.length
+          ? remaining.slice(0, 14).map(function (v) { return 'محبس ' + v; }).join('، ') + (remaining.length > 14 ? ' ...' : '')
+          : 'لا يوجد متبقي';
+
+        // ── بيان الدورات لهذا القطاع ──
+        var cycData = sectorCycleStats[linahNormalizeSector(sec)] || {};
+        var cycKeys = Object.keys(cycData).sort();
+        var cycleTableRows = cycKeys.map(function(cyc) {
+          var info = cycData[cyc];
+          var days = Object.keys(info.dates).sort();
+          var dayCount = days.length;
+          var workers = Object.keys(info.workers);
+          // حساب مدة الدورة (أول يوم → آخر يوم)
+          var span = '';
+          if (days.length >= 2) {
+            var d1 = new Date(days[0]), d2 = new Date(days[days.length-1]);
+            var diff = Math.round((d2 - d1) / 86400000) + 1;
+            span = diff + ' يوم';
+          } else if (days.length === 1) {
+            span = 'يوم واحد';
+          }
+          var dateRange = days.length ? (days[0] + (days.length > 1 ? ' ← ' + days[days.length-1] : '')) : '—';
+          return '<tr style="border-top:1px solid var(--bd);font-size:.72rem">' +
+            '<td style="padding:4px 8px;font-weight:600;color:var(--blu);white-space:nowrap">' + cyc + '</td>' +
+            '<td style="padding:4px 8px;text-align:center;color:var(--tx2)">' + dateRange + '</td>' +
+            '<td style="padding:4px 8px;text-align:center"><b>' + dayCount + '</b></td>' +
+            '<td style="padding:4px 8px;text-align:center"><b>' + span + '</b></td>' +
+            '<td style="padding:4px 8px;text-align:center"><b>' + workers.length + '</b></td>' +
+            '</tr>';
+        }).join('');
+
+        var cycleTable = cycKeys.length
+          ? '<details style="margin-top:7px"><summary style="cursor:pointer;font-size:.75rem;color:var(--blu);font-weight:600;user-select:none">' +
+            '📊 تفاصيل الدورات (' + cycKeys.length + ' دورة)</summary>' +
+            '<div style="overflow-x:auto;margin-top:5px">' +
+            '<table style="width:100%;border-collapse:collapse;font-size:.72rem">' +
+            '<thead><tr style="background:var(--gbg);font-size:.7rem;color:var(--tx2)">' +
+            '<th style="padding:4px 8px;text-align:right">الدورة</th>' +
+            '<th style="padding:4px 8px;text-align:center">نطاق التاريخ</th>' +
+            '<th style="padding:4px 8px;text-align:center">أيام فحص</th>' +
+            '<th style="padding:4px 8px;text-align:center">مدة الدورة</th>' +
+            '<th style="padding:4px 8px;text-align:center">عدد العمال</th>' +
+            '</tr></thead><tbody>' + cycleTableRows + '</tbody></table></div></details>'
+          : '';
+
         return '<div style="border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;background:#fff;margin-bottom:8px">' +
           '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px">' +
           '<b style="color:var(--dk)">قطاع ' + sec + '</b>' +
-          '<span style="font-weight:800;color:' + (rate >= 100 ? 'var(--grn)' : rate >= 60 ? 'var(--ora)' : 'var(--red)') + '">' + fmtPct(rate) + '</span></div>' +
-          '<div style="height:7px;background:var(--bd);border-radius:4px;overflow:hidden;margin-bottom:7px"><div style="height:100%;width:' + Math.min(100, rate).toFixed(1) + '%;background:' + (rate >= 100 ? 'var(--grn)' : rate >= 60 ? 'var(--ora)' : 'var(--red)') + '"></div></div>' +
-          '<div style="font-size:.78rem;color:var(--tx2);line-height:1.8">تم فحص <b>' + done + '</b> من <b>' + total + '</b> محبس<br>المتبقي: ' + remTxt + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+          (cycKeys.length ? '<span style="font-size:.7rem;color:var(--tx2)">' + cycKeys.length + ' دورة</span>' : '') +
+          '<span style="font-weight:800;color:' + pctColor + '">' + fmtPct(rate) + '</span>' +
+          '</div></div>' +
+          '<div style="height:7px;background:var(--bd);border-radius:4px;overflow:hidden;margin-bottom:7px">' +
+          '<div style="height:100%;width:' + Math.min(100, rate).toFixed(1) + '%;background:' + pctColor + '"></div></div>' +
+          '<div style="font-size:.78rem;color:var(--tx2);line-height:1.8">تم فحص <b>' + done + '</b> من <b>' + total + '</b> محبس &nbsp;|&nbsp; المتبقي: ' + remTxt + '</div>' +
+          cycleTable +
           '</div>';
       });
+
+      // ── ملخص إجمالي للدورات عبر كل القطاعات ──
+      var allCyclesGlobal = {};
+      filteredTrackingRecs.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!allCyclesGlobal[cyc]) allCyclesGlobal[cyc] = { sectors: {}, dates: {}, workers: {} };
+        var sec = linahNormalizeSector(r.sector);
+        allCyclesGlobal[cyc].sectors[sec] = 1;
+        if (r.date) allCyclesGlobal[cyc].dates[r.date] = 1;
+        (r.trackers || []).forEach(function(t) {
+          if (t.inspector) allCyclesGlobal[cyc].workers[t.inspector] = 1;
+        });
+      });
+      var globalCycKeys = Object.keys(allCyclesGlobal).sort();
+      var globalSummaryRows = globalCycKeys.map(function(cyc) {
+        var info = allCyclesGlobal[cyc];
+        var days = Object.keys(info.dates).sort();
+        var span = days.length >= 2
+          ? (Math.round((new Date(days[days.length-1]) - new Date(days[0])) / 86400000) + 1) + ' يوم'
+          : days.length === 1 ? 'يوم واحد' : '—';
+        var dateRange = days.length ? (days[0] + (days.length > 1 ? ' ← ' + days[days.length-1] : '')) : '—';
+        return '<tr style="border-top:1px solid var(--bd)">' +
+          '<td style="padding:5px 10px;font-weight:600;color:var(--blu)">' + cyc + '</td>' +
+          '<td style="padding:5px 10px;text-align:center;color:var(--tx2);font-size:.78rem">' + dateRange + '</td>' +
+          '<td style="padding:5px 10px;text-align:center"><b>' + Object.keys(info.sectors).length + '</b></td>' +
+          '<td style="padding:5px 10px;text-align:center"><b>' + days.length + '</b></td>' +
+          '<td style="padding:5px 10px;text-align:center"><b>' + span + '</b></td>' +
+          '<td style="padding:5px 10px;text-align:center"><b>' + Object.keys(info.workers).length + '</b></td>' +
+          '</tr>';
+      }).join('');
+
+      var globalSummary = globalCycKeys.length
+        ? '<div style="border:1px solid var(--bbd);border-radius:var(--r);background:var(--bbg);padding:12px;margin-bottom:12px">' +
+          '<div style="font-weight:700;font-size:.85rem;color:var(--dk);margin-bottom:8px">📋 ملخص دورات الفحص — كل القطاعات</div>' +
+          '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
+          '<thead><tr style="background:rgba(0,0,0,.04);font-size:.75rem;color:var(--tx2)">' +
+          '<th style="padding:6px 10px;text-align:right">الدورة</th>' +
+          '<th style="padding:6px 10px;text-align:center">نطاق التاريخ</th>' +
+          '<th style="padding:6px 10px;text-align:center">عدد القطاعات</th>' +
+          '<th style="padding:6px 10px;text-align:center">أيام الفحص</th>' +
+          '<th style="padding:6px 10px;text-align:center">مدة الدورة</th>' +
+          '<th style="padding:6px 10px;text-align:center">عدد العمال</th>' +
+          '</tr></thead><tbody>' + globalSummaryRows + '</tbody></table></div></div>'
+        : '';
 
       var overallRate = totalValves ? inspectedValves / totalValves * 100 : 0;
       var period = trackingOrder.orderInfo.label;
@@ -6785,12 +6904,14 @@
       if (cycles && cycles.length && trackingOrder.orderInfo.selectedIndexes && !trackingOrder.orderInfo.selectedIndexes.length) {
         note += '<div style="background:var(--obg);border:1px solid var(--obd);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;color:#7a4b00;font-size:.8rem">الدورة المختارة غير موجودة في ترتيب دورات الفحص الحالية.</div>';
       }
-      var html = note +
+      var html = note + globalSummary +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:.8rem;color:var(--tx2)">' +
         '<span class="bge b-safe">مصدر الإنجاز: سجلات التتبع</span>' +
         '<span class="bge b-gray">نسبة الدورة: ' + period + '</span>' +
         '<span class="bge b-follow">مرات تتبع مطابقة: ' + trackingOrder.matched + '</span>' +
-        '</div>' + (cards.length ? cards.join('') : '<div class="empty"><div class="empty-ico">📍</div><div>لا توجد قطاعات لعرضها</div></div>');
+        '</div>' +
+        '<div style="font-weight:700;font-size:.82rem;color:var(--dk);margin-bottom:8px">📍 تفاصيل القطاعات</div>' +
+        (cards.length ? cards.join('') : '<div class="empty"><div class="empty-ico">📍</div><div>لا توجد قطاعات لعرضها</div></div>');
       return { inspected: inspectedValves, total: totalValves, rate: overallRate, html: html, trackingRows: trackingOrder.matched };
     }
 
@@ -10004,6 +10125,7 @@
         var grouped = {};
         dataRows.forEach(function(row) {
           var dateVal  = col(row,['التاريخ','Date','date','تاريخ']);
+          var cycleVal = col(row,['الدورة','دورة','cycle','Cycle','كود دورة الفحص','دورة الفحص']);
           var secRaw   = col(row,['القطاع','Sector','sector','قطاع','فطاع لقطاع','فطاع']);
           var valveRaw = col(row,['المحبس','Pen','pen','Valve','valve','محبس']);
           var supVal   = col(row,['المشرف','Supervisor','supervisor','مشرف','اسم المشرف']);
@@ -10015,19 +10137,26 @@
           var secNorm   = normSector(secRaw);
           var valveNorm = normValve(valveRaw);
 
-          // تطبيع التاريخ — يقبل dd-mm-yy أو yy-mm-dd أو dd/mm/yyyy
+          // تطبيع التاريخ — يقبل dd-mm-yy, dd-mm-yyyy, yy-mm-dd, yyyy-mm-dd, dd/mm/yyyy
           if (dateVal) {
             var dp = dateVal.replace(/\//g,'-').split('-');
             if (dp.length === 3) {
-              // لو السنة أولاً (yyyy-mm-dd) — اتركه
-              // لو اليوم أولاً (dd-mm-yyyy أو dd-mm-yy)
-              if (dp[0].length <= 2 && parseInt(dp[0],10) > 12) {
-                // يوم-شهر-سنة → سنة-شهر-يوم
-                var yr = dp[2].length === 2 ? '20'+dp[2] : dp[2];
-                dateVal = yr+'-'+dp[1].padStart(2,'0')+'-'+dp[0].padStart(2,'0');
-              } else if (dp[0].length === 2 && dp[2].length === 2) {
-                // yy-mm-dd
-                dateVal = '20'+dp[0]+'-'+dp[1]+'-'+dp[2];
+              var p0 = dp[0], p1 = dp[1], p2 = dp[2];
+              if (p0.length === 4) {
+                // yyyy-mm-dd → اتركه كما هو
+              } else if (p2.length === 4) {
+                // dd-mm-yyyy
+                dateVal = p2 + '-' + p1.padStart(2,'0') + '-' + p0.padStart(2,'0');
+              } else if (p2.length === 2) {
+                // dd-mm-yy: p2 هو السنة المختصرة (مثل 26)
+                // نميز: لو p0 > 31 → yy-mm-dd (سنة أول)، غير كده dd-mm-yy
+                if (parseInt(p0,10) > 31) {
+                  // yy-mm-dd
+                  dateVal = '20'+p0+'-'+p1.padStart(2,'0')+'-'+p2.padStart(2,'0');
+                } else {
+                  // dd-mm-yy (الأكثر شيوعاً في الـ CSV المصدّر)
+                  dateVal = '20'+p2+'-'+p1.padStart(2,'0')+'-'+p0.padStart(2,'0');
+                }
               }
             }
           }
@@ -10037,12 +10166,15 @@
             grouped[key] = {
               id: Date.now() + Math.random(),
               date: dateVal,
+              cycle: cycleVal,
               sector: secNorm,
               valve: valveNorm,
               supervisor: supVal,
               notes: notesVal,
               trackers: []
             };
+          } else if (!grouped[key].cycle && cycleVal) {
+            grouped[key].cycle = cycleVal; // تحديث الدورة لو كانت فاضية
           }
           if (inspVal || oddVal || evenVal) {
             grouped[key].trackers.push({ inspector: inspVal, odd: oddVal, even: evenVal });
