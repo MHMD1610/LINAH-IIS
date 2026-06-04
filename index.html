@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/python-visualization/folium@main/folium/templates/leaflet_heat.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
   <!-- Firebase REST API — no external SDK needed -->
   <!-- EmailJS SDK for sending email reports -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -3213,68 +3214,76 @@
             <div class="ps">&#1578;&#1602;&#1575;&#1585;&#1610;&#1585; &#1602;&#1575;&#1576;&#1604;&#1577;
               &#1604;&#1604;&#1578;&#1582;&#1589;&#1610;&#1589;</div>
           </div>
-          <div class="pa"><button class="btn b-gld" onclick="expCSV(repD)">&#11015;
-              &#1578;&#1589;&#1583;&#1610;&#1585;</button></div>
-        </div>
-        <div class="cp" style="padding-top:14px">
-          <div class="fsec">
-            <div class="fsec-hd ht">&#127919; &#1605;&#1593;&#1575;&#1610;&#1610;&#1585;
-              &#1575;&#1604;&#1578;&#1602;&#1585;&#1610;&#1585;</div>
-            <div class="fsec-body">
-              <div class="fgr">
-                <div class="ff"><label class="fl">&#1575;&#1604;&#1602;&#1591;&#1575;&#1593;</label><select
-                    class="fsel2" id="rp-sc" onchange="onReportSectorChange()">
-                    <option value="">&#1575;&#1604;&#1603;&#1604;</option>
-                  </select></div>
-                <div class="ff"><label class="fl">دورة الفحص</label><select class="fsel2" id="rp-cycle"
-                    onchange="buildReport()">
-                    <option value="">الكل</option>
-                  </select></div>
-                <div class="ff"><label class="fl">&#1575;&#1604;&#1578;&#1588;&#1582;&#1610;&#1589;</label><select
-                    class="fsel2" id="rp-dg" onchange="buildReport()">
-                    <option value="">&#1575;&#1604;&#1603;&#1604;</option>
-                  </select></div>
-                <div class="ff"><label class="fl">&#1583;&#1585;&#1580;&#1577;
-                    &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1577;</label><select class="fsel2" id="rp-sv"
-                    onchange="buildReport()">
-                    <option value="">&#1575;&#1604;&#1603;&#1604;</option>
-                    <option>&#1581;&#1585;&#1580;&#1577;</option>
-                    <option>&#1605;&#1578;&#1608;&#1587;&#1591;&#1577;</option>
-                    <option>&#1605;&#1606;&#1582;&#1601;&#1590;&#1577;</option>
-                  </select></div>
-                <div class="ff"><label class="fl">&#1605;&#1606; &#1578;&#1575;&#1585;&#1610;&#1582;</label><input
-                    type="date" class="finp" id="rp-fr" onchange="buildReport()"></div>
-                <div class="ff"><label class="fl">&#1573;&#1604;&#1609;
-                    &#1578;&#1575;&#1585;&#1610;&#1582;</label><input type="date" class="finp" id="rp-to"
-                    onchange="buildReport()"></div>
+          <div class="pa" style="display:flex;gap:6px;align-items:center">
+            <div style="position:relative;display:inline-block" id="rp-export-wrap">
+              <button class="btn b-gld" onclick="toggleRpExportMenu()" style="display:flex;align-items:center;gap:5px">
+                ⬇ تصدير <span style="font-size:.7rem;opacity:.7">▾</span>
+              </button>
+              <div id="rp-export-menu" style="display:none;position:absolute;left:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--bd);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:170px;z-index:999;overflow:hidden">
+                <button onclick="exportReportExcel()" style="width:100%;text-align:right;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--gbg)'" onmouseout="this.style.background='none'">
+                  <span style="font-size:1rem">📊</span> تصدير Excel
+                </button>
+                <button onclick="exportReportWord()" style="width:100%;text-align:right;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)" onmouseover="this.style.background='var(--gbg)'" onmouseout="this.style.background='none'">
+                  <span style="font-size:1rem">📝</span> تصدير Word
+                </button>
+                <button onclick="exportReportPDF()" style="width:100%;text-align:right;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)" onmouseover="this.style.background='var(--gbg)'" onmouseout="this.style.background='none'">
+                  <span style="font-size:1rem">📄</span> تصدير PDF
+                </button>
+                <button onclick="expCSV(repD);toggleRpExportMenu()" style="width:100%;text-align:right;padding:10px 14px;border:none;background:none;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)" onmouseover="this.style.background='var(--gbg)'" onmouseout="this.style.background='none'">
+                  <span style="font-size:1rem">📋</span> تصدير CSV
+                </button>
               </div>
             </div>
           </div>
-          <div class="cg">
-            <div class="cc">
-              <div class="cc-title">&#1583;&#1585;&#1580;&#1575;&#1578;
-                &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1577;</div>
-              <div class="cw"><canvas id="rp-c1"></canvas></div>
-            </div>
-            <div class="cc">
-              <div class="cc-title">&#1575;&#1604;&#1578;&#1588;&#1582;&#1610;&#1589;&#1575;&#1578;</div>
-              <div class="cw"><canvas id="rp-c2"></canvas></div>
-            </div>
-          </div>
-          <div class="sg">
-            <div class="sc">
-              <div class="sc-hd">&#128202; &#1575;&#1604;&#1605;&#1604;&#1582;&#1589;</div>
-              <div id="rp-sum"></div>
-            </div>
-            <div class="sc">
-              <div class="sc-hd">&#128680; &#1575;&#1604;&#1573;&#1589;&#1575;&#1576;&#1575;&#1578;
-                &#1575;&#1604;&#1581;&#1585;&#1580;&#1577;</div>
-              <div id="rp-crit" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+        <div class="cp" style="padding-top:14px">
+          <!-- ── فلاتر مشتركة ── -->
+          <div class="fsec" style="margin-bottom:10px">
+            <div class="fsec-hd ht">🎯 فلاتر التقارير</div>
+            <div class="fsec-body">
+              <div class="fgr">
+                <div class="ff"><label class="fl">القطاع</label><select class="fsel2" id="rp-sc" onchange="onReportSectorChange()"><option value="">الكل</option></select></div>
+                <div class="ff"><label class="fl">دورة الفحص</label><select class="fsel2" id="rp-cycle" onchange="buildReport()"><option value="">الكل</option></select></div>
+                <div class="ff"><label class="fl">التشخيص</label><select class="fsel2" id="rp-dg" onchange="buildReport()"><option value="">الكل</option></select></div>
+                <div class="ff"><label class="fl">درجة الإصابة</label><select class="fsel2" id="rp-sv" onchange="buildReport()"><option value="">الكل</option><option>حرجة</option><option>متوسطة</option><option>منخفضة</option></select></div>
+                <div class="ff"><label class="fl">من تاريخ</label><input type="date" class="finp" id="rp-fr" onchange="buildReport()"></div>
+                <div class="ff"><label class="fl">إلى تاريخ</label><input type="date" class="finp" id="rp-to" onchange="buildReport()"></div>
+              </div>
             </div>
           </div>
-          <div class="sc" style="margin-top:14px">
-            <div class="sc-hd">📍 إنجاز التتبع حسب المحابس</div>
-            <div id="rp-track-progress"></div>
+          <!-- ── تبويبات التقارير ── -->
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;border-bottom:2px solid var(--bd);padding-bottom:0">
+            <button class="rp-tab-btn active" id="rp-tab-main"    onclick="switchRpTab('main')"    style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--grn);color:#fff">📊 الملخص العام</button>
+            <button class="rp-tab-btn"        id="rp-tab-spread"  onclick="switchRpTab('spread')"  style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">🦠 انتشار الآفات</button>
+            <button class="rp-tab-btn"        id="rp-tab-compare" onclick="switchRpTab('compare')" style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">🔄 مقارنة الدورات</button>
+            <button class="rp-tab-btn"        id="rp-tab-perf"    onclick="switchRpTab('perf')"    style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">👷 أداء الفاحصين</button>
+            <button class="rp-tab-btn"        id="rp-tab-cycle"   onclick="switchRpTab('cycle')"   style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">⏱ كفاءة الدورات</button>
+            <button class="rp-tab-btn"        id="rp-tab-crit"    onclick="switchRpTab('crit')"    style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">⚠️ محابس حرجة متكررة</button>
+            <button class="rp-tab-btn"        id="rp-tab-pest"    onclick="switchRpTab('pest')"    style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">💊 فاعلية المبيدات</button>
+            <button class="rp-tab-btn"        id="rp-tab-track"   onclick="switchRpTab('track')"   style="padding:8px 14px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-size:.8rem;font-weight:600;background:var(--gbg);color:var(--tx)">📍 إنجاز التتبع</button>
+          </div>
+          <!-- ── محتوى التبويبات ── -->
+          <div id="rp-panel-main">
+            <div class="cg">
+              <div class="cc"><div class="cc-title">درجات الإصابة</div><div class="cw"><canvas id="rp-c1"></canvas></div></div>
+              <div class="cc"><div class="cc-title">التشخيصات</div><div class="cw"><canvas id="rp-c2"></canvas></div></div>
+            </div>
+            <div class="sg">
+              <div class="sc"><div class="sc-hd">📊 الملخص</div><div id="rp-sum"></div></div>
+              <div class="sc"><div class="sc-hd">🚨 الإصابات الحرجة</div><div id="rp-crit" style="max-height:260px;overflow-y:auto"></div></div>
+            </div>
+          </div>
+          <div id="rp-panel-spread"  style="display:none"><div id="rp-spread-body"></div></div>
+          <div id="rp-panel-compare" style="display:none"><div id="rp-compare-body"></div></div>
+          <div id="rp-panel-perf"    style="display:none"><div id="rp-perf-body"></div></div>
+          <div id="rp-panel-cycle"   style="display:none"><div id="rp-cycle-body"></div></div>
+          <div id="rp-panel-crit"    style="display:none"><div id="rp-critvalves-body"></div></div>
+          <div id="rp-panel-pest"    style="display:none"><div id="rp-pest-body"></div></div>
+          <div id="rp-panel-track"   style="display:none">
+            <div class="sc" style="margin-top:4px">
+              <div class="sc-hd">📍 إنجاز التتبع حسب المحابس</div>
+              <div id="rp-track-progress"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -6944,6 +6953,1014 @@
       buildReport();
     }
 
+
+    // ══════════════════════════════════════════════════════════════
+    // REPORT EXPORT — Excel / Word / PDF
+    // ══════════════════════════════════════════════════════════════
+
+
+    // ══════════════════════════════════════════════════════════════
+    // REPORT TABS — switchRpTab + 7 report renderers
+    // ══════════════════════════════════════════════════════════════
+
+    var _currentRpTab = 'main';
+
+    function switchRpTab(tab) {
+      _currentRpTab = tab;
+      var tabs = ['main','spread','compare','perf','cycle','crit','pest','track'];
+      tabs.forEach(function(t) {
+        var btn = document.getElementById('rp-tab-' + t);
+        var pnl = document.getElementById('rp-panel-' + t);
+        var isActive = t === tab;
+        if (btn) {
+          btn.style.background = isActive ? 'var(--grn)' : 'var(--gbg)';
+          btn.style.color      = isActive ? '#fff'       : 'var(--tx)';
+        }
+        if (pnl) pnl.style.display = isActive ? '' : 'none';
+      });
+      renderCurrentRpTab();
+    }
+
+    function renderCurrentRpTab() {
+      var t = _currentRpTab;
+      if (t === 'spread')  renderRpSpread();
+      if (t === 'compare') renderRpCompare();
+      if (t === 'perf')    renderRpPerf();
+      if (t === 'cycle')   renderRpCycleEff();
+      if (t === 'crit')    renderRpCritValves();
+      if (t === 'pest')    renderRpPesticide();
+      // main و track يتعملوا من buildReport
+    }
+
+    // ── مساعد مشترك: فلاتر التقرير الحالية ──
+    function _rpFilters() {
+      return {
+        sc:  linahSelectValues('rp-sc'),
+        cy:  linahSelectValues('rp-cycle'),
+        dg:  linahSelectValues('rp-dg'),
+        sv:  linahSelectValues('rp-sv'),
+        fr:  (document.getElementById('rp-fr')||{}).value||'',
+        to:  (document.getElementById('rp-to')||{}).value||''
+      };
+    }
+    function _rpFilter(r, f) {
+      if (f.sc.length && f.sc.indexOf(linahNormalizeSector(r.sector)) < 0) return false;
+      if (f.cy.length && f.cy.indexOf(r.cycle) < 0) return false;
+      if (f.dg.length && f.dg.indexOf(r.diagnosis) < 0) return false;
+      if (f.sv.length && f.sv.indexOf(r.severity) < 0) return false;
+      if (f.fr && (r.inspection_date||r.date||'') < f.fr) return false;
+      if (f.to && (r.inspection_date||r.date||'') > f.to) return false;
+      return true;
+    }
+    function _rpNoData(el) {
+      el.innerHTML = '<div class="empty"><div class="empty-ico">📭</div><div>لا توجد بيانات تطابق الفلاتر الحالية</div></div>';
+    }
+    function _rpColor(i) {
+      var palette = ['#2e7d32','#1565c0','#e65100','#6a1b9a','#00695c','#c62828','#f9a825','#0277bd','#558b2f','#4527a0'];
+      return palette[i % palette.length];
+    }
+    function _pct(n, d) { return d ? (n/d*100).toFixed(1)+'%' : '0%'; }
+    function _bar(pct, color) {
+      var w = Math.min(100, parseFloat(pct)||0);
+      return '<div style="height:8px;background:var(--bd);border-radius:4px;overflow:hidden;flex:1">' +
+             '<div style="height:100%;width:'+w+'%;background:'+color+';transition:width .4s"></div></div>';
+    }
+    function _tblHdr(cols) {
+      return '<thead><tr style="background:var(--grn);color:#fff">' +
+             cols.map(function(c){ return '<th style="padding:7px 10px;text-align:right;white-space:nowrap">'+c+'</th>'; }).join('') +
+             '</tr></thead>';
+    }
+    function _tbl(hdr, body, note) {
+      return '<div style="overflow-x:auto;margin-top:8px">' +
+             '<table style="width:100%;border-collapse:collapse;font-size:.8rem">' +
+             _tblHdr(hdr) + '<tbody>' + body + '</tbody></table>' +
+             (note ? '<div style="font-size:.73rem;color:var(--tx2);margin-top:4px">'+note+'</div>' : '') +
+             '</div>';
+    }
+
+    // ════════════════════════════════════════════════════
+    // ١. انتشار الآفات
+    // ════════════════════════════════════════════════════
+    function renderRpSpread() {
+      var el = document.getElementById('rp-spread-body');
+      if (!el) return;
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      if (!rows.length) { _rpNoData(el); return; }
+
+      // مقياس الانتشار حسب القطاع
+      var bySec = {};
+      rows.forEach(function(r) {
+        var sec = linahNormalizeSector(r.sector);
+        if (!bySec[sec]) bySec[sec] = { total:0, infected:0, diag:{}, sev:{ حرجة:0, متوسطة:0, منخفضة:0 } };
+        bySec[sec].total++;
+        if (r.diagnosis && r.diagnosis !== '(فارغ)' && r.diagnosis !== 'سليم') {
+          bySec[sec].infected++;
+          bySec[sec].diag[r.diagnosis] = (bySec[sec].diag[r.diagnosis]||0)+1;
+        }
+        if (r.severity) bySec[sec].sev[r.severity] = (bySec[sec].sev[r.severity]||0)+1;
+      });
+
+      // ── إضافة عدد النخيل لكل قطاع كمقام صحيح ──
+      Object.keys(bySec).forEach(function(sec) {
+        bySec[sec].palms = getPalmCount(sec) || 0;
+      });
+
+      // ترتيب تنازلي حسب نسبة الإصابة الحقيقية
+      var secs = Object.keys(bySec).sort(function(a,b){
+        var da = bySec[a], db = bySec[b];
+        var ra = (da.palms||da.total) ? da.infected/(da.palms||da.total) : 0;
+        var rb = (db.palms||db.total) ? db.infected/(db.palms||db.total) : 0;
+        return rb - ra;
+      });
+
+      // أكثر التشخيصات انتشاراً
+      var diagAll = {};
+      rows.forEach(function(r){ if(r.diagnosis && r.diagnosis!=='(فارغ)' && r.diagnosis!=='سليم') diagAll[r.diagnosis]=(diagAll[r.diagnosis]||0)+1; });
+      var topDiag = Object.keys(diagAll).sort(function(a,b){ return diagAll[b]-diagAll[a]; }).slice(0,8);
+
+      var tableBody = secs.map(function(sec, idx) {
+        var d = bySec[sec];
+        // المقام: عدد النخيل المسجل إن وجد، وإلا عدد سجلات الفحص مع تنبيه
+        var denom = d.palms || d.total;
+        var hasPalmData = !!d.palms;
+        var rate = denom ? d.infected/denom : 0;
+        var color = rate >= .5 ? '#c62828' : rate >= .25 ? '#e65100' : '#2e7d32';
+        var topD = Object.keys(d.diag).sort(function(a,b){ return d.diag[b]-d.diag[a]; }).slice(0,2).join('، ') || 'لا إصابات';
+        var denomLabel = hasPalmData
+          ? '<span title="من إجمالي '+d.palms+' نخلة" style="color:var(--tx2);font-size:.7rem"> /'+d.palms+'</span>'
+          : '<span title="لا يوجد إجمالي نخيل مسجل — النسبة من سجلات الفحص فقط" style="color:#f9a825;font-size:.7rem"> ⚠️</span>';
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600">'+sec+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+d.total+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+(hasPalmData?'<b>'+d.palms+'</b>':'<span style="color:#aaa">—</span>')+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:'+color+';font-weight:700">'+d.infected+'</td>' +
+          '<td style="padding:6px 10px"><div style="display:flex;align-items:center;gap:6px">'+
+            _bar(_pct(d.infected,denom), color)+
+            '<span style="color:'+color+';font-weight:700;min-width:42px">'+_pct(d.infected,denom)+'</span>'+denomLabel+'</div></td>' +
+          '<td style="padding:6px 10px;color:var(--red);font-weight:600">'+d.sev['حرجة']+'</td>' +
+          '<td style="padding:6px 10px;color:var(--ora)">'+d.sev['متوسطة']+'</td>' +
+          '<td style="padding:6px 10px;font-size:.75rem;color:var(--tx2)">'+topD+'</td>' +
+          '</tr>';
+      }).join('');
+
+      // جدول التشخيصات الأكثر انتشاراً
+      var diagBody = topDiag.map(function(diag, idx) {
+        var cnt = diagAll[diag];
+        var pct = _pct(cnt, rows.length);
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600">'+diag+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+cnt+'</b></td>' +
+          '<td style="padding:6px 10px"><div style="display:flex;align-items:center;gap:6px">'+
+            _bar(pct, _rpColor(idx))+
+            '<span style="min-width:42px">'+pct+'</span></div></td>' +
+          '</tr>';
+      }).join('');
+
+      var totalInfected = rows.filter(function(r){ return r.diagnosis && r.diagnosis!=='(فارغ)' && r.diagnosis!=='سليم'; }).length;
+      el.innerHTML =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+        _statCard('إجمالي الفحوصات', rows.length, '#1565c0') +
+        _statCard('نخيل مصاب', totalInfected, '#c62828') +
+        _statCard('نسبة الإصابة', _pct(totalInfected, getPalmTotal()||rows.length), '#e65100') +
+        _statCard('قطاعات مفحوصة', secs.length, '#2e7d32') +
+        '</div>' +
+        '<div class="sc" style="margin-bottom:12px"><div class="sc-hd">🗺️ الانتشار حسب القطاع</div>' +
+        _tbl(['القطاع','فحوصات','إجمالي النخيل','مصاب','نسبة الإصابة','حرجة','متوسطة','أبرز التشخيصات'], tableBody, '⚠️ = لا يوجد إجمالي نخيل مسجل — النسبة محسوبة من سجلات الفحص فقط') +
+        '</div>' +
+        '<div class="sc"><div class="sc-hd">🦠 التشخيصات الأكثر انتشاراً</div>' +
+        _tbl(['التشخيص','عدد الحالات','النسبة'], diagBody) +
+        '</div>';
+    }
+
+    // ════════════════════════════════════════════════════
+    // ٢. مقارنة الدورات
+    // ════════════════════════════════════════════════════
+    function renderRpCompare() {
+      var el = document.getElementById('rp-compare-body');
+      if (!el) return;
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      if (!rows.length) { _rpNoData(el); return; }
+
+      var byCycle = {};
+      rows.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!byCycle[cyc]) byCycle[cyc] = { total:0, infected:0, diag:{}, sev:{ حرجة:0, متوسطة:0, منخفضة:0 }, dates:{}, secs:{} };
+        byCycle[cyc].total++;
+        byCycle[cyc].secs[linahNormalizeSector(r.sector)] = 1;
+        if (r.inspection_date) byCycle[cyc].dates[r.inspection_date] = 1;
+        if (r.diagnosis && r.diagnosis !== '(فارغ)' && r.diagnosis !== 'سليم') {
+          byCycle[cyc].infected++;
+          byCycle[cyc].diag[r.diagnosis] = (byCycle[cyc].diag[r.diagnosis]||0)+1;
+        }
+        if (r.severity) byCycle[cyc].sev[r.severity] = (byCycle[cyc].sev[r.severity]||0)+1;
+      });
+
+      var cycles = Object.keys(byCycle).sort();
+      var tableBody = cycles.map(function(cyc, idx) {
+        var d = byCycle[cyc];
+        var rate = d.total ? d.infected/d.total : 0;
+        var color = rate >= .5 ? '#c62828' : rate >= .25 ? '#e65100' : '#2e7d32';
+        var dates = Object.keys(d.dates).sort();
+        var span = dates.length >= 2
+          ? (Math.round((new Date(dates[dates.length-1])-new Date(dates[0]))/86400000)+1)+' يوم'
+          : dates.length===1 ? 'يوم واحد' : '—';
+        var topD = Object.keys(d.diag).sort(function(a,b){ return d.diag[b]-d.diag[a]; }).slice(0,2).join('، ') || '—';
+        // تغيير نسبي مقارنة بالدورة السابقة
+        var prevCyc = cycles[idx-1];
+        var trend = '';
+        if (prevCyc) {
+          var prevRate = byCycle[prevCyc].total ? byCycle[prevCyc].infected/byCycle[prevCyc].total : 0;
+          var diff = ((rate - prevRate)*100).toFixed(1);
+          trend = diff > 0 ? '<span style="color:#c62828">▲'+diff+'%</span>' : diff < 0 ? '<span style="color:#2e7d32">▼'+Math.abs(diff)+'%</span>' : '<span style="color:#666">—</span>';
+        }
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600;color:var(--blu)">'+cyc+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+d.total+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+Object.keys(d.secs).length+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+dates.length+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+span+'</td>' +
+          '<td style="padding:6px 10px"><div style="display:flex;align-items:center;gap:5px">'+_bar(_pct(d.infected,d.total),color)+'<span style="color:'+color+';font-weight:700;min-width:42px">'+_pct(d.infected,d.total)+'</span></div></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+trend+'</td>' +
+          '<td style="padding:6px 10px;color:var(--red);font-weight:600;text-align:center">'+d.sev['حرجة']+'</td>' +
+          '<td style="padding:6px 10px;font-size:.75rem;color:var(--tx2)">'+topD+'</td>' +
+          '</tr>';
+      }).join('');
+
+      // تشخيصات جديدة ظهرت في كل دورة
+      var seenDiag = {};
+      var newDiagRows = cycles.map(function(cyc) {
+        var d = byCycle[cyc];
+        var newOnes = Object.keys(d.diag).filter(function(dg){ return !seenDiag[dg]; });
+        newOnes.forEach(function(dg){ seenDiag[dg] = cyc; });
+        return newOnes.length
+          ? '<tr><td style="padding:5px 10px;color:var(--blu);font-weight:600">'+cyc+'</td>' +
+            '<td style="padding:5px 10px;color:var(--red)">'+newOnes.join('، ')+'</td></tr>'
+          : '';
+      }).join('');
+
+      el.innerHTML =
+        '<div class="sc" style="margin-bottom:12px"><div class="sc-hd">🔄 مقارنة الدورات</div>' +
+        _tbl(['الدورة','فحوصات','قطاعات','أيام فحص','مدة الدورة','نسبة الإصابة','التغيير','حرجة','أبرز التشخيصات'], tableBody,
+          '* التغيير = تغير نسبة الإصابة مقارنة بالدورة السابقة') +
+        '</div>' +
+        (newDiagRows ? '<div class="sc"><div class="sc-hd">🆕 تشخيصات ظهرت لأول مرة في كل دورة</div>' +
+        _tbl(['الدورة','تشخيصات جديدة'], newDiagRows) + '</div>' : '');
+    }
+
+    // ════════════════════════════════════════════════════
+    // ٣. أداء الفاحصين
+    // ════════════════════════════════════════════════════
+    function renderRpPerf() {
+      var el = document.getElementById('rp-perf-body');
+      if (!el) return;
+
+      // ── دايماً حمّل سجلات التتبع من Firebase أول مرة ──
+      if (!window._rpPerfTrackLoaded && !window._rpPerfLoading) {
+        window._rpPerfLoading = true;
+        el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx2)">⏳ جاري تحميل سجلات التتبع...</div>';
+        fetch(FB_TRACKING_URL)
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function(data){
+            window._rpPerfTrackRecs = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+            window._rpPerfTrackLoaded = true;
+            window._rpPerfLoading = false;
+            console.log('[Perf] Firebase tracking loaded:', window._rpPerfTrackRecs.length);
+            renderRpPerf();
+          })
+          .catch(function(err){
+            console.warn('[Perf] Firebase tracking error:', err);
+            window._rpPerfTrackRecs = [];
+            window._rpPerfTrackLoaded = true;
+            window._rpPerfLoading = false;
+            renderRpPerf();
+          });
+        return;
+      }
+      window._rpPerfLoading = false;
+
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      if (!rows.length) { _rpNoData(el); return; }
+
+      // ── أيام العمل من سجلات التتبع ──
+      // كل تاريخ مختلف ظهر فيه اسم الفاحص/المشرف = يوم عمل واحد
+      var allTrackRecs = (window._rpPerfTrackRecs || []).filter(function(r){
+        if (f.cy.length && r.cycle && f.cy.indexOf(r.cycle) < 0) return false;
+        if (f.sc.length && f.sc.indexOf(linahNormalizeSector(r.sector)) < 0) return false;
+        if (f.fr && r.date && r.date < f.fr) return false;
+        if (f.to && r.date && r.date > f.to) return false;
+        return true;
+      });
+
+      // inspTrackDates[اسم الفاحص] = { 'YYYY-MM-DD': 1, ... }
+      var inspTrackDates = {};
+      // supTrackDates[اسم المشرف] = { 'YYYY-MM-DD': 1, ... }
+      var supTrackDatesMap = {};
+
+      allTrackRecs.forEach(function(r) {
+        if (!r.date) return;
+
+        // ── المشرف ──
+        if (r.supervisor) {
+          if (!supTrackDatesMap[r.supervisor]) supTrackDatesMap[r.supervisor] = {};
+          supTrackDatesMap[r.supervisor][r.date] = 1;
+        }
+
+        // ── الفاحصون: ندعم كل الهياكل الممكنة ──
+        var trackers = r.trackers;
+        if (trackers && !Array.isArray(trackers)) trackers = Object.values(trackers);
+
+        var foundFromTrackers = false;
+        if (trackers && trackers.length) {
+          trackers.forEach(function(t) {
+            if (!t || !t.inspector) return;
+            foundFromTrackers = true;
+            if (!inspTrackDates[t.inspector]) inspTrackDates[t.inspector] = {};
+            inspTrackDates[t.inspector][r.date] = 1;
+          });
+        }
+
+        if (!foundFromTrackers) {
+          var inspStr = r.inspector || r['inspectors'] || r['اسم الفاحص'] || r['الفاحص'] || r['الفاحصون'] || '';
+          if (inspStr) {
+            inspStr.split(/[,،\n]+/).forEach(function(name) {
+              name = name.trim();
+              if (!name) return;
+              if (!inspTrackDates[name]) inspTrackDates[name] = {};
+              inspTrackDates[name][r.date] = 1;
+            });
+          }
+        }
+      });
+
+      console.log('[Perf] تتبع:', allTrackRecs.length,
+        '| فاحصون:', Object.keys(inspTrackDates).length,
+        '| مشرفون:', Object.keys(supTrackDatesMap).length);
+
+      var byInsp = {};
+      rows.forEach(function(r) {
+        var insp = r.inspector || '(غير محدد)';
+        if (!byInsp[insp]) byInsp[insp] = { total:0, infected:0, crit:0, cycles:{}, secs:{}, inspDates:{} };
+        byInsp[insp].total++;
+        byInsp[insp].secs[linahNormalizeSector(r.sector)] = 1;
+        if (r.cycle) byInsp[insp].cycles[r.cycle] = 1;
+        if (r.inspection_date) byInsp[insp].inspDates[r.inspection_date] = 1;
+        if (r.diagnosis && r.diagnosis !== '(فارغ)' && r.diagnosis !== 'سليم') byInsp[insp].infected++;
+        if (r.severity === 'حرجة') byInsp[insp].crit++;
+      });
+
+      var insps = Object.keys(byInsp).sort(function(a,b){ return byInsp[b].total - byInsp[a].total; });
+      var maxTotal = byInsp[insps[0]] ? byInsp[insps[0]].total : 1;
+
+      var tableBody = insps.map(function(insp, idx) {
+        var d = byInsp[insp];
+        // أيام العمل: من سجلات التتبع إن وجدت، وإلا من سجلات الفحص
+        var trackDays = inspTrackDates[insp] ? Object.keys(inspTrackDates[insp]).length : 0;
+        var inspDays  = Object.keys(d.inspDates).length;
+        var workDays  = trackDays || inspDays;
+        var workDaysSrc = trackDays
+          ? '<span title="من سجلات التتبع" style="color:var(--grn)">'+trackDays+'</span>'
+          : '<span title="من سجلات الفحص — سجلات التتبع غير متوفرة لهذا الفاحص" style="color:#f9a825">'+inspDays+' ⚠️</span>';
+
+        // فحوصات/يوم من سجلات الفحص ÷ أيام العمل
+        var productivity = workDays ? (d.total / workDays).toFixed(1) : '—';
+
+        // نسبة الإصابة = نخيل مصاب ÷ إجمالي النخيل في قطاعاته
+        var palmDenom = Object.keys(d.secs).reduce(function(sum, sec) {
+          return sum + (getPalmCount(sec) || 0);
+        }, 0);
+        var infRate = palmDenom
+          ? _pct(d.infected, palmDenom)
+          : '<span title="لا يوجد إجمالي نخيل — محسوبة من سجلات الفحص" style="color:#f9a825">'+_pct(d.infected, d.total)+' ⚠️</span>';
+
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600">'+insp+'</td>' +
+          '<td style="padding:6px 10px"><div style="display:flex;align-items:center;gap:6px">'+
+            _bar(_pct(d.total, maxTotal), _rpColor(idx))+
+            '<b style="min-width:30px">'+d.total+'</b></div></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+Object.keys(d.cycles).length+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+workDaysSrc+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;font-weight:600;color:var(--blu)">'+productivity+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#e65100;font-weight:600">'+d.infected+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#c62828;font-weight:700">'+d.crit+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+infRate+'</td>' +
+          '</tr>';
+      }).join('');
+
+      // supTrackDatesMap محسوبة أعلاه من allTrackRecs
+
+      var bySup = {};
+      rows.forEach(function(r) {
+        var sup = r.supervisor || '(غير محدد)';
+        if (!bySup[sup]) bySup[sup] = { total:0, infected:0, inspectors:{}, secs:{}, inspDates:{} };
+        bySup[sup].total++;
+        bySup[sup].secs[linahNormalizeSector(r.sector)] = 1;
+        if (r.inspection_date) bySup[sup].inspDates[r.inspection_date] = 1;
+        if (r.diagnosis && r.diagnosis !== '(فارغ)' && r.diagnosis !== 'سليم') bySup[sup].infected++;
+        if (r.inspector) bySup[sup].inspectors[r.inspector] = 1;
+      });
+      var sups = Object.keys(bySup).sort(function(a,b){ return bySup[b].total - bySup[a].total; });
+      var supBody = sups.map(function(sup, idx) {
+        var d = bySup[sup];
+        var trackDays = supTrackDatesMap[sup] ? Object.keys(supTrackDatesMap[sup]).length : 0;
+        var inspDays  = Object.keys(d.inspDates).length;
+        var workDays  = trackDays || inspDays;
+        var palmDenom = Object.keys(d.secs).reduce(function(sum,sec){ return sum+(getPalmCount(sec)||0); }, 0);
+        var infRate   = palmDenom ? _pct(d.infected, palmDenom) : _pct(d.infected, d.total)+' ⚠️';
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600">'+sup+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+d.total+'</b></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+Object.keys(d.inspectors).length+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+(trackDays?'<span style="color:var(--grn)">'+trackDays+'</span>':'<span style="color:#f9a825">'+inspDays+' ⚠️</span>')+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#e65100">'+d.infected+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+infRate+'</td>' +
+          '</tr>';
+      }).join('');
+
+      el.innerHTML =
+        '<div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:9px 13px;margin-bottom:10px;font-size:.8rem;color:#1565c0">' +
+        '📌 أيام العمل <span style="color:var(--grn);font-weight:600">باللون الأخضر</span> = من سجلات التتبع (الأدق). ' +
+        '<span style="color:#f9a825;font-weight:600">⚠️</span> = من سجلات الفحص فقط (لم يُسجَّل تتبع لهذا الفاحص). ' +
+        'نسبة الإصابة محسوبة من إجمالي النخيل المسجّل في القطاعات المفحوصة.</div>' +
+        '<div class="sc" style="margin-bottom:12px"><div class="sc-hd">👷 أداء الفاحصين</div>' +
+        _tbl(['الفاحص','إجمالي الفحوصات','دورات','أيام عمل','فحوصات/يوم','نخيل مصاب','حرجة','نسبة الإصابة'], tableBody) +
+        '</div>' +
+        '<div class="sc"><div class="sc-hd">👔 أداء المشرفين</div>' +
+        _tbl(['المشرف','إجمالي الفحوصات','عدد الفاحصين','أيام عمل','نخيل مصاب','نسبة الإصابة'], supBody) +
+        '</div>';
+    }
+
+    // ════════════════════════════════════════════════════
+    // ٤. كفاءة دورات الفحص
+    // ════════════════════════════════════════════════════
+    function renderRpCycleEff() {
+      var el = document.getElementById('rp-cycle-body');
+      if (!el) return;
+
+      // حمّل سجلات التتبع من Firebase لو مش متحملة
+      if (!window._rpPerfTrackLoaded && !window._rpCycleLoading) {
+        window._rpCycleLoading = true;
+        el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx2)">⏳ جاري تحميل سجلات التتبع...</div>';
+        fetch(FB_TRACKING_URL)
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+          .then(function(data){
+            window._rpPerfTrackRecs = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+            window._rpPerfTrackLoaded = true;
+            window._rpCycleLoading = false;
+            renderRpCycleEff();
+          })
+          .catch(function(err){
+            window._rpPerfTrackRecs = [];
+            window._rpPerfTrackLoaded = true;
+            window._rpCycleLoading = false;
+            renderRpCycleEff();
+          });
+        return;
+      }
+      window._rpCycleLoading = false;
+
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      var tRows = (window._rpPerfTrackRecs || []).filter(function(r){
+        if (f.cy.length && r.cycle && f.cy.indexOf(r.cycle) < 0) return false;
+        if (f.sc.length && f.sc.indexOf(linahNormalizeSector(r.sector)) < 0) return false;
+        if (f.fr && r.date && r.date < f.fr) return false;
+        if (f.to && r.date && r.date > f.to) return false;
+        return true;
+      });
+      if (!rows.length && !tRows.length) { _rpNoData(el); return; }
+
+      // من سجلات الفحص
+      var cycInsp = {};
+      rows.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!cycInsp[cyc]) cycInsp[cyc] = { inspRecs:0, dates:{}, secs:{}, inspectors:{} };
+        cycInsp[cyc].inspRecs++;
+        if (r.inspection_date) cycInsp[cyc].dates[r.inspection_date] = 1;
+        cycInsp[cyc].secs[linahNormalizeSector(r.sector)] = 1;
+        if (r.inspector) cycInsp[cyc].inspectors[r.inspector] = 1;
+      });
+
+      // من سجلات التتبع
+      var cycTrack = {};
+      tRows.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!cycTrack[cyc]) cycTrack[cyc] = { valves:0, dates:{}, workers:{} };
+        cycTrack[cyc].valves++;
+        if (r.date) cycTrack[cyc].dates[r.date] = 1;
+        // دعم trackers[].inspector (جديد) و string (قديم)
+        var trs = r.trackers;
+        if (trs && !Array.isArray(trs)) trs = Object.values(trs);
+        var foundW = false;
+        (trs||[]).forEach(function(t){ if(t && t.inspector){ cycTrack[cyc].workers[t.inspector]=1; foundW=true; } });
+        if (!foundW) {
+          var iStr = r.inspector || r['الفاحص'] || r['الفاحصون'] || '';
+          if (iStr) iStr.split(/[,،\n]+/).forEach(function(n){ n=n.trim(); if(n) cycTrack[cyc].workers[n]=1; });
+        }
+        if (r.supervisor) cycTrack[cyc].workers['م:'+r.supervisor] = 1;
+      });
+
+      var allCycles = {};
+      Object.keys(cycInsp).forEach(function(c){ allCycles[c]=1; });
+      Object.keys(cycTrack).forEach(function(c){ allCycles[c]=1; });
+      var cycles = Object.keys(allCycles).sort();
+
+      var tableBody = cycles.map(function(cyc, idx) {
+        var ci = cycInsp[cyc]  || { inspRecs:0, dates:{}, secs:{}, inspectors:{} };
+        var ct = cycTrack[cyc] || { valves:0, dates:{}, workers:{} };
+        var allDates = Object.assign({}, ci.dates, ct.dates);
+        var dateArr = Object.keys(allDates).sort();
+        var span = dateArr.length >= 2
+          ? (Math.round((new Date(dateArr[dateArr.length-1])-new Date(dateArr[0]))/86400000)+1)
+          : dateArr.length===1 ? 1 : 0;
+        var dayCount = dateArr.length;
+        var workers = Object.keys(Object.assign({}, ci.inspectors, ct.workers)).length;
+        var avgPerDay = dayCount ? (ci.inspRecs/dayCount).toFixed(1) : '—';
+        var avgPerWorker = workers ? (ci.inspRecs/workers).toFixed(1) : '—';
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600;color:var(--blu)">'+cyc+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+dateArr[0]||'—'+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+dateArr[dateArr.length-1]||'—'+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+span+'</b></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+dayCount+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+workers+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+ci.inspRecs+'</b></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+ct.valves+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:var(--grn);font-weight:600">'+avgPerDay+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:var(--blu)">'+avgPerWorker+'</td>' +
+          '</tr>';
+      }).join('');
+
+      el.innerHTML =
+        '<div class="sc"><div class="sc-hd">⏱ كفاءة دورات الفحص</div>' +
+        _tbl(['الدورة','تاريخ البدء','تاريخ الانتهاء','المدة (يوم)','أيام فحص فعلية','عدد العمال','فحوصات','محابس تتبع','فحوصات/يوم','فحوصات/عامل'], tableBody,
+          'المدة = عدد الأيام من أول يوم فحص لآخر يوم فحص في الدورة') +
+        '</div>';
+    }
+
+    // ════════════════════════════════════════════════════
+    // ٥. المحابس الحرجة المتكررة
+    // ════════════════════════════════════════════════════
+    function renderRpCritValves() {
+      var el = document.getElementById('rp-critvalves-body');
+      if (!el) return;
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      if (!rows.length) { _rpNoData(el); return; }
+
+      // تجميع حسب قطاع+محبس
+      var byValve = {};
+      rows.forEach(function(r) {
+        var key = linahNormalizeSector(r.sector)+'|'+linahNormValve(r.pen);
+        if (!byValve[key]) byValve[key] = { sec: linahNormalizeSector(r.sector), pen: linahNormValve(r.pen), recs:[] };
+        byValve[key].recs.push(r);
+      });
+
+      // فرز: أعلى عدد إصابات حرجة أو متكررة
+      var valves = Object.keys(byValve).map(function(k) {
+        var v = byValve[k];
+        var crit   = v.recs.filter(function(r){ return r.severity==='حرجة'; }).length;
+        var infected = v.recs.filter(function(r){ return r.diagnosis&&r.diagnosis!=='(فارغ)'&&r.diagnosis!=='سليم'; }).length;
+        var cycles = {};
+        v.recs.forEach(function(r){ if(r.cycle) cycles[r.cycle]=1; });
+        return { sec:v.sec, pen:v.pen, total:v.recs.length, crit:crit, infected:infected,
+                 cyclesCount:Object.keys(cycles).length, cycles:Object.keys(cycles).sort(),
+                 lastDate: v.recs.map(function(r){ return r.inspection_date||''; }).sort().pop()||'' };
+      }).filter(function(v){ return v.crit >= 2 || (v.infected >= 2 && v.cyclesCount >= 2); })
+        .sort(function(a,b){ return (b.crit-a.crit)||(b.infected-a.infected); });
+
+      if (!valves.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">✅</div><div>لا توجد محابس بإصابات حرجة متكررة في الفلاتر الحالية</div></div>';
+        return;
+      }
+
+      var tableBody = valves.map(function(v, idx) {
+        var alert = v.crit >= 3 ? '🔴' : v.crit >= 2 ? '🟠' : '🟡';
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;text-align:center">'+alert+'</td>' +
+          '<td style="padding:6px 10px;font-weight:600">قطاع '+v.sec+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+v.pen+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+v.total+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#c62828;font-weight:700">'+v.crit+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#e65100">'+v.infected+'</td>' +
+          '<td style="padding:6px 10px;text-align:center">'+v.cyclesCount+'</td>' +
+          '<td style="padding:6px 10px;font-size:.73rem;color:var(--tx2)">'+v.cycles.join('، ')+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;font-size:.75rem">'+v.lastDate+'</td>' +
+          '</tr>';
+      }).join('');
+
+      el.innerHTML =
+        '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:.82rem;color:#856404">' +
+        '⚠️ يعرض هذا التقرير المحابس التي سُجل فيها إصابة حرجة مرتين أو أكثر، أو إصابة في دورتين مختلفتين. تستدعي متابعة خاصة.</div>' +
+        '<div class="sc"><div class="sc-hd">⚠️ محابس الإنذار المبكر ('+valves.length+' محبس)</div>' +
+        _tbl(['','القطاع','المحبس','إجمالي فحوصات','حرجة','مصاب','دورات','الدورات','آخر فحص'], tableBody) +
+        '</div>';
+    }
+
+    // ════════════════════════════════════════════════════
+    // ٦. فاعلية المبيدات
+    // ════════════════════════════════════════════════════
+    function renderRpPesticide() {
+      var el = document.getElementById('rp-pest-body');
+      if (!el) return;
+      var f = _rpFilters();
+      var rows = DB.filter(function(r){ return _rpFilter(r, f); });
+      if (!rows.length) { _rpNoData(el); return; }
+
+      // محابس عولجت بمبيد في دورة ما
+      var treated = {}; // key: sec|pen -> { pesticide, treatCycle, treatDate }
+      rows.forEach(function(r) {
+        if (!r.pesticide || r.pesticide === '(فارغ)' || r.pesticide === 'لا يوجد') return;
+        var key = linahNormalizeSector(r.sector)+'|'+linahNormValve(r.pen);
+        if (!treated[key]) treated[key] = [];
+        treated[key].push({ pesticide:r.pesticide, cycle:r.cycle, date:r.inspection_date, severity:r.severity });
+      });
+
+      // لكل محبس معالج، ابحث عن سجلاته بعد العلاج
+      var pestStats = {};
+      Object.keys(treated).forEach(function(key) {
+        treated[key].forEach(function(t) {
+          if (!pestStats[t.pesticide]) pestStats[t.pesticide] = { treated:0, improved:0, same:0, worse:0 };
+          pestStats[t.pesticide].treated++;
+          // ابحث عن أقرب سجل فحص لنفس المحبس في دورة لاحقة
+          var parts = key.split('|');
+          var sec = parts[0], pen = parts[1];
+          var nextRec = rows.filter(function(r2) {
+            return linahNormalizeSector(r2.sector)===sec &&
+                   linahNormValve(r2.pen)===pen &&
+                   r2.inspection_date > t.date;
+          }).sort(function(a,b){ return a.inspection_date > b.inspection_date ? 1:-1; })[0];
+          if (nextRec) {
+            var sevOrder = { 'حرجة':3, 'متوسطة':2, 'منخفضة':1, '':0, 'سليم':0 };
+            var before = sevOrder[t.severity||''] || 0;
+            var after  = sevOrder[nextRec.severity||''] || 0;
+            if (after < before) pestStats[t.pesticide].improved++;
+            else if (after === before) pestStats[t.pesticide].same++;
+            else pestStats[t.pesticide].worse++;
+          }
+        });
+      });
+
+      var pests = Object.keys(pestStats).sort(function(a,b){ return pestStats[b].treated - pestStats[a].treated; });
+      if (!pests.length) {
+        el.innerHTML = '<div class="empty"><div class="empty-ico">💊</div><div>لا توجد سجلات استخدام مبيدات في البيانات المحددة</div></div>';
+        return;
+      }
+
+      var tableBody = pests.map(function(pest, idx) {
+        var d = pestStats[pest];
+        var withFollowup = d.improved + d.same + d.worse;
+        var improvedPct = withFollowup ? _pct(d.improved, withFollowup) : '—';
+        return '<tr style="'+(idx%2?'background:var(--gbg)':'')+'">' +
+          '<td style="padding:6px 10px;font-weight:600">'+pest+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+d.treated+'</b></td>' +
+          '<td style="padding:6px 10px;text-align:center">'+withFollowup+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#2e7d32;font-weight:600">'+d.improved+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#e65100">'+d.same+'</td>' +
+          '<td style="padding:6px 10px;text-align:center;color:#c62828">'+d.worse+'</td>' +
+          '<td style="padding:6px 10px;text-align:center"><b>'+improvedPct+'</b></td>' +
+          '</tr>';
+      }).join('');
+
+      el.innerHTML =
+        '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:.82rem;color:#1b5e20">' +
+        '📌 المقارنة تعتمد على درجة الإصابة قبل وبعد استخدام المبيد في أقرب دورة فحص لاحقة. قراءة مبدئية وليست إحصائية دقيقة.</div>' +
+        '<div class="sc"><div class="sc-hd">💊 فاعلية المبيدات المستخدمة</div>' +
+        _tbl(['المبيد','مرات الاستخدام','محابس متابَعة','تحسّنت','ثابتة','تفاقمت','نسبة التحسن'], tableBody) +
+        '</div>';
+    }
+
+    // ── مساعد: بطاقة إحصاء ──
+    function _statCard(label, value, color) {
+      return '<div style="flex:1;min-width:100px;background:#fff;border:1px solid var(--bd);border-radius:8px;padding:12px;text-align:center;box-shadow:var(--sh)">' +
+             '<div style="font-size:1.4rem;font-weight:800;color:'+(color||'var(--grn)')+'">'+value+'</div>' +
+             '<div style="font-size:.75rem;color:var(--tx2);margin-top:3px">'+label+'</div></div>';
+    }
+
+    // ══════════════════════════════════════════════════════════════
+
+    function toggleRpExportMenu() {
+      var menu = document.getElementById('rp-export-menu');
+      if (!menu) return;
+      var show = menu.style.display === 'none';
+      menu.style.display = show ? 'block' : 'none';
+      if (show) {
+        function closeMenu(e) {
+          var wrap = document.getElementById('rp-export-wrap');
+          if (wrap && !wrap.contains(e.target)) {
+            menu.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+          }
+        }
+        setTimeout(function(){ document.addEventListener('click', closeMenu); }, 50);
+      }
+    }
+
+    // ── مساعد: جمع بيانات التقرير الحالي ──
+    function _gatherReportData() {
+      var sc    = linahSelectValues('rp-sc');
+      var cy    = linahSelectValues('rp-cycle');
+      var dg    = linahSelectValues('rp-dg');
+      var sv    = linahSelectValues('rp-sv');
+      var fr    = (document.getElementById('rp-fr') || {}).value || '';
+      var to    = (document.getElementById('rp-to') || {}).value || '';
+      var rows  = repD || [];   // repD هو المتغير العالمي اللي buildReport بيملاه
+
+      var filters = [];
+      if (cy.length) filters.push('الدورة: ' + cy.join('، '));
+      if (sc.length) filters.push('القطاع: ' + sc.join('، '));
+      if (dg.length) filters.push('التشخيص: ' + dg.join('، '));
+      if (sv.length) filters.push('درجة الإصابة: ' + sv.join('، '));
+      if (fr)        filters.push('من: ' + fr);
+      if (to)        filters.push('إلى: ' + to);
+
+      var trackingRecs = getTrackingRecords().filter(function(r) {
+        if (cy.length && r.cycle && cy.indexOf(r.cycle) < 0) return false;
+        if (sc.length && sc.indexOf(linahNormalizeSector(r.sector)) < 0) return false;
+        if (fr && r.date && r.date < fr) return false;
+        if (to && r.date && r.date > to) return false;
+        return true;
+      });
+
+      return { rows: rows, filters: filters, trackingRecs: trackingRecs, fr: fr, to: to, cy: cy, sc: sc };
+    }
+
+    // ────────────────────────────────────────────────
+    // 1. EXCEL EXPORT
+    // ────────────────────────────────────────────────
+    function exportReportExcel() {
+      toggleRpExportMenu();
+      var d = _gatherReportData();
+      if (!window.XLSX) { toast('جاري تحميل مكتبة Excel...', 'i'); return; }
+
+      var wb = XLSX.utils.book_new();
+
+      // ── ورقة 1: سجلات الفحص ──
+      var inspRows = d.rows.map(function(r) {
+        return {
+          'التاريخ':        r.inspection_date || '',
+          'الدورة':         r.cycle           || '',
+          'القطاع':         r.sector          || '',
+          'المحبس':         r.pen             || '',
+          'التشخيص':        r.diagnosis       || '',
+          'درجة الإصابة':   r.severity        || '',
+          'المبيد':         r.pesticide       || '',
+          'الفاحص':         r.inspector       || '',
+          'المشرف':         r.supervisor      || '',
+          'ملاحظات':        r.notes           || ''
+        };
+      });
+      var ws1 = XLSX.utils.json_to_sheet(inspRows.length ? inspRows : [{'لا توجد بيانات': ''}]);
+      XLSX.utils.book_append_sheet(wb, ws1, 'سجلات الفحص');
+
+      // ── ورقة 2: سجلات التتبع ──
+      var trRows = [];
+      d.trackingRecs.forEach(function(r) {
+        (r.trackers || [{}]).forEach(function(t) {
+          trRows.push({
+            'التاريخ':    r.date       || '',
+            'الدورة':     r.cycle      || '',
+            'القطاع':     r.sector     || '',
+            'المحبس':     r.valve      || '',
+            'المشرف':     r.supervisor || '',
+            'الفاحص':     t.inspector  || '',
+            'خط فردي':    t.odd        || '',
+            'خط زوجي':    t.even       || '',
+            'ملاحظات':    r.notes      || ''
+          });
+        });
+      });
+      var ws2 = XLSX.utils.json_to_sheet(trRows.length ? trRows : [{'لا توجد بيانات': ''}]);
+      XLSX.utils.book_append_sheet(wb, ws2, 'سجلات التتبع');
+
+      // ── ورقة 3: ملخص الدورات ──
+      var cycleMap = {};
+      d.trackingRecs.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!cycleMap[cyc]) cycleMap[cyc] = { sectors: {}, dates: {}, workers: 0 };
+        cycleMap[cyc].sectors[linahNormalizeSector(r.sector)] = 1;
+        if (r.date) cycleMap[cyc].dates[r.date] = 1;
+        cycleMap[cyc].workers += (r.trackers || []).length;
+      });
+      var sumRows = Object.keys(cycleMap).sort().map(function(cyc) {
+        var info = cycleMap[cyc];
+        var days = Object.keys(info.dates).sort();
+        return {
+          'الدورة':         cyc,
+          'عدد القطاعات':   Object.keys(info.sectors).length,
+          'أيام الفحص':     days.length,
+          'أول يوم':        days[0]  || '',
+          'آخر يوم':        days[days.length - 1] || '',
+          'عدد سجلات التتبع': cycleMap[cyc].workers
+        };
+      });
+      var ws3 = XLSX.utils.json_to_sheet(sumRows.length ? sumRows : [{'لا توجد بيانات': ''}]);
+      XLSX.utils.book_append_sheet(wb, ws3, 'ملخص الدورات');
+
+      var fname = 'تقرير_لينة_' + (new Date().toISOString().slice(0,10)) + '.xlsx';
+      XLSX.writeFile(wb, fname);
+      toast('✅ تم تصدير Excel', 's');
+    }
+
+    // ────────────────────────────────────────────────
+    // 2. WORD EXPORT
+    // ────────────────────────────────────────────────
+    function exportReportWord() {
+      toggleRpExportMenu();
+      if (typeof docx === 'undefined') {
+        toast('⏳ جاري تحميل مكتبة Word...', 'i');
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
+        s.onload = function(){ exportReportWord(); };
+        document.head.appendChild(s);
+        return;
+      }
+      var d = _gatherReportData();
+      var { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun,
+            HeadingLevel, AlignmentType, WidthType, BorderStyle, ShadingType } = docx;
+
+      var titleText = 'تقرير فحص نخيل — نظام لينة';
+      var dateText  = 'تاريخ الإصدار: ' + new Date().toLocaleDateString('ar-EG');
+      var filterText = d.filters.length ? 'الفلاتر المطبقة: ' + d.filters.join(' | ') : 'بدون فلاتر';
+
+      // ── مساعد: صف جدول ──
+      function makeRow(cells, isHeader) {
+        return new TableRow({
+          tableHeader: !!isHeader,
+          children: cells.map(function(txt) {
+            return new TableCell({
+              shading: isHeader ? { type: ShadingType.CLEAR, fill: '1a6b3a' } : undefined,
+              children: [new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({
+                  text: String(txt || '—'),
+                  bold: !!isHeader,
+                  color: isHeader ? 'FFFFFF' : '333333',
+                  size: isHeader ? 20 : 18
+                })]
+              })]
+            });
+          })
+        });
+      }
+
+      // ── جدول سجلات الفحص ──
+      var inspHeaders = ['التاريخ','الدورة','القطاع','المحبس','التشخيص','درجة الإصابة','الفاحص','المشرف'];
+      var inspTableRows = [makeRow(inspHeaders, true)].concat(
+        d.rows.slice(0, 500).map(function(r) {
+          return makeRow([r.inspection_date, r.cycle, r.sector, r.pen, r.diagnosis, r.severity, r.inspector, r.supervisor], false);
+        })
+      );
+      var inspTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: inspTableRows
+      });
+
+      // ── جدول ملخص الدورات ──
+      var cycleMap = {};
+      d.trackingRecs.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!cycleMap[cyc]) cycleMap[cyc] = { sectors: {}, dates: {} };
+        cycleMap[cyc].sectors[linahNormalizeSector(r.sector)] = 1;
+        if (r.date) cycleMap[cyc].dates[r.date] = 1;
+      });
+      var cycHeaders = ['الدورة','عدد القطاعات','أيام الفحص','من','إلى'];
+      var cycTableRows = [makeRow(cycHeaders, true)].concat(
+        Object.keys(cycleMap).sort().map(function(cyc) {
+          var info = cycleMap[cyc];
+          var days = Object.keys(info.dates).sort();
+          return makeRow([cyc, Object.keys(info.sectors).length, days.length, days[0]||'—', days[days.length-1]||'—'], false);
+        })
+      );
+      var cycTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: cycTableRows.length > 1 ? cycTableRows : [makeRow(['لا توجد بيانات تتبع'], true)]
+      });
+
+      var doc = new Document({
+        styles: { paragraphStyles: [] },
+        sections: [{
+          properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+          children: [
+            new Paragraph({ text: titleText, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: titleText, bold: true, size: 32, color: '1a6b3a' })] }),
+            new Paragraph({ children: [new TextRun({ text: dateText, size: 20, color: '666666' })], alignment: AlignmentType.CENTER }),
+            new Paragraph({ children: [new TextRun({ text: filterText, size: 20, color: '444444' })], alignment: AlignmentType.RIGHT }),
+            new Paragraph({ text: '' }),
+            new Paragraph({ children: [new TextRun({ text: 'إجمالي السجلات: ' + d.rows.length + ' سجل فحص | ' + d.trackingRecs.length + ' سجل تتبع', bold: true, size: 22 })], alignment: AlignmentType.RIGHT }),
+            new Paragraph({ text: '' }),
+            new Paragraph({ children: [new TextRun({ text: '١. سجلات الفحص', bold: true, size: 26, color: '1a6b3a' })], alignment: AlignmentType.RIGHT }),
+            new Paragraph({ text: '' }),
+            inspTable,
+            new Paragraph({ text: '' }),
+            new Paragraph({ children: [new TextRun({ text: '٢. ملخص دورات الفحص', bold: true, size: 26, color: '1a6b3a' })], alignment: AlignmentType.RIGHT }),
+            new Paragraph({ text: '' }),
+            cycTable,
+          ]
+        }]
+      });
+
+      Packer.toBlob(doc).then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = 'تقرير_لينة_' + new Date().toISOString().slice(0,10) + '.docx';
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+        toast('✅ تم تصدير Word', 's');
+      }).catch(function(e){ toast('خطأ في إنشاء Word: ' + e.message, 'e'); });
+    }
+
+    // ────────────────────────────────────────────────
+    // 3. PDF EXPORT (Print-based with custom CSS)
+    // ────────────────────────────────────────────────
+    function exportReportPDF() {
+      toggleRpExportMenu();
+      var d = _gatherReportData();
+
+      var filterText = d.filters.length ? d.filters.join(' | ') : 'بدون فلاتر';
+
+      // ── بناء جدول الفحص HTML ──
+      var inspHdr = ['التاريخ','الدورة','القطاع','المحبس','التشخيص','درجة الإصابة','الفاحص','المشرف'];
+      var inspBody = d.rows.slice(0, 1000).map(function(r) {
+        var sev = r.severity || '';
+        var sevColor = sev === 'حرجة' ? '#c62828' : sev === 'متوسطة' ? '#e65100' : sev === 'منخفضة' ? '#1565c0' : '#333';
+        return '<tr>' +
+          [r.inspection_date||'', r.cycle||'', r.sector||'', r.pen||'', r.diagnosis||'',
+           '<span style="color:'+sevColor+';font-weight:600">'+sev+'</span>',
+           r.inspector||'', r.supervisor||''].map(function(v){ return '<td>'+v+'</td>'; }).join('') +
+          '</tr>';
+      }).join('');
+
+      // ── بناء جدول ملخص الدورات ──
+      var cycleMap = {};
+      d.trackingRecs.forEach(function(r) {
+        var cyc = r.cycle || '(بدون دورة)';
+        if (!cycleMap[cyc]) cycleMap[cyc] = { sectors:{}, dates:{}, workers:{} };
+        cycleMap[cyc].sectors[linahNormalizeSector(r.sector)] = 1;
+        if (r.date) cycleMap[cyc].dates[r.date] = 1;
+        (r.trackers||[]).forEach(function(t){ if(t.inspector) cycleMap[cyc].workers[t.inspector]=1; });
+      });
+      var cycBody = Object.keys(cycleMap).sort().map(function(cyc) {
+        var info = cycleMap[cyc];
+        var days = Object.keys(info.dates).sort();
+        var span = days.length >= 2
+          ? (Math.round((new Date(days[days.length-1]) - new Date(days[0]))/86400000)+1) + ' يوم' : 'يوم واحد';
+        return '<tr><td>' + cyc + '</td><td>' + Object.keys(info.sectors).length + '</td><td>' +
+          days.length + '</td><td>' + span + '</td><td>' + Object.keys(info.workers).length + '</td></tr>';
+      }).join('');
+
+      var html = '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">' +
+        '<title>تقرير لينة</title>' +
+        '<style>' +
+        '@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap");' +
+        'body{font-family:Cairo,Arial,sans-serif;padding:20px;color:#222;font-size:11pt;direction:rtl}' +
+        'h1{color:#1a6b3a;text-align:center;margin-bottom:4px;font-size:18pt}' +
+        '.meta{text-align:center;color:#666;font-size:9pt;margin-bottom:16px}' +
+        '.filter-bar{background:#f0f9f4;border:1px solid #b2dfcc;border-radius:6px;padding:8px 12px;margin-bottom:16px;font-size:9pt;color:#1a5c35}' +
+        '.summary-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}' +
+        '.sum-card{flex:1;min-width:100px;background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:10px;text-align:center}' +
+        '.sum-card .num{font-size:20pt;font-weight:700;color:#1a6b3a}' +
+        '.sum-card .lbl{font-size:8.5pt;color:#666;margin-top:2px}' +
+        'h2{color:#1a6b3a;border-bottom:2px solid #b2dfcc;padding-bottom:4px;margin-top:24px;font-size:13pt}' +
+        'table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9pt}' +
+        'thead tr{background:#1a6b3a;color:#fff}' +
+        'thead th{padding:7px 8px;text-align:right;font-weight:600}' +
+        'tbody tr:nth-child(even){background:#f9f9f9}' +
+        'tbody td{padding:5px 8px;border-bottom:1px solid #eee}' +
+        '.page-break{page-break-before:always}' +
+        '@media print{body{padding:10px}.no-print{display:none}@page{margin:15mm;size:A4}}' +
+        '</style></head><body>' +
+        '<h1>📊 تقرير فحص نخيل — نظام لينة IIS</h1>' +
+        '<div class="meta">تاريخ الإصدار: ' + new Date().toLocaleDateString('ar-EG') + '</div>' +
+        '<div class="filter-bar">🔍 ' + filterText + '</div>' +
+        '<div class="summary-grid">' +
+        '<div class="sum-card"><div class="num">' + d.rows.length + '</div><div class="lbl">سجل فحص</div></div>' +
+        '<div class="sum-card"><div class="num">' + d.trackingRecs.length + '</div><div class="lbl">سجل تتبع</div></div>' +
+        '<div class="sum-card"><div class="num">' + Object.keys(cycleMap).length + '</div><div class="lbl">دورة فحص</div></div>' +
+        '</div>' +
+        '<h2>١. ملخص دورات الفحص</h2>' +
+        '<table><thead><tr><th>الدورة</th><th>عدد القطاعات</th><th>أيام الفحص</th><th>مدة الدورة</th><th>عدد العمال</th></tr></thead>' +
+        '<tbody>' + (cycBody || '<tr><td colspan="5">لا توجد بيانات تتبع</td></tr>') + '</tbody></table>' +
+        '<h2 class="page-break">٢. سجلات الفحص (' + d.rows.length + ' سجل)</h2>' +
+        '<table><thead><tr>' + inspHdr.map(function(h){ return '<th>' + h + '</th>'; }).join('') + '</tr></thead>' +
+        '<tbody>' + (inspBody || '<tr><td colspan="8">لا توجد بيانات</td></tr>') + '</tbody></table>' +
+        '<script>window.onload=function(){window.print();}<\/script>' +
+        '</body></html>';
+
+      var win = window.open('', '_blank', 'width=900,height=700');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+        toast('✅ فُتحت نافذة الطباعة — اختر "حفظ كـ PDF"', 's');
+      } else {
+        toast('⚠️ السماح بالنوافذ المنبثقة لتصدير PDF', 'w');
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+
     function buildReport() {
       var sc = linahSelectValues('rp-sc');
       var cy = linahSelectValues('rp-cycle');
@@ -6997,6 +8014,10 @@
       }
       var trProg = document.getElementById('rp-track-progress');
       if (trProg) trProg.innerHTML = trackingDone.html;
+      // ── تحديث التبويب النشط الآخر (غير main وtrack) ──
+      if (_currentRpTab && _currentRpTab !== 'main' && _currentRpTab !== 'track') {
+        renderCurrentRpTab();
+      }
       if (!trackingDone.trackingRows && typeof loadTrackingFromFirebase === 'function' && !window._rpTrackingReportLoaded && !window._rpTrackingReportLoading) {
         window._rpTrackingReportLoading = true;
         loadTrackingFromFirebase(function () {
